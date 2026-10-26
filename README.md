@@ -1,167 +1,195 @@
-# Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation
+<h1 align="center">Tokens-per-Parameter Coverage Is Critical for<br/>Robust LLM Scaling Law Extrapolation</h1>
 
-Code for the NeurIPS 2026 paper by Joshua Shay Kricheli\*, Alexander Lawrence Reid\*,
-Soumajyoti Sarkar, Venkata Gandikota and Paulo Shakarian (\* equal contribution).
+<p align="center">
+<a href="https://arxiv.org/abs/2605.08541"><img alt="arXiv" src="https://img.shields.io/badge/arXiv-2605.08541-b31b1b.svg"></a>
+<a href="https://neurips.cc/Conferences/2026"><img alt="NeurIPS 2026" src="https://img.shields.io/badge/NeurIPS-2026-6f42c1.svg"></a>
+<a href="https://huggingface.co/datasets/TPPIsCriticalFor/colinear_scaling_models"><img alt="Data on HuggingFace" src="https://img.shields.io/badge/data-HuggingFace-ffcc4d.svg"></a>
+<a href="LICENSE"><img alt="License: GPL-2.0" src="https://img.shields.io/badge/license-GPL--2.0-blue.svg"></a>
+<a href="https://www.python.org/"><img alt="Python 3.10" src="https://img.shields.io/badge/python-3.10-blue.svg"></a>
+<a href="https://docs.astral.sh/uv/"><img alt="uv" src="https://img.shields.io/badge/managed%20with-uv-261230.svg"></a>
+<a href="https://github.com/astral-sh/ruff"><img alt="Ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json"></a>
+</p>
 
-Scaling laws are fitted on small models and used to predict large ones. The paper shows that
-whether such a fit extrapolates depends on the tokens-per-parameter (TPP) ratios D/N that the
-training runs cover. A collinear (CO) design, which grows N and D together along a few TPP
-rays, leaves the law's parameters badly conditioned and extrapolates poorly; a non-collinear
-(NC) design with the same number of runs spread over TPP extrapolates well. We test this on
-about 1,900 trained models over five corpora and four scaling laws (Kaplan, Chinchilla,
-Droppo-Elibol, and a repeated-data law called Parametric-Epoch in the code), and give a
+<p align="center">
+Joshua Shay Kricheli*, Alexander Lawrence Reid*, Soumajyoti Sarkar, Venkata Gandikota, Paulo Shakarian<br/>
+<sub>* equal contribution</sub>
+</p>
+
+---
+
+- [What is this?](#what-is-this)
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [Code structure](#code-structure)
+- [Full pipeline](#full-pipeline)
+- [Paper item to command](#paper-item-to-command)
+- [Known behaviours](#known-behaviours)
+- [Testing](#testing)
+- [Citing](#citing)
+- [Acknowledgments](#acknowledgments)
+
+# What is this?
+
+The code and data pipeline behind the NeurIPS 2026 paper
+[_Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation_](https://arxiv.org/abs/2605.08541).
+
+Scaling laws are fitted on small models and used to predict large ones. Whether such a fit
+extrapolates depends on the tokens-per-parameter (TPP) ratios D/N that the training runs cover:
+
+| Collinear (CO) design | Non-collinear (NC) design |
+| --- | --- |
+| Grows N and D together along a few TPP rays | Spreads the same number of runs over TPP |
+| The law's parameters are badly conditioned | The parameters are well conditioned |
+| Extrapolates poorly | Wins 97.3% of the extrapolation comparisons |
+
+We test this on about 1,900 trained models over five corpora and four scaling laws, and give a
 criterion, computable before any training, that tells which designs are well conditioned.
 
-Everything the analysis needs is public on HuggingFace and needs no account:
+All the data the analysis needs is public on HuggingFace and needs no account:
 
-- [`TPPIsCriticalFor/colinear_scaling_models`](https://huggingface.co/datasets/TPPIsCriticalFor/colinear_scaling_models):
-  training metrics, checkpoints and pre-computed analysis outputs of every trained model;
-- [`TPPIsCritical/public_checkpoint_reanalysis`](https://huggingface.co/datasets/TPPIsCritical/public_checkpoint_reanalysis):
-  normalised run tables of the ten published studies re-analysed in the camera-ready version.
+- [`TPPIsCriticalFor/colinear_scaling_models`](https://huggingface.co/datasets/TPPIsCriticalFor/colinear_scaling_models) -
+  training metrics, checkpoints and pre-computed outputs of every trained model;
+- [`TPPIsCritical/public_checkpoint_reanalysis`](https://huggingface.co/datasets/TPPIsCritical/public_checkpoint_reanalysis) -
+  run tables of the ten published studies re-analysed in the camera-ready version.
 
-## Install
+# Installation
 
-[uv](https://docs.astral.sh/uv/) is the only tool needed. One environment (Python 3.10,
-pinned in `uv.lock`) runs the analysis, the training and the tests.
+[uv](https://docs.astral.sh/uv/) is the only tool needed. One locked environment (Python 3.10)
+runs the analysis, the training and the tests.
 
 ```bash
-git clone <this repository> tpp-coverage && cd tpp-coverage
-uv sync                 # add --extra notebooks for Jupyter
-uv run pytest -n auto   # a few minutes; downloads ~2 MB from HuggingFace
+git clone https://github.com/lab-v2/tpp-coverage.git && cd tpp-coverage
+uv sync
 ```
 
-## Quick start: reproduce the analysis from public data (no GPU)
+# Quick start
+
+Reproduce the paper's tables and figures from the public data, no GPU:
 
 ```bash
-# Pre-computed results and loss tables
 uv run python src/tpp_analysis/download_and_extract.py --results-only
-
-# Main tables (win rates, R2/RMSE summary) and seed-variance data
 uv run python src/tpp_analysis/run_analysis.py all --data-dir extracted_losses/ --n-workers "$(nproc)"
 uv run python src/tpp_analysis/generate_appendix_tables.py full_coverage_results/
-
-# BF16 replication and the BigTPP preliminary
-uv run python src/tpp_analysis/run_special_analysis.py --data-dir extracted_losses/ --n-workers "$(nproc)"
-uv run python src/tpp_analysis/generate_appendix_tables.py special_results/ --special
-uv run python src/tpp_analysis/run_prelim_bigtpp.py --data-dir extracted_losses/ --n-workers "$(nproc)"
-
-# Figure 1 and the 16 appendix triptychs
 uv run bash src/tpp_analysis/visualizations/run_appendix_triptychs.sh
 ```
 
-`run_analysis.py` and `run_special_analysis.py` render from the downloaded per-combination
-parquets. Add `--clear-cache` to refit every law from the loss tables instead; the refit
-reproduces the released parquets bit for bit (the 30-seed main fit takes about 20 minutes on
-50 cores).
+Add `--clear-cache` to `run_analysis.py` to refit every law from the loss tables; the refit
+reproduces the released results bit for bit (about 20 minutes on 50 cores).
 
-## Full pipeline
+# Code structure
+
+```mermaid
+flowchart LR
+    A["dataset_downloaders/<br/>5 corpora"] --> B["generate_jobs/<br/>(N, D) grid"]
+    B --> C["training_models/<br/>train ~1,900 LLMs"]
+    C --> D["get_results/<br/>per-epoch losses"]
+    D --> E["scaling_laws/<br/>fit 4 laws"]
+    E --> F["run_analysis.py<br/>tables and figures"]
+    H[("HuggingFace<br/>public data")] -.-> D
+    H -.-> F
+    G["camera_ready/<br/>design classification,<br/>public-checkpoint reanalysis"]
+```
+
+| Folder | What it holds |
+| --- | --- |
+| [`src/training_models/`](src/training_models) | Llama-style models and the distributed trainer |
+| [`src/tpp_analysis/`](src/tpp_analysis) | Corpora, job generation, loss extraction, law fitting, tables and figures |
+| [`camera_ready/`](camera_ready) | The two analyses added for the camera-ready version |
+| [`docs/`](docs) | Step-by-step guides |
+| [`tests/`](tests) | The pytest suite |
+
+A one-line map of every top-level folder is in [docs/STRUCTURE.md](docs/STRUCTURE.md).
+
+# Full pipeline
 
 | Step | Command | Guide |
 |---|---|---|
-| 1. Download and tokenize the five corpora | `src/tpp_analysis/dataset_downloaders/download_{wiki,cosmopedia,redpj,peso,c4}.py` | [TRAINING](docs/TRAINING.md#1-corpora) |
-| 2. Write the SLURM jobs of the trained (N, D) grid | `src/tpp_analysis/generate_jobs/generate_jobs.py --dataset <name>` | [TRAINING](docs/TRAINING.md#2-the-trained-grid) |
+| 1. Download and tokenize the corpora | `src/tpp_analysis/dataset_downloaders/download_{wiki,cosmopedia,redpj,peso,c4}.py` | [TRAINING](docs/TRAINING.md#1-corpora) |
+| 2. Write the jobs of the trained grid | `src/tpp_analysis/generate_jobs/generate_jobs.py --dataset <name>` | [TRAINING](docs/TRAINING.md#2-the-trained-grid) |
 | 3. Train (4 GPUs per run) | `src/training_models/training/dist_trainer_main.py` under `torchrun` | [TRAINING](docs/TRAINING.md#3-training-one-run) |
 | 4. Extract per-epoch losses | `src/tpp_analysis/get_results/get_results.py from_local <metrics dir>` | [DOWNLOADING](docs/DOWNLOADING.md) |
-| 5. Fit the four laws, write the tables | `run_analysis.py`, `run_special_analysis.py`, `run_prelim_bigtpp.py`, `generate_appendix_tables.py` | [ANALYSIS](docs/ANALYSIS.md) |
-| 6. Subset enumeration (Regime-A table) | `dispatch_seeds.sh`, `aggregate_seed_runs.py`, `per_law_winrate_ci.py` | [ANALYSIS](docs/ANALYSIS.md#regime-a-subset-enumeration) |
-| 7. Figures | `run_appendix_triptychs.sh`, notebooks in `visualizations/` | [VISUALIZATIONS](docs/VISUALIZATIONS.md) |
+| 5. Fit the laws, write the tables | `run_analysis.py`, `run_special_analysis.py`, `run_prelim_bigtpp.py`, `generate_appendix_tables.py` | [ANALYSIS](docs/ANALYSIS.md) |
+| 6. Figures | `run_appendix_triptychs.sh`, notebooks in `visualizations/` | [VISUALIZATIONS](docs/VISUALIZATIONS.md) |
 
-Steps 1-3 need GPUs (about 3,600 GPU-hours for every run). Step 4 can start from the released
-metrics instead: `download_and_extract.py` without `--results-only` downloads them (~0.5 GB)
-and extracts the loss tables.
+Steps 1-3 need GPUs (about 3,600 GPU-hours in total). Step 4 can start from the released
+metrics: `download_and_extract.py` without `--results-only` fetches them (~0.5 GB).
 
-## Paper item to command
+# Paper item to command
 
-Script paths are under `src/tpp_analysis/` unless noted; outputs land at the repository root.
+Paths are under `src/tpp_analysis/` unless noted.
 
-| Paper item | Command | Output |
-|---|---|---|
-| Main win-rate table (97.3% NC wins) and R2/RMSE summary | `run_analysis.py full_coverage` | `full_coverage_results/table_winrate.tex`, `table_summary_full.tex` |
-| Appendix per-dataset metrics, fitted parameters, win rate by holdout split | `run_analysis.py full_coverage`, then `generate_appendix_tables.py full_coverage_results/` | `appendix_full_metrics.tex`, `appendix_fitted_params.tex`, `table_winrate_by_holdout_split_appendix.tex` |
-| BF16 tables (98.7%) and BF16 appendix tables | `run_special_analysis.py`, then `generate_appendix_tables.py special_results/ --special` | `special_results/*.tex` |
-| BigTPP preliminary (63.3%) | `run_prelim_bigtpp.py` | `prelim_bigtpp_results/table_winrate_bigtpp_prelim.tex` |
-| Regime-A subset table | `dispatch_seeds.sh 0 21`, `subset_analysis/aggregate_seed_runs.py`, `subset_analysis/per_law_winrate_ci.py --mode first` | `subset_bbox_seeds/aggregated/per_law_ci.csv`, `per_dataset_ci.csv` |
-| Figure 1 (surface, convergence, isoFLOP) and appendix triptychs | `run_analysis.py seed_variance`, then `visualizations/run_appendix_triptychs.sh` | `full_coverage_results/figures/` |
-| BF16 figures | `visualizations/special_viz_notebook_bf16_v2.ipynb` | `special_results/` |
-| Model-architecture table, n-layers figure | `utility/audit_architectures.py` over the checkpoints, then `utility/plot_nlayers_distribution.py --mode runs` | CSV, PDF |
-| n-gram KL table | `ngram_analysis/run_all_ngrams.sh` (needs the tokenized corpora) | `ngram_results/` |
-| Published-design classification (24 designs: 13 Regime B, 11 Regime A) | `camera_ready/grid_classification/classify.py` | `camera_ready/grid_classification/results.csv` |
-| Public-checkpoint reanalysis (40% extra error per tenfold shortfall; V_K ratio 3.7 at >= 1B) | `camera_ready/public_checkpoints/` | [its README](camera_ready/public_checkpoints/README.md) |
+| Paper item | Command |
+|---|---|
+| Main win-rate table (97.3%) and R2/RMSE summary | `run_analysis.py full_coverage` |
+| Appendix metrics, fitted parameters, win rate by holdout split | `generate_appendix_tables.py full_coverage_results/` |
+| BF16 replication (98.7%) | `run_special_analysis.py`, then `generate_appendix_tables.py special_results/ --special` |
+| BigTPP preliminary (63.3%) | `run_prelim_bigtpp.py` |
+| Regime-A subset table | `dispatch_seeds.sh 0 21`, `subset_analysis/aggregate_seed_runs.py`, `subset_analysis/per_law_winrate_ci.py --mode first` |
+| Figure 1 and appendix triptychs | `run_analysis.py seed_variance`, then `visualizations/run_appendix_triptychs.sh` |
+| Architecture table, n-layers figure | `utility/audit_architectures.py`, then `utility/plot_nlayers_distribution.py --mode runs` |
+| n-gram KL table | `ngram_analysis/run_all_ngrams.sh` (needs the tokenized corpora) |
+| Published-design classification (24 designs) | `camera_ready/grid_classification/classify.py` |
+| Public-checkpoint reanalysis | [`camera_ready/public_checkpoints/`](camera_ready/public_checkpoints/README.md) |
 
-The theorems, the severity, eigenvalue-expansion and R_min tables, and the compute and storage
-totals are analytic or arithmetic; no script computes them.
+The theorems and the severity, eigenvalue and R_min tables are analytic; no script computes them.
 
-## Structure
-
-- `src/` - the code that trained the models and analysed them (details below)
-- `camera_ready/` - the two analyses added for the camera-ready version
-- `docs/` - guides for downloading, training, analysis, figures and the n-gram check
-- `tests/` - the pytest suite (`uv run pytest -n auto`)
-
-```
-src/
-  training_models/              Llama-style models, DDP trainer, checkpoints
-    training/dist_trainer_main.py       training entry point
-    training/verify_reproducibility.py  compare a retrained run with the released one
-  tpp_analysis/                 everything after training
-    dataset_downloaders/        download and tokenize the five corpora
-    generate_jobs/              SLURM scripts for the trained (N, D) designs
-    get_results/                per-epoch losses from training metrics
-    download_and_extract.py     public metrics and results from HuggingFace
-    scaling_laws/               law forms, fitting, holdout splits, tables
-    run_analysis.py             main fits (full coverage, seed variance)
-    run_special_analysis.py     BF16 replication
-    run_prelim_bigtpp.py        BigTPP preliminary
-    generate_appendix_tables.py appendix tables from the fitted parquets
-    subset_analysis/            Regime-A subset enumeration and its intervals
-    incremental_coverage/       coverage-fraction analysis used by the figures
-    ngram_analysis/             corpus n-gram KL divergence
-    visualizations/             figure scripts and notebooks
-    utility/                    architecture audit and n-layers plot
-camera_ready/
-  grid_classification/          Proposition-2 classification of 24 published designs
-  public_checkpoints/           reanalysis of ten public training-loss releases
-docs/                           DOWNLOADING, TRAINING, ANALYSIS, VISUALIZATIONS, NGRAM_KL
-tests/                          pytest suite: uv run pytest -n auto
-```
-
-## Known behaviours
+# Known behaviours
 
 These produced the paper's numbers and are kept as they are.
 
-- **Padding is scored.** The trainer's cross-entropy has no `ignore_index`, so label positions
-  that are padding count toward the loss. Reported losses are means over all 256 positions of
-  each sequence, padding included, and sit below the loss on real tokens.
-- **BF16 is a full cast.** `--use-bf16` calls `model.bfloat16()`: weights, activations and
-  optimizer state are BF16 and only the logits are cast to FP32 for the loss. There is no
-  autocast and no FP32 master copy, although the paper calls this mixed precision.
-- **Four GPUs per run.** The global batch is 96 sequences per GPU, and the learning-rate
-  schedule follows the per-GPU step count, so another GPU count trains a different model.
-- **One training seed.** Every model is trained with seed 42. The seeds of the analysis are
-  fitting restarts and subset draws.
-- **Released runs.** C4 has 321 of its 324 runs (three NC holdout runs are missing). Epoch-1
-  checkpoints exist for only part of the runs; epoch-2 and epoch-3 checkpoints for all.
-- **RedPajama split.** The RedPajama downloader shuffles shards, not individual documents.
-- **Regime-A intervals.** `per_law_winrate_ci.py` reports a seed bootstrap (5,000 resamples),
-  and its kappa_target grid is a fixed `np.logspace`.
-- **`seed_variance_all.parquet`** has no dataset/law/mode columns; use the per-combination
-  parquets beside it.
+- **Padding is scored.** The cross-entropy has no `ignore_index`, so padded positions count
+  toward the loss, and reported losses sit below the loss on real tokens.
+- **BF16 is a full cast.** `--use-bf16` calls `model.bfloat16()`; only the logits are cast to
+  FP32 for the loss.
+- **Four GPUs per run.** The learning-rate schedule follows the per-GPU step count, so another
+  GPU count trains a different model.
+- **One training seed.** Every model is trained with seed 42; the analysis seeds are fitting
+  restarts and subset draws.
+- **Released runs.** C4 has 321 of its 324 runs; epoch-2 and epoch-3 checkpoints exist for all.
 
-## Citation
+# Testing
+
+```bash
+uv run pytest -n auto
+```
+
+The suite checks law recovery on synthetic data, every entry point's `--help`, that the
+released tables are reproduced, the camera-ready analyses, the README's links, images,
+diagram and citation, and that no private host or path is in the tree.
+
+# Citing
+
+If you use this work, please cite our paper:
 
 ```bibtex
-@inproceedings{kricheli2026tpp,
-  title     = {Tokens-per-Parameter Coverage Is Critical for Robust {LLM} Scaling Law Extrapolation},
-  author    = {Kricheli, Joshua Shay and Reid, Alexander Lawrence and Sarkar, Soumajyoti and
-               Gandikota, Venkata and Shakarian, Paulo},
-  booktitle = {Advances in Neural Information Processing Systems},
-  year      = {2026},
-  note      = {TODO: volume, pages, arXiv identifier and URL once published}
+@article{kricheli2026tpp,
+  title         = {Tokens-per-Parameter Coverage Is Critical for Robust {LLM} Scaling Law Extrapolation},
+  author        = {Kricheli, Joshua Shay and Reid, Alexander Lawrence and Sarkar, Soumajyoti and Gandikota, Venkata and Shakarian, Paulo},
+  journal       = {arXiv preprint arXiv:2605.08541},
+  year          = {2026},
+  eprint        = {2605.08541},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2605.08541},
+  note          = {Accepted to the 40th Conference on Neural Information Processing Systems (NeurIPS 2026)}
 }
 ```
 
-## Authors and license
+# Acknowledgments
 
-Joshua Shay Kricheli and Alexander Lawrence Reid contributed equally; Leibnitz Lab, Syracuse
-University. The code is released under version 2 of the GNU General Public License (`LICENSE`;
-copyright notice in `COPYRIGHT`). The datasets on HuggingFace carry their own licenses.
+This work was done at the Leibniz Lab, Department of Electrical Engineering and Computer
+Science, Syracuse University. It was funded by ARO grant W911NF-24-1-0007 and NSF ACCESS
+grant CIS230318. The code is released under the GNU General Public License v2 ([`LICENSE`](LICENSE)).
+
+<p align="center">
+  <a href="https://www.syracuse.edu/"><img alt="Syracuse University" src="images/syracuse_university.svg" height="60"></a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://ecs.syracuse.edu/academics/electrical-engineering-and-computer-science/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="images/syracuse_ecs_dark.svg">
+      <img alt="Syracuse University College of Engineering and Computer Science" src="images/syracuse_ecs.svg" height="60">
+    </picture>
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://leibniz.syracuse.edu/"><img alt="Leibniz Lab" src="images/leibniz_lab.png" height="60"></a>
+</p>

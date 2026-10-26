@@ -1,9 +1,15 @@
-# TODO(owner): add the DOI, arXiv identifier and proceedings URL once published.
 cff-version: 1.2.0
 message: "If you use this code, please cite the paper."
 title: "Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation"
 type: software
 license: GPL-2.0-only
+repository-code: "https://github.com/lab-v2/tpp-coverage"
+identifiers:
+  - type: other
+    value: "arXiv:2605.08541"
+    description: "arXiv preprint"
+  - type: url
+    value: "https://arxiv.org/abs/2605.08541"
 authors:
   - family-names: Kricheli
     given-names: Joshua Shay
