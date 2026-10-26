@@ -79,25 +79,25 @@ reproduces the released results bit for bit (about 20 minutes on 50 cores).
 # Code structure
 
 ```mermaid
-%%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 28, "rankSpacing": 46}, "themeVariables": {"fontFamily": "Inter, Segoe UI, Helvetica, sans-serif", "fontSize": "15px", "lineColor": "#8A94A6", "clusterBkg": "#FAFBFF", "clusterBorder": "#C9D1E3", "edgeLabelBackground": "#FFFFFF", "titleColor": "#0B1638"}}}%%
+%%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 50, "padding": 14}, "themeVariables": {"fontFamily": "Inter, -apple-system, Segoe UI, Helvetica, sans-serif", "fontSize": "15px", "lineColor": "#94A3B8", "clusterBkg": "transparent", "clusterBorder": "#94A3B8", "titleColor": "#94A3B8", "edgeLabelBackground": "transparent"}}}%%
 flowchart TB
-    subgraph TRAIN["🏗️ &nbsp;Train &nbsp;·&nbsp; GPUs"]
+    subgraph TRAIN["TRAIN &nbsp;·&nbsp; GPU"]
         direction LR
-        A(["📚 5 corpora<br/>dataset_downloaders/"]) --> B(["🧮 N × D grid<br/>generate_jobs/"]) --> C(["🔥 ~1,900 LLMs<br/>training_models/"])
+        A("Download<br/>5 corpora") --> B("Generate the<br/>N × D grid") --> C("Train<br/>1,900 models")
     end
-    subgraph ANALYSE["📈 &nbsp;Analyse &nbsp;·&nbsp; CPU only"]
+    subgraph ANALYSE["ANALYSE &nbsp;·&nbsp; CPU"]
         direction LR
-        D(["📉 Per-epoch losses<br/>get_results/"]) --> E(["∑ 4 scaling laws<br/>scaling_laws/"]) --> F(["📊 Tables and figures<br/>run_analysis.py"])
+        D("Extract<br/>losses") --> E("Fit 4<br/>scaling laws") --> F("Tables<br/>and figures")
     end
-    H[("🤗 HuggingFace<br/>public data")]
-    G(["🔍 Camera-ready<br/>analyses<br/>camera_ready/"])
+    H[("Public data<br/>on HuggingFace")]
+    G("Camera-ready<br/>analyses")
     TRAIN ==> ANALYSE
-    H -. "skip training" .-> ANALYSE
+    H -.-> ANALYSE
     H -.-> G
-    classDef train fill:#FFF4EC,stroke:#F76900,stroke-width:2px,color:#0B1638
-    classDef analyse fill:#EEF2FF,stroke:#2B3A8C,stroke-width:2px,color:#0B1638
-    classDef data fill:#FFF9DB,stroke:#E0A800,stroke-width:2px,color:#0B1638
-    classDef extra fill:#F1F5F9,stroke:#64748B,stroke-width:1.5px,stroke-dasharray:4 3,color:#0B1638
+    classDef train fill:#F76900,stroke:#FFB27A,stroke-width:1px,color:#FFFFFF
+    classDef analyse fill:#1F2A5C,stroke:#7C8DD6,stroke-width:1px,color:#FFFFFF
+    classDef data fill:#334155,stroke:#94A3B8,stroke-width:1px,color:#FFFFFF
+    classDef extra fill:#475569,stroke:#94A3B8,stroke-width:1px,color:#FFFFFF
     class A,B,C train
     class D,E,F analyse
     class H data

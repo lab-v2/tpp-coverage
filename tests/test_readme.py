@@ -44,14 +44,15 @@ def test_logos_of_the_three_institutions():
         assert re.search(rf'<img alt="[^"]*{alt}[^"]*" src="images/', README), alt
 
 
-def test_diagram_names_real_folders():
+def test_diagram_labels_are_plain_words():
     diagram = _block("mermaid")
     assert re.search(r"^flowchart\b", diagram, re.M)
-    folders = re.findall(r"<br/>(\w+)/\"", diagram)
-    assert len(folders) >= 5, folders
-    for folder in folders:
-        hits = [p for p in REPO.rglob(folder) if p.is_dir() and ".venv" not in p.parts]
-        assert hits, f"diagram names {folder}/, which is not in the repository"
+    labels = re.findall(r'\(\[?"([^"]+)"\]?\)|\["([^"]+)"\]', diagram)
+    labels = [a or b for a, b in labels]
+    assert len(labels) >= 8, labels
+    for label in labels:
+        assert "_" not in label and "/" not in label.replace("<br/>", ""), label
+        assert not re.search(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]", label), label
 
 
 def test_diagram_edges_only_join_declared_nodes():
