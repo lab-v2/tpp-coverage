@@ -79,21 +79,21 @@ reproduces the released results bit for bit (about 20 minutes on 50 cores).
 # Code structure
 
 ```mermaid
-%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Inter, Segoe UI, Helvetica, sans-serif", "fontSize": "15px", "primaryColor": "#FFF4EC", "primaryTextColor": "#0B1638", "primaryBorderColor": "#F76900", "lineColor": "#8A94A6", "clusterBkg": "#FAFBFF", "clusterBorder": "#C9D1E3"}}}%%
-flowchart LR
-    subgraph TRAIN["&nbsp;🏗️ Train&nbsp;"]
-        direction TB
-        A(["📚 5 corpora<br/><code>dataset_downloaders/</code>"]) --> B(["🧮 N × D grid<br/><code>generate_jobs/</code>"])
-        B --> C(["🔥 ~1,900 LLMs<br/><code>training_models/</code>"])
+%%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 28, "rankSpacing": 46}, "themeVariables": {"fontFamily": "Inter, Segoe UI, Helvetica, sans-serif", "fontSize": "15px", "lineColor": "#8A94A6", "clusterBkg": "#FAFBFF", "clusterBorder": "#C9D1E3", "edgeLabelBackground": "#FFFFFF", "titleColor": "#0B1638"}}}%%
+flowchart TB
+    subgraph TRAIN["🏗️ &nbsp;Train &nbsp;·&nbsp; GPUs"]
+        direction LR
+        A(["📚 5 corpora<br/>dataset_downloaders/"]) --> B(["🧮 N × D grid<br/>generate_jobs/"]) --> C(["🔥 ~1,900 LLMs<br/>training_models/"])
     end
-    subgraph ANALYSE["&nbsp;📈 Analyse&nbsp;"]
-        direction TB
-        D(["📉 Per-epoch losses<br/><code>get_results/</code>"]) --> E(["∑ 4 scaling laws<br/><code>scaling_laws/</code>"])
-        E --> F(["📊 Tables and figures<br/><code>run_analysis.py</code>"])
+    subgraph ANALYSE["📈 &nbsp;Analyse &nbsp;·&nbsp; CPU only"]
+        direction LR
+        D(["📉 Per-epoch losses<br/>get_results/"]) --> E(["∑ 4 scaling laws<br/>scaling_laws/"]) --> F(["📊 Tables and figures<br/>run_analysis.py"])
     end
-    C ==> D
-    H[("🤗 HuggingFace<br/>public data")] -. "no GPU needed" .-> D
-    G(["🔍 Camera-ready analyses<br/><code>camera_ready/</code>"])
+    H[("🤗 HuggingFace<br/>public data")]
+    G(["🔍 Camera-ready analyses<br/>camera_ready/"])
+    TRAIN ==> ANALYSE
+    H -. "skip training" .-> ANALYSE
+    H -.-> G
     classDef train fill:#FFF4EC,stroke:#F76900,stroke-width:2px,color:#0B1638
     classDef analyse fill:#EEF2FF,stroke:#2B3A8C,stroke-width:2px,color:#0B1638
     classDef data fill:#FFF9DB,stroke:#E0A800,stroke-width:2px,color:#0B1638

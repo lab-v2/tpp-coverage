@@ -47,7 +47,7 @@ def test_logos_of_the_three_institutions():
 def test_diagram_names_real_folders():
     diagram = _block("mermaid")
     assert re.search(r"^flowchart\b", diagram, re.M)
-    folders = re.findall(r"<code>(\w+)/</code>", diagram)
+    folders = re.findall(r"<br/>(\w+)/\"", diagram)
     assert len(folders) >= 5, folders
     for folder in folders:
         hits = [p for p in REPO.rglob(folder) if p.is_dir() and ".venv" not in p.parts]
