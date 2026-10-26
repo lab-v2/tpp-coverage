@@ -46,8 +46,8 @@ def test_logos_of_the_three_institutions():
 
 def test_diagram_names_real_folders():
     diagram = _block("mermaid")
-    assert diagram.lstrip().startswith("flowchart")
-    folders = re.findall(r'\["([\w./]+)/<br/>', diagram)
+    assert re.search(r"^flowchart\b", diagram, re.M)
+    folders = re.findall(r"<code>(\w+)/</code>", diagram)
     assert len(folders) >= 5, folders
     for folder in folders:
         hits = [p for p in REPO.rglob(folder) if p.is_dir() and ".venv" not in p.parts]
@@ -58,7 +58,8 @@ def test_diagram_edges_only_join_declared_nodes():
     diagram = _block("mermaid")
     declared = set(re.findall(r"\b(\w+)[\[(]\S", diagram))
     used = set(re.findall(r"(\w+)(?:\[[^\]]*\]|\(\[[^\]]*\]\))?\s*-\.?->", diagram))
-    used |= set(re.findall(r"-\.?->\s*(\w+)", diagram))
+    used |= set(re.findall(r"(?:-\.?->|==>|\.->)\s*(\w+)", diagram))
+    used |= set(re.findall(r"^\s*(\w+)(?:\(\[.*?\]\)|\[\(.*?\)\])?\s*(?:==>|-\.)", diagram, re.M))
     assert len(used) >= 6, used
     assert used <= declared, used - declared
 

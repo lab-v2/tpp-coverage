@@ -79,15 +79,29 @@ reproduces the released results bit for bit (about 20 minutes on 50 cores).
 # Code structure
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"fontFamily": "Inter, Segoe UI, Helvetica, sans-serif", "fontSize": "15px", "primaryColor": "#FFF4EC", "primaryTextColor": "#0B1638", "primaryBorderColor": "#F76900", "lineColor": "#8A94A6", "clusterBkg": "#FAFBFF", "clusterBorder": "#C9D1E3"}}}%%
 flowchart LR
-    A["dataset_downloaders/<br/>5 corpora"] --> B["generate_jobs/<br/>(N, D) grid"]
-    B --> C["training_models/<br/>train ~1,900 LLMs"]
-    C --> D["get_results/<br/>per-epoch losses"]
-    D --> E["scaling_laws/<br/>fit 4 laws"]
-    E --> F["run_analysis.py<br/>tables and figures"]
-    H[("HuggingFace<br/>public data")] -.-> D
-    H -.-> F
-    G["camera_ready/<br/>design classification,<br/>public-checkpoint reanalysis"]
+    subgraph TRAIN["&nbsp;🏗️ Train&nbsp;"]
+        direction TB
+        A(["📚 5 corpora<br/><code>dataset_downloaders/</code>"]) --> B(["🧮 N × D grid<br/><code>generate_jobs/</code>"])
+        B --> C(["🔥 ~1,900 LLMs<br/><code>training_models/</code>"])
+    end
+    subgraph ANALYSE["&nbsp;📈 Analyse&nbsp;"]
+        direction TB
+        D(["📉 Per-epoch losses<br/><code>get_results/</code>"]) --> E(["∑ 4 scaling laws<br/><code>scaling_laws/</code>"])
+        E --> F(["📊 Tables and figures<br/><code>run_analysis.py</code>"])
+    end
+    C ==> D
+    H[("🤗 HuggingFace<br/>public data")] -. "no GPU needed" .-> D
+    G(["🔍 Camera-ready analyses<br/><code>camera_ready/</code>"])
+    classDef train fill:#FFF4EC,stroke:#F76900,stroke-width:2px,color:#0B1638
+    classDef analyse fill:#EEF2FF,stroke:#2B3A8C,stroke-width:2px,color:#0B1638
+    classDef data fill:#FFF9DB,stroke:#E0A800,stroke-width:2px,color:#0B1638
+    classDef extra fill:#F1F5F9,stroke:#64748B,stroke-width:1.5px,stroke-dasharray:4 3,color:#0B1638
+    class A,B,C train
+    class D,E,F analyse
+    class H data
+    class G extra
 ```
 
 | Folder | What it holds |
