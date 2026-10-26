@@ -110,7 +110,8 @@ uv run torchrun --nproc_per_node=4 --standalone src/training_models/training/dis
 ```
 
 Add `--use-train-as-val` (instead of `--skip-val`) for holdout runs and `--use-bf16` for BF16.
-Checkpoints go to `saved_checkpoints/`, per-batch metrics to `training_metrics/`.
+Checkpoints go to `saved_checkpoints/`, per-batch metrics to `training_metrics/`, and a second
+copy of both to `$SHARED_DIR` (else `$DATA_DIR`, else `shared_backup/`).
 
 `--model-size` is a target: the trainer picks the nearest valid `LlamaForCausalLM` shape, so
 realized sizes differ slightly:

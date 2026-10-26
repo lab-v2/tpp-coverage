@@ -19,8 +19,8 @@ from training_models.training import DistributedTrainer
 from training_models.core import generate_model_configs, PretokenizedDataset
 from training_models.utils import print_info, print_success, print_warning, print_section
 
-# Optional shared directory for backup saves (falls back to DATA_DIR, then the cwd)
-SHARED_NVME_DIR = os.environ.get("SHARED_DIR", os.environ.get("DATA_DIR", "."))
+# Second copy of checkpoints and metrics: $SHARED_DIR, else $DATA_DIR, else ./shared_backup
+SHARED_NVME_DIR = os.environ.get("SHARED_DIR", os.environ.get("DATA_DIR", "shared_backup"))
 
 
 DEFAULT_BATCH_SIZE = 128

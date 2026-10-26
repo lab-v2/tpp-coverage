@@ -16,6 +16,7 @@ training_metrics/
 runs/
 slurm_scripts/
 slurm_logs/
+shared_backup/
 *.pt
 *.bin
 *.log
