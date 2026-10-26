@@ -1,0 +1,9 @@
+# Optional: `uvx pre-commit install` runs the linter before each commit.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff check
+        entry: uv run ruff check
+        language: system
+        types: [python]
