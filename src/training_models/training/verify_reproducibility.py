@@ -4,7 +4,7 @@ Reproducibility verification: compare a freshly trained run against the
 authoritative reference on HuggingFace.
 
 The script can locate and download the matching reference file automatically
-from `TPPIsCriticalFor/colinear_scaling_models`, so there is no need to
+from `leibnitz-lab/colinear_scaling_models`, so there is no need to
 download the entire repo (~100s of GB) just to verify one run. Pass
 `--from-hf` and the script:
 
@@ -30,7 +30,7 @@ Usage:
         --reproduced training_metrics/REPRO_..._metrics.npz
 
 The authoritative reference is hosted at
-https://huggingface.co/datasets/TPPIsCriticalFor/colinear_scaling_models
+https://huggingface.co/datasets/leibnitz-lab/colinear_scaling_models
 and was produced on NVIDIA GH200 GPUs (driver ~550.x, CUDA 12.4) in early 2026.
 """
 
@@ -44,7 +44,7 @@ import torch
 
 
 # Keep in sync with src/tpp_analysis/hf_dataset.py (tests/test_entry_points.py checks it).
-HF_REPO_ID = "TPPIsCriticalFor/colinear_scaling_models"
+HF_REPO_ID = "leibnitz-lab/colinear_scaling_models"
 DEFAULT_CACHE_DIR = os.path.expanduser("~/.cache/tpp_verify")
 
 # Run-type tokens we recognize in filenames. Order matters - longer/more-specific

@@ -3,7 +3,7 @@
 <p align="center">
 <a href="https://arxiv.org/abs/2605.08541"><img alt="arXiv" src="https://img.shields.io/badge/arXiv-2605.08541-b31b1b.svg"></a>
 <a href="https://neurips.cc/Conferences/2026"><img alt="NeurIPS 2026" src="https://img.shields.io/badge/NeurIPS-2026-6f42c1.svg"></a>
-<a href="https://huggingface.co/datasets/TPPIsCriticalFor/colinear_scaling_models"><img alt="Data on HuggingFace" src="https://img.shields.io/badge/data-HuggingFace-ffcc4d.svg"></a>
+<a href="https://huggingface.co/datasets/leibnitz-lab/colinear_scaling_models"><img alt="Data on HuggingFace" src="https://img.shields.io/badge/data-HuggingFace-ffcc4d.svg"></a>
 <a href="LICENSE"><img alt="License: GPL-2.0" src="https://img.shields.io/badge/license-GPL--2.0-blue.svg"></a>
 <a href="https://www.python.org/"><img alt="Python 3.10" src="https://img.shields.io/badge/python-3.10-blue.svg"></a>
 <a href="https://docs.astral.sh/uv/"><img alt="uv" src="https://img.shields.io/badge/managed%20with-uv-261230.svg"></a>
@@ -47,9 +47,9 @@ criterion, computable before any training, that tells which designs are well con
 
 All the data the analysis needs is public on HuggingFace and needs no account:
 
-- [`TPPIsCriticalFor/colinear_scaling_models`](https://huggingface.co/datasets/TPPIsCriticalFor/colinear_scaling_models) -
+- [`leibnitz-lab/colinear_scaling_models`](https://huggingface.co/datasets/leibnitz-lab/colinear_scaling_models) -
   training metrics, checkpoints and pre-computed outputs of every trained model;
-- [`TPPIsCritical/public_checkpoint_reanalysis`](https://huggingface.co/datasets/TPPIsCritical/public_checkpoint_reanalysis) -
+- [`leibnitz-lab/public_checkpoint_reanalysis`](https://huggingface.co/datasets/leibnitz-lab/public_checkpoint_reanalysis) -
   run tables of the ten published studies re-analysed in the camera-ready version.
 
 # Installation

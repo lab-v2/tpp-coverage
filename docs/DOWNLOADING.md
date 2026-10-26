@@ -3,7 +3,7 @@
 [README](../README.md) · [Training](TRAINING.md) · [Analysis](ANALYSIS.md)
 
 Every trained model's metrics, checkpoints and the pre-computed analysis are public at
-[`TPPIsCriticalFor/colinear_scaling_models`](https://huggingface.co/datasets/TPPIsCriticalFor/colinear_scaling_models).
+[`leibnitz-lab/colinear_scaling_models`](https://huggingface.co/datasets/leibnitz-lab/colinear_scaling_models).
 No account or token is needed; a token in `HF_TOKEN` is used if present (higher rate limits).
 
 ## Three ways in
@@ -17,7 +17,7 @@ uv run python src/tpp_analysis/download_and_extract.py
 uv run python src/tpp_analysis/download_and_extract.py --include-special --include-prelim  # + BF16, BigTPP
 
 # C. Everything, checkpoints included (~1.6 TB)
-uv run hf download TPPIsCriticalFor/colinear_scaling_models --repo-type dataset \
+uv run hf download leibnitz-lab/colinear_scaling_models --repo-type dataset \
     --local-dir colinear_scaling_models
 uv run python src/tpp_analysis/download_and_extract.py --skip-download --repo-dir colinear_scaling_models
 ```

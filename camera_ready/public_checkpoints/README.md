@@ -54,7 +54,7 @@ uv run python vk_ratio.py
 ```
 
 `get_runs.py` downloads the two normalised tables published with the paper
-([`TPPIsCritical/public_checkpoint_reanalysis`](https://huggingface.co/datasets/TPPIsCritical/public_checkpoint_reanalysis));
+([`leibnitz-lab/public_checkpoint_reanalysis`](https://huggingface.co/datasets/leibnitz-lab/public_checkpoint_reanalysis));
 `fetch_data.py` rebuilds them from the upstream releases (`--expanded` for the ten-study table).
 
 | File | Role |
