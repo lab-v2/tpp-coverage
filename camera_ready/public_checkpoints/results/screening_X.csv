@@ -1,0 +1,53 @@
+cell,n_points,n_distinct_N,n_crossed_bins,included,reason
+chinchilla_isoflop/MassiveText,245,43,9,True,included
+datablations/c4,673,3,0,False,P3: only 3 distinct N (< 6)
+datablations/c4-10%-code-90%,34,1,0,False,P3: only 1 distinct N (< 6)
+datablations/c4-20%-code-80%,32,1,0,False,P3: only 1 distinct N (< 6)
+datablations/c4-30%-code-70%,32,1,0,False,P3: only 1 distinct N (< 6)
+datablations/c4-40%-code-60%,34,1,0,False,P3: only 1 distinct N (< 6)
+datablations/c4-50%-code-50%,34,1,0,False,P3: only 1 distinct N (< 6)
+datablations/c4-60%-code-40%,30,1,0,False,P3: only 1 distinct N (< 6)
+datablations/c4-70%-code-30%,34,1,0,False,P3: only 1 distinct N (< 6)
+datablations/c4-80%-code-20%,34,1,0,False,P3: only 1 distinct N (< 6)
+datablations/c4-90%-code-10%,32,1,0,False,P3: only 1 distinct N (< 6)
+datablations/oscar,493,3,0,False,P3: only 3 distinct N (< 6)
+datadecide/DCLM-baseline,419,14,6,True,included
+datadecide/DCLM-baseline-25p,10,1,0,False,P3: only 1 distinct N (< 6)
+datadecide/DCLM-baseline-50p,10,1,0,False,P3: only 1 distinct N (< 6)
+datadecide/DCLM-baseline-75p,10,1,0,False,P3: only 1 distinct N (< 6)
+datadecide/baseline,42,4,6,False,P3: only 4 distinct N (< 6)
+datadecide/c4,423,14,6,True,included
+datadecide/dclm_ft7percentile_fw2,418,14,6,True,included
+datadecide/dclm_ft7percentile_fw3,417,14,6,True,included
+datadecide/dclm_fw_top10,424,14,6,True,included
+datadecide/dclm_fw_top3,421,14,6,True,included
+datadecide/dolma-v1-6-and-sources-baseline,422,14,6,True,included
+datadecide/dolma17,384,14,6,True,included
+datadecide/dolma17-25p-DCLM-baseline-75p,417,14,6,True,included
+datadecide/dolma17-50p-DCLM-baseline-50p,419,14,6,True,included
+datadecide/dolma17-75p-DCLM-baseline-25p,424,14,6,True,included
+datadecide/falcon,424,14,6,True,included
+datadecide/falcon_and_cc,424,14,6,True,included
+datadecide/falcon_and_cc_eli5_oh_top10p,418,14,6,True,included
+datadecide/falcon_and_cc_eli5_oh_top20p,418,14,6,True,included
+datadecide/falcon_and_cc_og_eli5_oh_top10p,414,14,6,True,included
+datadecide/falcon_and_cc_tulu_qc_top10,424,14,6,True,included
+datadecide/fineweb_edu_dedup,414,14,6,True,included
+datadecide/no_code,422,14,6,True,included
+datadecide/no_flan,422,14,6,True,included
+datadecide/no_math_no_code,428,14,6,True,included
+datadecide/no_reddit,425,14,6,True,included
+datadecide/pos_eli5_oh_neg_dclm_refinedweb_steps_2000_lr3e4_top10p,418,14,6,True,included
+datadecide/pos_eli5_oh_neg_dclm_refinedweb_steps_2000_lr3e4_top20p,417,14,6,True,included
+datadecide/prox_fineweb_pro,423,14,6,True,included
+farseer/IntelliVal,404,25,12,True,included
+gadre_overtrain/C4,34,6,5,True,included
+gadre_overtrain/RedPajama,35,6,7,True,included
+gadre_overtrain/RefinedWeb,35,6,6,True,included
+gemstones_cooldown/pretrain-mix,199,20,8,True,included
+gemstones_hot/pretrain-mix,264,22,12,True,included
+gpt3/gpt3-mix,97,8,5,True,included
+mad/pile-LLaMA,336,21,19,True,included
+mad/pile-StripedHyena1-11,312,19,19,True,included
+olmo_ladder/dolma17-peteish,32,7,5,True,included
+opt_trajectories/roberta-pile-reddit,59,6,4,True,included

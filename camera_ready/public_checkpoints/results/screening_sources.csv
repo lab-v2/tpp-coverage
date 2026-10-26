@@ -1,0 +1,22 @@
+source,verdict,rule,detail
+Gemstones cooldown-end (mcleish7/gemstone-scaling-laws),IN (E-corpus),P1-P4 pass,"199 annealed branch ends, 20 distinct N"
+OLMo ladder / Bhagia et al. (allenai/OLMo-ladder),IN (E-corpus),P1-P4 pass,"32 terminal runs, 7 distinct N"
+Gemstones hot / constant-LR checkpoints,IN (X-corpus),"P2' (A4.1); P1,P3,P4 pass","264 thinned points, 22 distinct N"
+GPT-3 digitized curves (ColPret),IN (X-corpus),"P2' (A4.1); P1,P3,P4 pass","97 thinned points, 8 distinct N; digitized"
+OPT training trajectories (ColPret),IN (X-corpus),P2' (A4.1); P1 via log(perplexity) per A4.3,"59 thinned points, 6 distinct N"
+DataDecide (allenai/DataDecide),IN (X-corpus),P2' (A4.1); P1 via log(perplexity); D reconstructed per A4.3,"10551 thinned points, 14 distinct N, 29 recipe cells; dropped 6871 rows in 51 groups whose step exceeds the suite's own full schedule (P1: D not recoverable for those rows)"
+MAD (arXiv:2403.17844) end-of-run slice,OUT,P3,the 54 end-of-run runs do not populate 3 k-bins at 4+ sizes; the thinned trajectory slice is used instead (X-corpus)
+MAD (arXiv:2403.17844) thinned trajectories,IN (X-corpus),"P2' (A4.1); P1,P3,P4 pass",split by architecture family per P4
+T5-Pile (ColPret),OUT,P3,"`cross_ent_loss` IS a genuine LM loss (796 values), so P1 passes - but only 4 distinct N [803 ColPret rows]"
+"Muennighoff et al. datablations, single-epoch slice",OUT,P3,"`loss` released; 3 distinct N per corpus cell (2.8B/4.2B/8.7B), and 3 < 6 [9786 ColPret rows]"
+Pythia (ColPret + EleutherAI/pythia repo),OUT,P3,"the only LM-perplexity column is `wikitext word_perplexity`: 240 values, 5 distinct N, 15 checkpoints each - 5 < 6. `lambada_openai ppl` spans 22 N but mixes bloom/opt/pythia (P4) and is a task perplexity. The EleutherAI/pythia repo publishes downstream eval CSVs only, no loss logs [1733 ColPret rows]"
+OLMo / OLMo-2 (ColPret),OUT,P3,"`c4_en-validation/CrossEntropyLoss` and `pile-validation/CrossEntropyLoss` ARE released (529 / 737 values), so P1 passes - but only 2 distinct N (1B, 7B) [1708 ColPret rows]"
+RedPajama-INCITE,OUT,P3,"`train_loss` released; 2 distinct N (2.4B, 6.7B) [135 ColPret rows]"
+LLM360 Amber / K2,OUT,P3,"`train - loss` (99999 values) and `k2 training - lm loss` (9985) ARE released, so P1 passes - but 2 distinct N (6.7B Amber, 65B K2), one per family [109984 ColPret rows]"
+LLM360 CrystalCoder / Mamba-3B,OUT,P3,`loss` released; 1 distinct N [88348 ColPret rows]
+DataMixing (Ye et al. 2024),OUT,P3,`avg_ppl` released; 1 distinct N (280M) across 12 data mixtures [240 ColPret rows]
+"Alabdulmohsin et al., Revisiting Neural Scaling Laws",OUT,P3,5 distinct N carry a released loss (the other 5 model names have num_params = 0) [1399 ColPret rows]
+Cerebras-GPT,OUT,P3,"one budget per size, D = 20N: a single ray, K = 1"
+Sardana et al. (2025),OUT,P1,"run-level loss table not recovered at a public GET-only path (not-recovered, not absent)"
+OPT / BLOOM / GPT-NeoX / Qwen / Llama technical reports,OUT,P1/P3,"final losses in report tables only, 1-3 sizes each, single ray"
+"HuggingFace dataset sweep (datasets API, GET-only)",OUT,P1,"smcleish/scaling-laws-cache holds fitted law parameters and predicted losses, not run-level observations; molmohsen/scaling-laws-neural-lm is a PDF; no other public HF dataset aggregating scaling-law LM loss curves was found"
