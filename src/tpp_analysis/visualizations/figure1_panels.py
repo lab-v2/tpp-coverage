@@ -305,7 +305,7 @@ N_ISOFLOP_CURVES  = 5       # always exactly 5 curves = 5 colors
 Y_MIN_CONV   = -0.1
 Y_MAX_CONV   = 1.02
 
-print(f'Triptych: {DATASET_NAME} / {LAW_NAME} / {MODE_NAME}')
+print(f'Figure: {DATASET_NAME} / {LAW_NAME} / {MODE_NAME}')
 
 
 # In[ ]:

@@ -17,7 +17,7 @@ Usage:
     python plot_nlayers_distribution.py --mode runs \\
         --audit-csv architecture_audit_e3.csv --out fig_nlayers
 
-Style is locked to the triptych notebook's "Shared Sizing Constants"
+Style is locked to the figure notebook's "Shared Sizing Constants"
 (the figure notebooks): STIX fonts, 9 × 9 panels,
 25/20/20 font sizes, #D8D8D8 panel face with #a8a8a8 1.6 pt gridlines,
 all four spines at 1.5 pt, big inward ticks, no plot title.
@@ -92,7 +92,7 @@ def counts_runs(audit_csv: Path):
 
 # ─────────────────────────────────────────────────────────────────────────
 # Style helper - bar-chart variant: y-only grid, all four spines.
-# Mirrors style_ticks_2d() from the triptych notebook (§ 7) with the x-axis
+# Mirrors style_ticks_2d() from the figure notebook (§ 7) with the x-axis
 # grid suppressed since the x-axis is categorical (one tick per bar).
 # ─────────────────────────────────────────────────────────────────────────
 def _nb_style_axes(ax):

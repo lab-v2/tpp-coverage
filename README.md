@@ -70,7 +70,7 @@ Reproduce the paper's tables and figures from the public data, no GPU:
 uv run python src/tpp_analysis/download_and_extract.py --results-only
 uv run python src/tpp_analysis/run_analysis.py all --data-dir extracted_losses/ --n-workers "$(nproc)"
 uv run python src/tpp_analysis/generate_appendix_tables.py full_coverage_results/
-uv run bash src/tpp_analysis/visualizations/run_appendix_triptychs.sh
+uv run bash src/tpp_analysis/visualizations/run_appendix_figures.sh
 ```
 
 Add `--clear-cache` to `run_analysis.py` to refit every law from the loss tables; the refit
@@ -123,7 +123,7 @@ A one-line map of every top-level folder is in [docs/STRUCTURE.md](docs/STRUCTUR
 | 3. Train (4 GPUs per run) | `src/training_models/training/dist_trainer_main.py` under `torchrun` | [TRAINING](docs/TRAINING.md#3-training-one-run) |
 | 4. Extract per-epoch losses | `src/tpp_analysis/get_results/get_results.py from_local <metrics dir>` | [DOWNLOADING](docs/DOWNLOADING.md) |
 | 5. Fit the laws, write the tables | `run_analysis.py`, `run_special_analysis.py`, `run_prelim_bigtpp.py`, `generate_appendix_tables.py` | [ANALYSIS](docs/ANALYSIS.md) |
-| 6. Figures | `run_appendix_triptychs.sh`, notebooks in `visualizations/` | [VISUALIZATIONS](docs/VISUALIZATIONS.md) |
+| 6. Figures | `run_appendix_figures.sh`, notebooks in `visualizations/` | [VISUALIZATIONS](docs/VISUALIZATIONS.md) |
 
 Steps 1-3 need GPUs (about 3,600 GPU-hours in total). Step 4 can start from the released
 metrics: `download_and_extract.py` without `--results-only` fetches them (~0.5 GB).
@@ -139,7 +139,7 @@ Paths are under `src/tpp_analysis/` unless noted.
 | BF16 replication (98.7%) | `run_special_analysis.py`, then `generate_appendix_tables.py special_results/ --special` |
 | BigTPP preliminary (63.3%) | `run_prelim_bigtpp.py` |
 | Regime-A subset table | `dispatch_seeds.sh 0 21`, `subset_analysis/aggregate_seed_runs.py`, `subset_analysis/per_law_winrate_ci.py --mode first` |
-| Figure 1 and appendix triptychs | `run_analysis.py seed_variance`, then `visualizations/run_appendix_triptychs.sh` |
+| Figure 1 and appendix three-panel figures | `run_analysis.py seed_variance`, then `visualizations/run_appendix_figures.sh` |
 | Architecture table, n-layers figure | `utility/audit_architectures.py`, then `utility/plot_nlayers_distribution.py --mode runs` |
 | n-gram KL table | `ngram_analysis/run_all_ngrams.sh` (needs the tokenized corpora) |
 | Published-design classification (24 designs) | `camera_ready/grid_classification/classify.py` |

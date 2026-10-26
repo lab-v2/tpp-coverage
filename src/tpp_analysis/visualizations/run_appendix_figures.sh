@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Regenerate the 16 standard appendix triptychs with fixed (rank, ds, law, mode)
+# Regenerate the 16 standard appendix three-panel figures with fixed (rank, ds, law, mode)
 # tuples that match the appendix figure file names of the paper (figures_dump.tex).
 # Prefix numbering is locked here (no rank-shuffling between runs).
 
@@ -35,4 +35,4 @@ run 15 'Pes2o'       'Kaplan'        'Final'
 run 17 'Pes2o'       'Droppo-Elibol' 'First'
 
 echo
-echo "All 16 triptychs rendered."
+echo "All 16 three-panel figures rendered."

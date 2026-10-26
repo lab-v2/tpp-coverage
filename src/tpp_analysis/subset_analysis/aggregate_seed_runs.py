@@ -433,7 +433,7 @@ def plot_raw_wins_small_multiples_ci(agg_cell: pd.DataFrame,
 def _nb_style_axes(ax):
     """Apply notebook-style 2-D axes: grey panel, grey grid, all four
     spines visible, big inward ticks. Mirrors style_ticks_2d() from the
-    triptych notebook (visuals.ipynb)."""
+    figure notebook (visuals.ipynb)."""
     ax.tick_params(axis="both", which="major",
                     length=_NB_TICK_MAJ_LEN, width=_NB_TICK_MAJ_WID,
                     labelsize=_NB_TICK_LABEL_FS, direction="in",

@@ -10,14 +10,14 @@ repository root (`extracted_losses/`, `full_coverage_results/`, `seed_variance_r
 | Script or notebook | Produces |
 |---|---|
 | `figure1_panels.py` | the three panels of Figure 1 (surface, convergence, isoFLOP) for one combination |
-| `run_appendix_triptychs.sh` | Figure 1 and the 16 appendix triptychs (calls `figure1_panels.py`) |
-| `visuals.ipynb` | the main-text figures and the top-ranked triptychs |
+| `run_appendix_figures.sh` | Figure 1 and the 16 appendix three-panel figures (calls `figure1_panels.py`) |
+| `visuals.ipynb` | the main-text figures and the top-ranked three-panel figures |
 | `special_viz_notebook_bf16_v2.ipynb` | the BF16 appendix figures |
 | `../subset_analysis/aggregate_seed_runs.py` | the kappa_target win-rate sweeps |
 | `../utility/plot_nlayers_distribution.py` | the n-layers distribution |
 
 ```bash
-uv run bash src/tpp_analysis/visualizations/run_appendix_triptychs.sh
+uv run bash src/tpp_analysis/visualizations/run_appendix_figures.sh
 FIG1_DATASET=Wikipedia FIG1_LAW=Chinchilla FIG1_MODE=First FIG1_PREFIX=custom_ \
     uv run python src/tpp_analysis/visualizations/figure1_panels.py
 ```
