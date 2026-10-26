@@ -1,0 +1,33 @@
+# TODO(owner): add the DOI, arXiv identifier and proceedings URL once published.
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper."
+title: "Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation"
+type: software
+license: GPL-2.0-only
+authors:
+  - family-names: Kricheli
+    given-names: Joshua Shay
+  - family-names: Reid
+    given-names: Alexander Lawrence
+  - family-names: Sarkar
+    given-names: Soumajyoti
+  - family-names: Gandikota
+    given-names: Venkata
+  - family-names: Shakarian
+    given-names: Paulo
+preferred-citation:
+  type: conference-paper
+  title: "Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation"
+  collection-title: "Advances in Neural Information Processing Systems"
+  year: 2026
+  authors:
+    - family-names: Kricheli
+      given-names: Joshua Shay
+    - family-names: Reid
+      given-names: Alexander Lawrence
+    - family-names: Sarkar
+      given-names: Soumajyoti
+    - family-names: Gandikota
+      given-names: Venkata
+    - family-names: Shakarian
+      given-names: Paulo
