@@ -90,7 +90,7 @@ flowchart TB
         D(["📉 Per-epoch losses<br/>get_results/"]) --> E(["∑ 4 scaling laws<br/>scaling_laws/"]) --> F(["📊 Tables and figures<br/>run_analysis.py"])
     end
     H[("🤗 HuggingFace<br/>public data")]
-    G(["🔍 Camera-ready analyses<br/>camera_ready/"])
+    G(["🔍 Camera-ready<br/>analyses<br/>camera_ready/"])
     TRAIN ==> ANALYSE
     H -. "skip training" .-> ANALYSE
     H -.-> G
