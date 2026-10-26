@@ -15,5 +15,5 @@ ARTIFACTS = WORK / "artifacts"
 RESULTS = HERE / "results"
 REPO_SRC = HERE.parents[1] / "src" / "tpp_analysis"
 
-# Normalised run tables published with the paper (anonymous read access).
+# Normalised run tables published with the paper.
 HF_REPO_ID = "TPPIsCritical/public_checkpoint_reanalysis"
