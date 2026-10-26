@@ -1,0 +1,74 @@
+[project]
+name = "tpp-coverage"
+version = "1.0.0"
+description = "Code for 'Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation' (NeurIPS 2026)"
+readme = "README.md"
+license = "GPL-2.0-only"
+license-files = ["LICENSE", "COPYRIGHT"]
+authors = [
+    { name = "Joshua Shay Kricheli" },
+    { name = "Alexander Lawrence Reid" },
+    { name = "Soumajyoti Sarkar" },
+    { name = "Venkata Gandikota" },
+    { name = "Paulo Shakarian" },
+]
+# One environment for everything: analysis, training and the camera-ready analyses.
+# Python 3.10 is the version the paper's fits were produced and re-verified with.
+requires-python = ">=3.10,<3.11"
+
+dependencies = [
+    # Analysis
+    "numpy>=2.2.0,<2.3",
+    "scipy>=1.15,<1.16",
+    "pandas>=2.2,<2.4",
+    "scikit-learn>=1.7,<1.8",
+    "matplotlib>=3.10,<3.11",
+    "pyarrow>=15.0.0",
+    "tqdm>=4.67.0",
+    "huggingface-hub>=1.0",
+    # Public-checkpoint reanalysis (ColPret artifacts are .zst)
+    "zstandard>=0.22",
+    # Training. Later transformers 5.x releases disable PyTorch < 2.6.
+    "torch>=2.5.0,<2.6",
+    "transformers==5.7.0",
+    "tiktoken>=0.7.0",
+    "sympy>=1.13",
+    "requests>=2.31",
+    # Corpus downloaders. allenai/peS2o and RedPajama-Data-V2 are loading-script
+    # datasets, which datasets>=4.0 no longer runs.
+    "datasets>=3.6,<4.0",
+]
+
+[project.optional-dependencies]
+notebooks = [
+    "jupyter>=1.1.1",
+    "ipykernel>=6.29.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-xdist>=3.6",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--strict-markers", "-ra"]
+markers = [
+    "network: downloads public data from HuggingFace (cached after the first run)",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+# pyflakes plus pycodestyle errors (the classic ruff default set).
+select = ["E4", "E7", "E9", "F"]
+# E701/E702: the code uses compact one-line statements in places; not reformatted.
+ignore = ["E402", "E701", "E702", "E731", "E741"]

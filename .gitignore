@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+.ipynb_checkpoints/
+
+# Local secrets
+.env
+
+# Training inputs and outputs
+corpora/
+saved_checkpoints/
+training_metrics/
+runs/
+slurm_scripts/
+slurm_logs/
+*.pt
+*.bin
+*.log
+*.out
+*.err
+
+# Data and results pulled from HuggingFace or regenerated locally
+colinear_scaling_models/
+extracted_losses/
+full_coverage_results/
+seed_variance_results/
+subset_bbox_seeds/
+special_results/
+prelim_bigtpp_results/
+figures/
+camera_ready/public_checkpoints/work/
