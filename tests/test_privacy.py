@@ -7,9 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from conftest import REPO
+from conftest import REPO, tree_files, tree_text
 
-SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache", "work"}
 SKIP_FILES = {"uv.lock", Path(__file__).name}
 
 FORBIDDEN = {
@@ -23,23 +22,7 @@ FORBIDDEN = {
 }
 
 
-def _files() -> list[Path]:
-    out = []
-    for path in REPO.rglob("*"):
-        if path.is_file() and not (set(path.relative_to(REPO).parts) & SKIP_DIRS) \
-                and path.name not in SKIP_FILES:
-            out.append(path)
-    return out
-
-
-def _text(path: Path) -> str | None:
-    data = path.read_bytes()
-    if path.suffix == ".gz" or b"\0" in data[:4096]:
-        return None
-    return data.decode("utf-8", errors="replace")
-
-
-FILES = _files()
+FILES = tree_files(SKIP_FILES)
 
 
 def test_tree_is_scanned():
@@ -51,7 +34,7 @@ def test_no_forbidden_strings(label):
     pattern = re.compile(FORBIDDEN[label], re.IGNORECASE)
     hits = []
     for path in FILES:
-        text = _text(path)
+        text = tree_text(path)
         if text is None:
             continue
         for n, line in enumerate(text.splitlines(), 1):

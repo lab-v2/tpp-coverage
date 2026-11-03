@@ -133,6 +133,22 @@ def _median_job(job):
                      signp=float(binomtest(wins, len(vals)).pvalue))
 
 
+def window_groups(sub: pd.DataFrame) -> list[list[np.ndarray]]:
+    """Row positions of `sub` per (cell, window) cluster, one list per cell.
+
+    These are the units `_median_job` resamples within cell, as CRITERIA E2 does.
+    """
+    by_cell: dict[str, list] = {}
+    for (cc, _), ix in sub.reset_index(drop=True).groupby(["cell", "window"]).indices.items():
+        by_cell.setdefault(cc, []).append(np.asarray(ix))
+    return list(by_cell.values())
+
+
+def median_task(tag: tuple, sub: pd.DataFrame, gap: str, seedkey: str) -> tuple:
+    """The `_median_job` input for the gaps of `sub`; `seedkey` names its random stream."""
+    return tag, sub[gap].to_numpy(float), window_groups(sub), seedkey
+
+
 def dose_jobs(df: pd.DataFrame, label: str):
     """One job per (arm, kappa, joint regime cell) - the A3.2 table, unmodified."""
     jobs = []
@@ -147,12 +163,8 @@ def dose_jobs(df: pd.DataFrame, label: str):
             name = pd.Series([f"CO={a},NC={b}" for a, b in zip(co, nc)], index=df.index)
             for cellname in C.CELL_ORDER:
                 sub = df[(name == cellname) & good]
-                v = sub[gap].to_numpy(float)
-                by_cell: dict[str, list] = {}
-                for (cc, _), ix in sub.reset_index(drop=True).groupby(["cell", "window"]).indices.items():
-                    by_cell.setdefault(cc, []).append(np.asarray(ix))
-                jobs.append(((label, arm, kappa, cellname), v, list(by_cell.values()),
-                             f"{label}|{arm}|{kappa}|{cellname}"))
+                jobs.append(median_task((label, arm, kappa, cellname), sub, gap,
+                                        f"{label}|{arm}|{kappa}|{cellname}"))
     return jobs
 
 

@@ -32,11 +32,10 @@ where V_K is the variance of the set of k_l^(-beta_eff) values and
 Verdict "Regime B" (well-identified) iff V_K >= tau_K, else "Regime A" (ill-conditioned).
 K = 1 gives V_1 = 0 < tau_1, so single-ratio designs fail at every kappa_target.
 
-The implementation is a direct port of the paper's own code, functions compute_VK,
-compute_tauK, classify_regime in
-code/Tokens-per-Parameter_Coverage_Is_Critical_for_Robust_LLM_Scaling_Law_Extrapolation/
-src/tpp_analysis/subset_analysis/subset_analysis_bbox_seeded.py, lines 161-171. The math
-is reused exactly; nothing is reinvented.
+The implementation is the paper's own code, functions compute_VK, compute_tauK,
+classify_regime in src/tpp_analysis/subset_analysis/subset_analysis_bbox_seeded.py of this
+repository (lines 159-169), imported by classify.py. The math is reused exactly; nothing is
+reinvented.
 
 ## Fixed conventions (chosen now, before data collection)
 
@@ -55,7 +54,11 @@ is reused exactly; nothing is reinvented.
    one pooled fit, one entry per distinct ratio, matching Prop. 2's statement ("ordered
    training ratios k_1 <= ... <= k_K") and the paper's own usage (K = 12 for its CO fan).
    N is the paper's own parameter-count convention (if the paper fits with non-embedding
-   parameters, we use that N; recorded per paper).
+   parameters, we use that N; recorded per paper). AMENDED 2026-11-03 (Amendments 5): Prop. 2
+   is now stated for a collinear design (Definition 1: every size trained at every ratio),
+   for which one weight per distinct ratio is what the proof gives. For any other design the
+   proof's Gram block weights each run by its Jacobian row, so one weight per distinct ratio
+   is a convention, not the proposition.
 4. Near-duplicate merging: two recovered ratios are the same "distinct ratio" if they
    differ by <= 1 percent relative; merged to their geometric mean. (V_K and tau_K are
    continuous in k, so this affects K only, and only for adjacent near-identical rays.)
@@ -72,12 +75,17 @@ is reused exactly; nothing is reinvented.
    On that heuristic, endpoints-mode is favorable-or-neutral to the design under test: it
    can only create false PASSES (a design passing on endpoints might fail with its interior
    ratios included), not false failures, so a fail under endpoints-mode is a genuine fail
-   while an endpoints-mode pass carries this caveat. Endpoints-mode rows are therefore
+   while an endpoints-mode pass carries this caveat. AMENDED 2026-11-03 (Amendments 5): the
+   simulation behind the camera-ready appendix shows the claim above is too strong;
+   endpoints mode usually over-credits a design, and the reverse is rare (56 of 200,000
+   random crossed grids), but it happens. Endpoints-mode rows are therefore
    counted and disclosed separately among the passes. The k_list_source column records which
    recovery mode was used: exact / axes-derived / endpoints / reconstruction (the last for
    run lists recovered by third-party digitization of published figures, which may be
    partial - e.g. the Besiroglu et al. SVG extraction of Chinchilla's Fig. 4, ~245 of ~400
-   runs).
+   runs). AMENDED 2026-11-03 (Amendments 4): a run table that gives each size its own token
+   counts or token range is used as printed, never the cross of the size and token ranges
+   stated in the text; endpoints mode then takes the end ratios of each size's own range.
 6. Fitting protocol: pooled (one fit over all ratios; K = number of distinct ratios in the
    pool) vs per-slice (separate fit per ratio or per model size; K = ratios inside one
    slice - for a per-ratio slice, K = 1). The protocol_source column records: stated (paper
@@ -208,6 +216,130 @@ with the include/exclude decision and reason appended after applying rules (a)-(
   with its per-beta verdicts, and the circularity flags.
 - README.md: reproduction instructions.
 
+## Amendments 5 (2026-11-03, Kaplan's runs from its figure; scope of the weights convention)
+
+A fifth audit, of the camera-ready appendix, found that Kaplan's row used the size range of
+the whole study, and that Prop. 2, now stated for collinear designs only, does not give the
+distinct-ratio convention for the other designs. What was done and what changed:
+
+1. kaplan2020: from endpoints to reconstruction mode. Amendments 4 item 5 said the paper
+   publishes no run table. Its L(N, D) sweep is plotted, as vector graphics, in Fig. 9 left
+   (figures/DatasetModelSizevsPerformance.pdf of the arXiv e-print); main.tex line 474 says the
+   fit is displayed there. Reading each marker against the 10^6 to 10^9 ticks gives 38 runs:
+   sizes 3.93e5, 3.15e6, 2.52e7, 8.49e7, 3.02e8 and 7.08e8 non-embedding parameters on the
+   legend's data sizes 21M to 22.0B tokens, 6 sizes x 8 data sizes, not fully crossed
+   (designs.py, _KAPLAN_FIG9_RUNS). The 768 to 1.5B range of the old row is the whole study's.
+   K goes from 4 to 34, ratios 0.0297 to 5.59e4, V_K/tau_K from 8.875 to 2.065, kappa from 11
+   to 48. The verdict stays pass, at every probed exponent and at 0.28 (9.46). Endpoints-mode
+   passes fall from 1 to 0; shukor2025mixtures, a failure, is the one endpoints-mode row left.
+   Reconstruction mode, which convention 5 defines for third-party digitizations, now also
+   covers this reading of a vector figure.
+2. Scope of convention 3. Six of the 24 designs are collinear designs in the sense of
+   Definition 1 (hu2024, bhagia2025, volkova2026optimizers and the three with K = 1); all six
+   fail. The other 18, all 11 passes among them, train different sizes on different ratios, so
+   for them Eq. 5 on distinct ratios is a convention, as for a superset law. The proof's own
+   alternative weights each run by N^(-2 alpha), alpha the model-side exponent (Step 2 of the
+   proof). Recomputed on the 17 run lists that can be rebuilt (muennighoff2023's sizes are not
+   in its artifact), with each paper's model-side exponent where it prints one and beta_eff
+   otherwise, two passes fail: gadre2024 (1.063 to 0.929) and rosenfeld2019 (12.77 to 0.199;
+   0.028 with beta_eff as the weight exponent), whose smallest models carry most of the weight.
+   No other row changes verdict; choshen2024 is closest (3.737 to 1.055). Under that weighting
+   the split would be 9 pass / 15 fail, if muennighoff2023 keeps its pass. The primary
+   convention stays one weight per distinct ratio, as pre-registered; rosenfeld2019 and
+   gadre2024 are marked as passing only with equal weight per ratio in the camera-ready table.
+3. The endpoints-mode wording of convention 5 is corrected (see the note there): the reverse
+   error is rare, not impossible.
+4. designs.py's sardana2023 comment called the larger sizes' ratio lists prefixes of the 150M
+   list; 2.5B runs 10, 15, 20, 50, 100, 250 and 500. No verdict effect (12 distinct ratios
+   either way).
+5. Regression check: the rerun of classify.py changes only the kaplan2020 row of results.csv
+   (K, k_list_source, k_distinct, provenance, V_K and tau_K at both exponents); its verdicts,
+   the other 23 rows and the calibration row are unchanged. The split stays 11 pass / 13 fail,
+   and 14 / 10 at 0.28.
+
+## Amendments 4 (2026-11-03, run tables read as published)
+
+A fourth audit, of the camera-ready appendix, found two rows whose k-lists crossed the size
+and token ranges stated in a paper's text although the paper publishes a run table.
+Rechecking every other endpoints-mode row against its paper found a third. What was done and
+what changed:
+
+1. Why. Convention 5 derives the k-list from the published design, uses end points only when
+   no more is recoverable, and adds "any explicitly published interior ratios". Three rows did
+   not follow it:
+   - krajewski2024 crossed the size range stated in the text (129M to 3.7B) with every token
+     count in the paper (16, 24, 33, 66 and 130B). The appendix table of the MoE runs
+     (tab:moe, E = 64) gives each size its own token counts: the largest size ran only at
+     33B, 130B only at 64x13M, and 24B appears only in the dense table, whose runs are not in
+     the classified MoE fit. The cross paired 129M with 130B and 3.7B with 16B, which no run
+     reaches.
+   - aghajanyan2023 used only the end sizes 8M and 6.7B, although the paper lists all seven
+     sizes and trains each on all three token counts.
+   - shukor2025mixtures crossed its extreme sizes with its extreme token counts (412M and 1.4B
+     with 4B and 46B). Its table tab:train_val_points gives each size its own token range
+     (412M: 4-20B, 834M: 7-26B, 1.1B: 7-36B, 1.4B: 13-46B), so the corners 412M at 46B and
+     1.4B at 4B, which set the old range 2.86-112, match no run. Adding the interior sizes
+     834M and 1.1B to the crossed corners was considered (margin 1.87); the table shows that
+     the cross itself was the error.
+2. What changed in designs.py:
+   - krajewski2024: from endpoints to exact mode, the 17 (size, D) pairs of tab:moe with
+     N = d_model^2 (8E + 4) n_blocks, the paper's total-parameter count, which reproduces its
+     figure files granularity_N_1082130432 and granularity_N_2113536000. K = 16 (two pairs
+     share k = 61.0), ratios 7.57-488.
+   - aghajanyan2023: from endpoints to axes-derived mode, the full 7 x 3 grid. K = 21, ratios
+     0.746-12500 as before.
+   - shukor2025mixtures: stays in endpoints mode, because the checkpoints inside each range
+     are not enumerated, but on the two end ratios of each size's own range. K = 7 (32.7 and
+     32.9 merge), ratios 6.36-48.5.
+   Convention 5 gains the sentence marked AMENDED 2026-11-03.
+3. Outcome at the primary convention (own exponent, kappa_target = 100):
+   - krajewski2024: from pass to fail, V_K/tau_K from 1.263 to 0.587, kappa from 79 to 170.
+     It fails at every exponent the paper reports (0.147 for the MoE fit, 0.127 dense, 0.140
+     for the validation refit, 0.169 at E = 16) and passes only at 0.28 (1.074) and 0.35
+     (1.097) of the probe grid. Its exponent comes from the fit under test, so it joins the
+     failing rows with a circular, verdict-deciding exponent.
+   - shukor2025mixtures: from pass to fail, from 2.024 to 0.605, kappa from 49 to 165. It
+     prints no exponent (0.28 is used) and fails at every probed exponent (margins 0.13 to
+     0.75 over 0.10-0.50).
+   - aghajanyan2023: stays a pass, from 6.686 to 3.420, kappa from 15 to 29, at every probed
+     exponent.
+   The split moves from 13 pass / 11 fail to 11 pass / 13 fail, 3 of them single-ratio. At the
+   old corpus-wide 0.28 it moves from 15 / 9 to 14 / 10 (Shukor fails there too; Krajewski
+   passes there). Endpoints-mode passes fall from 4 to 1 (kaplan2020). Failing rows whose
+   exponent came from the fit under test: 9 of 13, six of which fail at every probed exponent.
+   Multi-ratio failures that pass at kappa_target 1e4: 9 of 10; tao2024 passes at 1e5.
+4. None of the three new verdicts changes under any of these variants, recomputed with code
+   independent of classify.py:
+   - the token counts the printed 16B, 33B, 66B and 130B round (2^k steps of 2048 x 256
+     tokens): Krajewski 0.614;
+   - merging nothing, or merging only within 1% of a group's first member;
+   - counting each run once (granularities for Krajewski, domain weights for Shukor): 0.545
+     and 0.639;
+   - rescaling every k by a factor from 1/4 to 4: Krajewski 0.46-0.70, Shukor 0.35-0.88,
+     Aghajanyan 2.36-4.31.
+5. kaplan2020, the one endpoints-mode pass left, publishes no run table. Its text states the
+   size range (768 to 1.5B non-embedding parameters) and the data range (22M to 23B tokens)
+   but not that the smallest size ran on the largest subset. It stays in endpoints mode; its
+   pass holds with the smallest size raised from 768 up to 3e8 parameters (margin 8.88 to
+   2.74). Superseded by Amendments 5, item 1: the run list is recoverable from a figure.
+6. Outcome-blind statement. The rows were rechecked because their recovery departed from
+   convention 5, not because of their verdicts. The check covered the four endpoints-mode
+   rows, the mode convention 5 marks as able to over-credit a design, and all four were
+   passes; the axes-derived rows rest on grids their papers state as crossed (quoted in
+   designs.py) and were not recoded. Each recoded row takes its paper's table as printed. The
+   direction is recorded so it is not read as outcome-driven: two passes became failures and
+   none moved the other way, so the corpus looks worse for the papers, as after Amendments 3.
+7. Departure from the earlier count. Before this amendment the classification reported
+   13 pass / 11 fail, with krajewski2024 (K = 10, corners 4.32-1008), aghajanyan2023 (K = 6)
+   and shukor2025mixtures (K = 4, corners 2.86-112) in Regime B. The camera-ready appendix
+   reports 11 / 13 and states the departure.
+8. candidates.csv is unchanged. The include decisions stand (the ratio lists are recoverable,
+   rule (b)); the reason_detail text of krajewski2024, aghajanyan2023 and shukor2025mixtures
+   still describes the earlier reading, as logged at screening. designs.py is the record of
+   each recovered design.
+9. Regression check: the rerun of classify.py changes only these three rows of results.csv;
+   the other 21 rows and the calibration row are byte-identical to the previous run.
+
 ## Amendments 3 (2026-07-31, per-paper beta_eff)
 
 A third audit found the corpus-wide beta_eff = 0.28 to be a real methodological error, not
@@ -275,7 +407,7 @@ changed:
 
 A second hostile audit was run on the amended corpus. Its findings and the changes made,
 again recorded rather than silently merged; every change was re-run uniformly on the full
-corpus, and the resulting counts are the ones in README.md and in the official comment.
+corpus, and the resulting counts are those of item 6 below.
 
 1. Rule (a) was narrowed to the additive family Prop. 2 is actually stated for (see the
    rule text above, and new convention 8). Consequence: chen2025qat moves from include to
@@ -318,8 +450,8 @@ corpus, and the resulting counts are the ones in README.md and in the official c
 6. Corrected counts after 1-3: 206 screened (unchanged), 32 bivariate N-and-D laws
    (unchanged), 24 classified, 15 pass, 9 fail of which 3 single-ray, 4 endpoints-mode
    passes. Of the 6 non-single-ray failures, 5 clear the criterion at kappa_target 1e4 and
-   the sixth (tao2024) only at 1e5 - the earlier "all 7 at 1e4" statement was wrong and is
-   corrected in README.md and in the official comment.
+   the sixth (tao2024) only at 1e5 - the earlier "all 7 at 1e4" statement was wrong and was
+   corrected.
 
 ## Amendments (2026-07-30, post-audit)
 
