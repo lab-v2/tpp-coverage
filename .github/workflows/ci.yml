@@ -86,4 +86,4 @@ jobs:
         with:
           persist-credentials: false
       - name: Privacy scan of the tree
-        run: uv run --locked --only-group dev pytest -q --no-header tests/repository/test_privacy.py
+        run: uv run --locked pytest -q --no-header tests/repository/test_privacy.py

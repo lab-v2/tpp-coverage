@@ -1,0 +1,2 @@
+statistic,scheme,n_boot,n_pairs,n_windows,ratio_of_medians,lo95,hi95,share_draws_at_least_1
+median ratio >=1B / below 1B,E2,10000,148480,37,0.6416964566948663,0.20440503544808533,1.3233089562330793,0.1636

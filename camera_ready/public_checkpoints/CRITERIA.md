@@ -43,15 +43,13 @@ Everything numeric is computed with the paper's own released implementations:
 - the budget-matched non-collinear subset selector: `select_nc_bbox` and
   `_priority_subsample` in `subset_analysis/subset_analysis_bbox_seeded.py`;
 - the conditioning diagnostic: `compute_VK`, `compute_tauK`, `classify_regime`
-  (same file, lines 161-171),
+  (same file, lines 159-169),
 
     V_K   = Var_l( k_l^(-beta_eff) ),
     tau_K = (K + sum_l k_l^(-2 beta_eff))^2 / (K^2 * kappa_target),
     Regime B (well-identified) iff V_K >= tau_K, else Regime A.
 
-Both are imported from
-`code/Tokens-per-Parameter_Coverage_Is_Critical_for_Robust_LLM_Scaling_Law_Extrapolation/
-src/tpp_analysis/`. Nothing about the fitting or the subset logic is re-implemented here.
+Both are imported from `src/tpp_analysis/` of this repository. Nothing about the fitting or the subset logic is re-implemented here.
 
 ## Fixed conventions
 
