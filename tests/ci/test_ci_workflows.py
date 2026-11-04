@@ -93,18 +93,23 @@ def test_the_privacy_job_targets_exist() -> None:
     assert [t for t in privacy_targets() if not (REPO / t).is_file()] == []
 
 
-def test_the_privacy_job_passes_with_the_dev_tools_alone(tmp_path) -> None:
-    """The privacy job's own command, in a fresh environment holding only the dev group.
+def test_the_privacy_job_installs_the_project_dependencies() -> None:
+    """A job that fails on a missing package installs it; it never strips the import instead.
 
-    This catches a conftest that imports an analysis package the job does not install.
+    Owner rule: a package that makes a job fail is installed, never worked around. The privacy
+    job once ran with only the dev group and failed on conftest's pandas import.
     """
+    assert "--only-group" not in privacy_command()
+
+
+def test_the_privacy_job_passes_in_a_fresh_environment(tmp_path) -> None:
+    """The privacy job's own command, in a fresh environment, as the runner does it."""
     env = {k: v for k, v in os.environ.items()
            if not k.startswith(("PYTEST_", "VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT"))}
     env["UV_PROJECT_ENVIRONMENT"] = str(tmp_path / "venv")
     proc = subprocess.run(["bash", "-ec", privacy_command()], cwd=REPO, env=env,
-                          capture_output=True, text=True, timeout=600)
+                          capture_output=True, text=True, timeout=900)
     assert proc.returncode == 0, proc.stdout[-4000:] + proc.stderr[-4000:]
-
 
 
 MASK_STEPS = [job["steps"][0] for _, _, job in JOBS]
