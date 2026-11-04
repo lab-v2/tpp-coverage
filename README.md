@@ -149,10 +149,11 @@ The theorems and the severity, eigenvalue and R_min tables are analytic; no scri
 
 # Known behaviours
 
-These produced the paper's numbers and are kept as they are.
+These produced the paper's numbers.
 
-- **Padding is scored.** The cross-entropy has no `ignore_index`, so padded positions count
-  toward the loss, and reported losses sit below the loss on real tokens.
+- **Padding was scored.** In the released runs padded positions counted toward the loss, so
+  their reported losses sit below the loss on real tokens. The trainer now masks padding out of
+  the loss; `--score-padding` restores the released behaviour, for reproducing a released run.
 - **BF16 is a full cast.** `--use-bf16` calls `model.bfloat16()`; only the logits are cast to
   FP32 for the loss.
 - **Four GPUs per run.** The learning-rate schedule follows the per-GPU step count, so another

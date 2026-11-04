@@ -153,6 +153,7 @@ def main():
         default=DEFAULT_DATASET_NAME,
         choices=[
             "cosmopedia",
+            "fineweb",
             "wikipedia",
             "pes2o",
             "redpajama",
@@ -182,6 +183,12 @@ def main():
         help="Number of checkpoints to keep per run",
     )
     parser.add_argument(
+        "--seed",
+        type=int,
+        default=42,
+        help="Training seed (init + data order); 42 is the protocol default",
+    )
+    parser.add_argument(
         "--weight-decay",
         type=float,
         default=DEFAULT_WEIGHT_DECAY,
@@ -206,6 +213,21 @@ def main():
         action="store_true",
         default=False,
         help="Enable BF16 training (model.bfloat16(), no GradScaler needed)",
+    )
+    parser.add_argument("--score-padding", action="store_true",
+                        help="score padded positions in the loss, as the released runs did "
+                             "(default: padding is masked out)")
+    parser.add_argument("--shape", default=None, help="d_model,n_layers,n_heads,d_ff; overrides --model-size's search")
+    parser.add_argument("--optimizer", default="adamw",
+                        choices=["adamw", "adam", "sgd", "lion", "adafactor"])
+    parser.add_argument("--schedule", default="cosine", choices=["cosine", "wsd", "constant"],
+                        help="LR after warmup: cosine (protocol), warmup-stable-decay, constant")
+    parser.add_argument(
+        "--grad-accum-steps",
+        type=int,
+        default=1,
+        help="Micro-batches per optimizer step; batch-size stays the global "
+        "(per-optimizer-step) batch. Serial equivalent of data-parallel ranks.",
     )
 
     args = parser.parse_args()
@@ -277,14 +299,23 @@ def main():
 
     vocab_size = tokenizer.n_vocab
 
-    config = generate_model_configs(
-        num_configs=1,
-        vocab_size=vocab_size,
-        max_seq_len=args.max_seq_len,
-        min_params=100,
-        max_params=1_000_000_000,
-        target_params=[model_size],
-    )[0]
+    if args.shape:
+        # An explicit shape (d_model, n_layers, n_heads, d_ff). Without it the size search below
+        # picks the shape, and for many targets it returns embedding-dominated models with one
+        # head and one to three layers.
+        d, L, h, f = (int(v) for v in args.shape.split(","))
+        from training_models.models.config import ModelConfig
+        config = ModelConfig(vocab_size=vocab_size, max_seq_len=args.max_seq_len, n_layers=L, n_heads=h,
+                             d_model=d, d_ff=f)
+    else:
+        config = generate_model_configs(
+            num_configs=1,
+            vocab_size=vocab_size,
+            max_seq_len=args.max_seq_len,
+            min_params=100,
+            max_params=1_000_000_000,
+            target_params=[model_size],
+        )[0]
 
     trainer = DistributedTrainer()
 
@@ -307,7 +338,7 @@ def main():
     if train_data is None:
         raise ValueError(f"Failed to load dataset: {dataset_name}")
 
-    if dataset_name in ["cosmopedia", "wikipedia", "pes2o", "redpajama", "c4"]:
+    if dataset_name in ["cosmopedia", "fineweb", "wikipedia", "pes2o", "redpajama", "c4"]:
         total_tokens_target = int(args.tokens)
 
         # Use actual cumulative token counts instead of average estimate
@@ -376,6 +407,11 @@ def main():
         weight_decay=args.weight_decay,
         output_prefix=args.output_prefix,  # Pass the custom prefix
         use_bf16=args.use_bf16,
+        seed=args.seed,
+        grad_accum_steps=args.grad_accum_steps,
+        optimizer=args.optimizer,
+        score_padding=args.score_padding,
+        schedule=args.schedule,
     )
 
     if rank == 0:
