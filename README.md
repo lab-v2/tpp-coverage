@@ -109,6 +109,7 @@ flowchart TB
 | [`src/training_models/`](src/training_models) | Llama-style models and the distributed trainer |
 | [`src/tpp_analysis/`](src/tpp_analysis) | Corpora, job generation, loss extraction, law fitting, tables and figures |
 | [`camera_ready/`](camera_ready) | The two analyses added for the camera-ready version |
+| [`large_scale/`](large_scale/README.md) | The paper's analysis rerun on an independent grid of 461 C4 runs up to 354M parameters |
 | [`docs/`](docs) | Step-by-step guides |
 | [`tests/`](tests) | The pytest suite |
 
