@@ -9,5 +9,6 @@
 | `cluster/` | The SLURM task queue and re-analyses of the larger Wikipedia stratum (WIKI300M) trained on the paper's protocol |
 | `camera_ready/` | The published-design classification and the public-checkpoint reanalysis added for the camera-ready version |
 | `docs/` | Step-by-step guides: downloading, training, analysis, figures, n-gram KL |
-| `tests/` | The pytest suite (`uv run pytest -n auto`) |
+| `tests/` | The pytest suite (`uv run pytest -n auto`); `tests/ci/` checks the CI workflows and the merge rule |
+| `.github/` | CI on the project's self-hosted runners: tests, `ruff check .`, the privacy scan, the `pr-authorization` merge rule and the runner guard |
 | `images/` | Logos shown in the README |

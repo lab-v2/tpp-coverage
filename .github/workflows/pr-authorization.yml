@@ -1,0 +1,46 @@
+# The merge rule branch protection cannot express: a pull request may merge only
+# when its author is the owner or a lab-v2 member, or when the owner or a member
+# approved its head commit. Required check: `pr-authorization`. It re-runs on every
+# push to the pull request and whenever a review is submitted or dismissed.
+name: PR authorization
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+# The newest event of a pull request decides; an older run still going is stale.
+concurrency:
+  group: pr-authorization-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-authorization:
+    name: pr-authorization
+    runs-on: [self-hosted, linux, primary]
+    timeout-minutes: 5
+    steps:
+      - name: Mask this runner's paths, account and machine name
+        run: |
+          for v in "$HOME" "$(id -un)" "$(cat /proc/sys/kernel/hostname)" \
+                   "$(cut -d. -f1 /proc/sys/kernel/hostname)" \
+                   "${GITHUB_WORKSPACE%%/_work/*}" "$(echo "$GITHUB_WORKSPACE" | cut -d/ -f1-3)"; do
+            if [ "${#v}" -ge 4 ]; then
+              echo "::add-mask::$v"
+              # actions/checkout's cleanup prints paths regex-escaped (\/ and \-).
+              echo "::add-mask::$(printf '%s' "$v" | sed 's/[/.-]/\\&/g')"
+            fi
+          done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Decide from the author and the standing approvals
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        # Standard library only, so no project environment is installed.
+        run: uv run --no-project --python 3.10 python .github/scripts/pr_authorization.py

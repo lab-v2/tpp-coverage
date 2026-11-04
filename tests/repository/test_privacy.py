@@ -45,7 +45,7 @@ FORBIDDEN = {
     "home or allocation paths": r"(/home/[a-z]|/work/nvme|/scratch/[a-z])",
     "review process": r"(\breviewers?\b|\bktkD\b|\bnK5Y\b|\bPnLF\b|\bQNJP\b|oVM1ErNilo|openreview\.net|rebuttal)",
     "anonymization": r"(anonymous\.4open|4open\.science)",
-    "em dash": "—",
+    "em dash": "\u2014",
 }
 
 
@@ -117,7 +117,7 @@ def test_pattern_catches_a_planted_leak():
     samples = {
         "home or allocation paths": "/home/someone/x",
         "review process": "Reviewer ktkD", "anonymization": "anonymous.4open.science/r/x",
-        "em dash": "a — b",
+        "em dash": "a \u2014 b",
     }
     for label, sample in samples.items():
         assert re.search(FORBIDDEN[label], sample, re.IGNORECASE), label
