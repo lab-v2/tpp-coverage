@@ -9,7 +9,9 @@ actions/checkout prints them, plain and regex-escaped.
 
 from __future__ import annotations
 
+import os
 import re
+import shlex
 import subprocess
 
 from typing import Any
@@ -74,7 +76,34 @@ def test_ci_runs_the_full_suite_in_parallel_ruff_and_the_privacy_scan() -> None:
     assert re.search(r"uv run .*pytest -n auto", runs["tests"])
     assert "tests/" not in runs["tests"].split("pytest", 1)[1]  # the whole suite, no subset
     assert re.search(r"ruff check( --output-format=github)? \.$", runs["ruff"])
-    assert "tests/test_privacy.py" in runs["privacy"]
+    assert privacy_targets() and all(t.endswith("test_privacy.py") for t in privacy_targets())
+
+
+def privacy_command() -> str:
+    (step,) = [s["run"] for s in ALL["ci.yml"]["jobs"]["privacy"]["steps"] if "pytest" in s.get("run", "")]
+    return step
+
+
+def privacy_targets() -> list[str]:
+    """The test paths the privacy job hands pytest."""
+    return [a for a in shlex.split(privacy_command().split("pytest", 1)[1]) if not a.startswith("-")]
+
+
+def test_the_privacy_job_targets_exist() -> None:
+    assert [t for t in privacy_targets() if not (REPO / t).is_file()] == []
+
+
+def test_the_privacy_job_passes_with_the_dev_tools_alone(tmp_path) -> None:
+    """The privacy job's own command, in a fresh environment holding only the dev group.
+
+    This catches a conftest that imports an analysis package the job does not install.
+    """
+    env = {k: v for k, v in os.environ.items()
+           if not k.startswith(("PYTEST_", "VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT"))}
+    env["UV_PROJECT_ENVIRONMENT"] = str(tmp_path / "venv")
+    proc = subprocess.run(["bash", "-ec", privacy_command()], cwd=REPO, env=env,
+                          capture_output=True, text=True, timeout=600)
+    assert proc.returncode == 0, proc.stdout[-4000:] + proc.stderr[-4000:]
 
 
 MASK_STEPS = [job["steps"][0] for _, _, job in JOBS]
