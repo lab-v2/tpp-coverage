@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from conftest import A2, run
+from conftest import A2, assert_same_rows, run
 
 pytestmark = pytest.mark.network
 RESULTS = A2 / "results"
@@ -30,14 +30,6 @@ def work(tmp_path_factory):
     env = {**os.environ, "TPP_PC_WORK": str(path)}
     run(["python", A2 / "get_runs.py"], cwd=A2, env=env)
     return path, env
-
-
-def _assert_same(fresh: pd.DataFrame, committed: pd.DataFrame, keys: list[str]) -> None:
-    fresh = fresh.sort_values(keys).reset_index(drop=True)
-    committed = committed.sort_values(keys).reset_index(drop=True)
-    assert len(fresh) == len(committed) > 0
-    pd.testing.assert_frame_equal(fresh[committed.columns], committed, check_exact=False,
-                                  rtol=1e-9, atol=0)
 
 
 def test_run_tables_downloaded(work):
@@ -57,10 +49,10 @@ def test_fits_reproduce_committed_rows(work):
         cwd=A2, env=env)
     fresh = pd.read_csv(path / "results_small.csv")
     committed = pd.read_csv(RESULTS / "results_E.csv")
-    _assert_same(fresh, committed[committed["cell"].isin(SMALL_CELLS)], KEY)
+    assert_same_rows(fresh, committed[committed["cell"].isin(SMALL_CELLS)], KEY)
     screen = pd.read_csv(path / "screening_small.csv")
     ref = pd.read_csv(RESULTS / "screening_E.csv")
-    _assert_same(screen, ref[ref["cell"].isin(SMALL_CELLS)], ["cell"])
+    assert_same_rows(screen, ref[ref["cell"].isin(SMALL_CELLS)], ["cell"])
 
 
 def test_margins_reproduce(work):
@@ -69,7 +61,7 @@ def test_margins_reproduce(work):
     shutil.copy(RESULTS / "results_E.csv", path / "results_E.csv")
     run(["python", A2 / "margins.py", "--runs", "runs_expanded.csv", "--corpus", "E",
          "--results", "results_E.csv", "--out", "margins_E.csv"], cwd=A2, env=env)
-    _assert_same(pd.read_csv(path / "margins_E.csv"), pd.read_csv(RESULTS / "margins_E.csv"),
+    assert_same_rows(pd.read_csv(path / "margins_E.csv"), pd.read_csv(RESULTS / "margins_E.csv"),
                  KEY[:-1])
 
 
@@ -81,7 +73,7 @@ def test_seed_enumeration_reproduces_committed_rows(work):
          "--workers", str(min(32, os.cpu_count() or 1))], cwd=A2, env=env)
     fresh = pd.read_csv(path / "seeds_small.csv")
     committed = pd.read_csv(RESULTS / "results_E_seeds512_seeds0-7.csv.gz")
-    _assert_same(fresh, committed[committed["cell"].isin(SMALL_CELLS)],
+    assert_same_rows(fresh, committed[committed["cell"].isin(SMALL_CELLS)],
                  ["cell", "window", "ray_bin", "law", "seed"])
 
 

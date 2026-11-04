@@ -47,6 +47,21 @@ def _cross(ns: tuple[float, ...], ds: tuple[float, ...]) -> tuple[float, ...]:
     return tuple(sorted(d / n for n in ns for d in ds))
 
 
+# Kaplan et al. 2020, Fig. 9 left (L(N, D) sweep): data size in tokens -> the non-embedding
+# sizes plotted at it, read from the vector figure of the arXiv e-print (CRITERIA.md
+# Amendments 5). Legend data sizes 21M, 43M, 86M, 172M, 344M, 688M, 1.4B, 22.0B.
+_KAPLAN_FIG9_RUNS: dict[float, tuple[float, ...]] = {
+    2.1e7: (3.93e5, 3.15e6, 2.52e7, 8.49e7, 3.02e8, 7.08e8),
+    4.3e7: (3.93e5, 3.15e6, 2.52e7),
+    8.6e7: (3.93e5, 3.15e6, 2.52e7, 8.49e7, 3.02e8, 7.08e8),
+    1.72e8: (3.15e6, 2.52e7, 8.49e7, 3.02e8),
+    3.44e8: (3.15e6, 2.52e7, 8.49e7, 3.02e8),
+    6.88e8: (3.93e5, 3.15e6, 2.52e7, 8.49e7, 3.02e8, 7.08e8),
+    1.4e9: (8.49e7, 3.02e8, 7.08e8),
+    2.2e10: (3.93e5, 3.15e6, 2.52e7, 8.49e7, 3.02e8, 7.08e8),
+}
+
+
 @dataclass(frozen=True)
 class BetaEff:
     """One paper's own data-side exponent for the law whose design is classified.
@@ -141,11 +156,15 @@ DESIGNS: tuple[Design, ...] = (
         key="kaplan2020",
         citation="Kaplan et al. 2020, Scaling Laws for Neural Language Models",
         arxiv_id="2001.08361",
-        # Endpoint mode (CRITERIA convention 5): N endpoints 768..1.5e9 non-embedding
-        # (stated model range), D endpoints 2.29e10-token WebText2 subsampled down by
-        # factor 1024 to ~2.24e7 tokens (Sec 4.2). Corner ratios of the crossed axes.
-        k_list=_cross((768.0, 1.5e9), (2.24e7, 2.29e10)),
-        k_list_source="endpoints",
+        # Reconstruction (CRITERIA Amendments 5, 2026-11-03): the 38 runs of the L(N, D)
+        # sweep, read from the paper's own vector figure (Fig. 9 left,
+        # figures/DatasetModelSizevsPerformance.pdf in the arXiv e-print). Each series is one
+        # data size of the legend (21M ... 22.0B tokens); each marker's x position, read
+        # against the 10^6..10^9 ticks, gives its non-embedding size. 6 sizes x 8 data sizes,
+        # not fully crossed. Until Amendments 5 this row crossed the study-wide size range
+        # (768 to 1.5e9) with the data range (2.24e7 to 2.29e10) in endpoints mode.
+        k_list=tuple(sorted(d / n for d, ns in _KAPLAN_FIG9_RUNS.items() for n in ns)),
+        k_list_source="reconstruction",
         protocol="pooled",
         protocol_source="inferred",
         beta_eff=BetaEff(
@@ -161,10 +180,12 @@ DESIGNS: tuple[Design, ...] = (
                        "paper and the one this paper uses as its Kaplan literature "
                        "estimate.",
         ),
-        provenance="Eq 1.5 fit over runs, Fig 9; model range 768-1.5B non-embed (abstract/Sec 3); "
-                    "subsets of 2.29e10-token WebText2 reduced up to 1024x to ~2e7 tokens (Sec 4.2). "
-                    "Endpoint corners (CRITERIA conv. 5 heuristic: endpoints-mode can over-credit "
-                    "but not under-credit the design).",
+        provenance="Eq 1.5 fit over the early-stopped runs plotted in Fig 9 left (Sec 4.2, "
+                    "main.tex line 474: 'The results are displayed in Figure ... including a fit'); "
+                    "38 (N, D) runs read from that vector figure: sizes 3.93e5, 3.15e6, 2.52e7, "
+                    "8.49e7, 3.02e8, 7.08e8 non-embedding parameters on WebText2 subsets of "
+                    "2.1e7 to 2.2e10 tokens, K = 34 after the 1% merge, ratios 0.0297-5.59e4. "
+                    "The 768-1.5B range of the abstract is the whole study's, not this sweep's.",
     ),
     Design(
         key="hoffmann2022",
@@ -328,10 +349,13 @@ DESIGNS: tuple[Design, ...] = (
         key="aghajanyan2023",
         citation="Aghajanyan et al. 2023, Scaling Laws for Generative Mixed-Modal Language Models (ICML 2023)",
         arxiv_id="2301.03728",
-        # Per-modality pooled fits share the same axes: D in {5,10,100}B tokens (stated),
-        # N endpoints 8M and 6.7B (stated range, 7 sizes). Endpoint-mode on N.
-        k_list=_cross((8.0e6, 6.7e9), (5.0e9, 1.0e10, 1.0e11)),
-        k_list_source="endpoints",
+        # Per-modality pooled fits share one crossed grid: the seven sizes of their
+        # table:opt_model_desc (8M to 6.7B), each trained on 5B, 10B and 100B tokens
+        # (iclr2023_conference.tex line 180). Recoded 2026-11-03 from endpoints mode
+        # (CRITERIA.md Amendments 4).
+        k_list=_cross((8.0e6, 1.25e8, 3.5e8, 7.6e8, 1.3e9, 2.7e9, 6.7e9),
+                      (5.0e9, 1.0e10, 1.0e11)),
+        k_list_source="axes-derived",
         protocol="pooled",
         protocol_source="stated",
         beta_eff=BetaEff(
@@ -346,10 +370,14 @@ DESIGNS: tuple[Design, ...] = (
                        "(Code); the causal-LM control fit gives Text beta = 0.23 and "
                        "Speech beta = 0.24 (Table 4).",
         ),
-        provenance="Sec 4-5: 7 sizes 8M-6.7B, each trained on 5B/10B/100B tokens per modality; "
-                    "Eq 2 params fit by pooled Huber objective per modality. N interior sizes "
-                    "omitted under the conv. 5 endpoints heuristic (can over-credit, not "
-                    "under-credit).",
+        provenance="Sec 4-5: 'We train seven different model sizes, from 8 million to 6.7 "
+                    "billion, on seven different modalities on three different dataset sizes "
+                    "(5B, 10B, 100B)' (line 180); the sizes are the 8M, 125M, 350M, 760M, 1.3B, "
+                    "2.7B and 6.7B rows of the appendix table:opt_model_desc (its 30B row is "
+                    "the held-out test of the mixed-modal law). Eq 2 params fit by pooled Huber "
+                    "objective per modality over the 7 x 3 grid. Until 2026-11-03 only the end "
+                    "sizes 8M and 6.7B were used (K = 6, margin 6.69); the full grid gives "
+                    "K = 21, margin 3.42, same verdict (CRITERIA.md Amendments 4).",
     ),
     Design(
         key="frantar2023",
@@ -485,26 +513,54 @@ DESIGNS: tuple[Design, ...] = (
     ),
     Design(
         key="krajewski2024",
-        citation="Krajewski et al. 2024, Scaling Laws for Fine-Grained Mixture of Experts (ICML 2024)",
+        citation="Krajewski et al. 2024, Scaling Laws for Fine-Grained Mixture of Experts "
+                 "(ICML 2024; the PMLR record lists Ludziejewski first)",
         arxiv_id="2402.07871",
-        # Joint MoE law (Eq 9) pooled over >100 runs; D values stated {16,24,33,66,130}B,
-        # N (total non-embedding, their convention) endpoints 129M / 3.7B (abstract).
-        k_list=_cross((1.29e8, 3.7e9), (1.6e10, 2.4e10, 3.3e10, 6.6e10, 1.3e11)),
-        k_list_source="endpoints",
+        # Exact run list of the classified MoE fit (Eq 9, E = 64), recoded 2026-11-03
+        # (CRITERIA.md Amendments 4): every (size, D) pair of the appendix table
+        # 'Architecture and training variants (MoE models)' (tab:moe,
+        # iclr2024_conference.tex lines 164-183), where each size has its own token
+        # counts. N = d_model^2 (8E + 4) n_blocks, their total-parameter count
+        # (practical.tex line 41); it reproduces their figure files
+        # granularity_N_1082130432 (64x25M) and granularity_N_2113536000 (64x49M).
+        # Granularity G leaves N unchanged, so the G values of a row add no ratio.
+        k_list=tuple(sorted(
+            d_tok * 1e9 / ((8 * 64 + 4) * d_model**2 * n_blocks)
+            for d_model, n_blocks, tokens_b in (
+                (256, 4, (16, 33, 66)),        # 64x3M
+                (384, 4, (16, 33, 66)),        # 64x7M
+                (512, 4, (16, 33, 66, 130)),   # 64x13M
+                (512, 8, (16, 33, 66)),        # 64x25M
+                (640, 10, (16, 33, 66)),       # 64x49M
+                (768, 12, (33,)),              # 64x85M
+            )
+            for d_tok in tokens_b
+        )),
+        k_list_source="exact",
         protocol="pooled",
         protocol_source="stated",
         beta_eff=BetaEff(
             value=0.147,
             symbol="beta",
             law_family="fine-grained MoE superset (Chinchilla core plus a granularity term)",
-            source="arXiv:2402.07871 scaling_laws.tex line 387, Table 1 ('Values of the "
+            source="arXiv:2402.07871 scaling_laws.tex line 386, Table 1 ('Values of the "
                    "fitted coefficients'), MoE row of their Eq. 9 "
                    "L(N,D,G) = c + (g/G^gamma + a)/N^alpha + b/D^beta.",
             range_note="the companion dense-transformer fit in the same table gives "
-                       "beta = 0.127.",
+                       "beta = 0.127; the validation refit without the 20 percent of runs "
+                       "with the lowest perplexity gives 0.140 (iclr2024_conference.tex "
+                       "line 217), and the E = 16 fit 0.169 (line 277).",
         ),
-        provenance="Sec 4 / Appendix A Tables 3-4: token counts 16B/24B/33B/66B/130B; models "
-                    "129M-3.7B params; Eq 9 fit pooled over the MoE family. N endpoints x stated D axis.",
+        provenance="Appendix tab:moe (E = 64): 64x3M, 64x7M, 64x13M, 64x25M and 64x49M at "
+                    "16B, 33B and 66B tokens, 64x13M also at 130B, 64x85M at 33B only, each "
+                    "at 3 to 5 granularities; 17 (N, D) pairs, two of which share k = 61.0 "
+                    "(64x13M at 33B, 64x25M at 66B), so K = 16, ratios 7.57-488. Eq 9 fit "
+                    "pooled over these MoE runs (scaling_laws.tex line 366); the dense runs of "
+                    "tab:dense (the only ones at 24B) enter only the separate dense fit. Until "
+                    "2026-11-03 the row crossed the size range stated in the text (129M to "
+                    "3.7B, scaling_laws.tex line 46) with every token count in the paper "
+                    "(K = 10, ratios 4.32-1008, margin 1.26, a pass); that grid includes pairs "
+                    "no run reaches (CRITERIA.md Amendments 4).",
     ),
     Design(
         key="xu2026softq",
@@ -567,7 +623,8 @@ DESIGNS: tuple[Design, ...] = (
         citation="Sardana et al. 2025, Beyond Chinchilla-Optimal: Accounting for Inference in "
                  "Language Model Scaling Laws (ICML 2024 version; cited as 2025 in this paper)",
         arxiv_id="2401.00448",
-        # v3 Appendix C Table 4: TPP ratios per size - 150M gets all 12, larger sizes prefixes;
+        # v3 Appendix C Table 4: TPP ratios per size - 150M gets all 12, larger sizes subsets
+        # (2.5B: 10, 15, 20, 50, 100, 250, 500; 6B: 20 only);
         # distinct-union of the ratios entering the All-Data pooled refit (Sec 5, Table 1).
         k_list=(10.0, 15.0, 20.0, 30.0, 50.0, 75.0, 100.0, 250.0, 500.0,
                 1000.0, 5000.0, 10000.0),
@@ -701,10 +758,21 @@ DESIGNS: tuple[Design, ...] = (
         key="shukor2025mixtures",
         citation="Shukor et al. 2025, Scaling Laws for Optimal Data Mixtures (arXiv 2507.09404)",
         arxiv_id="2507.09404",
-        # LLM setting: fit runs at N in {412M, 834M, 1.1B, 1.4B}, D 4B-46B tokens (stated),
-        # pooled over (N_j, D_j, h_j) runs. Endpoint corners; verdict robust: even the single
-        # widest size column (412M, 4-46B) alone passes.
-        k_list=_cross((4.12e8, 1.4e9), (4.0e9, 4.6e10)),
+        # LLM setting, table tab:train_val_points (apple.tex lines 519-522; the same rows
+        # in v1): each training size has its own token range, and the checkpoints inside a
+        # range (constant learning rate, line 401) are not enumerated. Endpoints mode per
+        # size: the two end ratios of each size's own range. Recoded 2026-11-03 from the
+        # cross of the extreme sizes and token counts (CRITERIA.md Amendments 4).
+        k_list=tuple(sorted(
+            d / n
+            for n, token_range in (
+                (4.12e8, (4.0e9, 2.0e10)),
+                (8.34e8, (7.0e9, 2.6e10)),
+                (1.1e9, (7.0e9, 3.6e10)),
+                (1.4e9, (1.3e10, 4.6e10)),
+            )
+            for d in token_range
+        )),
         k_list_source="endpoints",
         protocol="pooled",
         protocol_source="stated",
@@ -718,9 +786,13 @@ DESIGNS: tuple[Design, ...] = (
                    "fitted exponent is printed. Fell back to the corpus-wide 0.28, flagged.",
         ),
         provenance="Additive law L=E+sum_i C_i h_i^-g + A/N^a + B/D^b fit by pooled Huber "
-                    "objective over p runs (N_j,D_j,h_j) (stated); LLM grid 'Train: 412M, 834M, "
-                    "1.1B, 1.4B parameters with 4-46B tokens'. Endpoint corners of the stated "
-                    "axes.",
+                    "objective over p runs (N_j,D_j,h_j) (stated); LLM training rows of "
+                    "tab:train_val_points: 412M at 4-20B tokens (60 domain weights), 834M at "
+                    "7-26B (40), 1.1B at 7-36B (40), 1.4B at 13-46B (20). Per-size end "
+                    "ratios 6.36-48.5; 32.7 (1.1B at 36B) and 32.9 (1.4B at 46B) merge, so "
+                    "K = 7. Until 2026-11-03 the row crossed 412M and 1.4B with 4B and 46B "
+                    "(K = 4, ratios 2.86-112, margin 2.02, a pass), whose corners 412M at 46B "
+                    "and 1.4B at 4B match no run (CRITERIA.md Amendments 4).",
     ),
     Design(
         key="volkova2026optimizers",

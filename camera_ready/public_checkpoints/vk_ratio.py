@@ -21,10 +21,28 @@ import conditional as C
 from paths import WORK
 
 
-def vk_ratio_by_stratum(df: pd.DataFrame, beta: float = C.BETA_PRIMARY) -> pd.DataFrame:
+TOP_STRATUM = ">=1B"
+BELOW_TOP = "<1B"
+
+
+def margin_gaps(df: pd.DataFrame, beta: float = C.BETA_PRIMARY) -> pd.DataFrame:
+    """The pairs with a finite Delta = m_NC - m_CO (column `delta`), tagged with their stratum.
+
+    A pair whose CO design is degenerate (V_K = 0, so m_CO = -inf) has no finite ratio and
+    is dropped. The row order of `df` is kept.
+    """
     delta = (df[f"NC_m_beta{beta}"] - df[f"CO_m_beta{beta}"]).replace([np.inf, -np.inf], np.nan)
-    d = df.assign(delta=delta, stratum=df["N_gm"].map(C.coarse_stratum)).dropna(subset=["delta"])
-    d = pd.concat([d, d[d["stratum"] != ">=1B"].assign(stratum="<1B")])
+    return df.assign(delta=delta, stratum=df["N_gm"].map(C.coarse_stratum)).dropna(subset=["delta"])
+
+
+def with_below_top(d: pd.DataFrame) -> pd.DataFrame:
+    """`d` plus its pairs below 1B once more, as the pooled stratum "<1B"."""
+    return pd.concat([d, d[d["stratum"] != TOP_STRATUM].assign(stratum=BELOW_TOP)],
+                     ignore_index=True)
+
+
+def vk_ratio_by_stratum(df: pd.DataFrame, beta: float = C.BETA_PRIMARY) -> pd.DataFrame:
+    d = with_below_top(margin_gaps(df, beta))
     rows = []
     for stratum, g in d.groupby("stratum"):
         rows.append({"stratum": stratum, "n_pairs": len(g),

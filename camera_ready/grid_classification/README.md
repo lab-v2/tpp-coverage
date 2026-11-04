@@ -15,8 +15,15 @@ uv run python camera_ready/grid_classification/classify.py --out /tmp/check.csv
 Result, at each paper's own fitted data exponent and kappa_target = 100:
 
 - 206 candidates screened, 32 fit a bivariate N-D law, 24 have a recoverable ratio list;
-- 13 pass (Regime B) and 11 fail (Regime A), 3 of them single-ray designs (K = 1);
-- at the old corpus-wide exponent 0.28 the split is 15 / 9; two rows flip, both pass to fail.
+- 11 pass (Regime B) and 13 fail (Regime A), 3 of them single-ray designs (K = 1);
+- at the old corpus-wide exponent 0.28 the split is 14 / 10; three rows flip, all pass to fail;
+- Amendments 4 in `CRITERIA.md` read three designs from their papers' run tables instead of
+  the ranges stated in the text: krajewski2024 and shukor2025mixtures now fail, and
+  aghajanyan2023 still passes. Before it the split was 13 / 11;
+- Amendments 5 read kaplan2020's 38 runs from its own vector figure (Fig. 9 left) instead of
+  the whole study's size range: K = 34, margin 2.07, still a pass. No pass now rests on an
+  endpoints-mode ratio list. It also records that Prop. 2 is stated for collinear designs;
+  for the 18 other designs one weight per distinct ratio is a convention.
 
 | File | Contents |
 |---|---|
