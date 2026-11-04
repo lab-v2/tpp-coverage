@@ -171,6 +171,10 @@ The suite checks law recovery on synthetic data, every entry point's `--help`, t
 released tables are reproduced, the camera-ready analyses, the README's links, images,
 diagram and citation, and that no private host or path is in the tree.
 
+CI runs the suite, `ruff check .` and the privacy scan on every pull request and every push
+to `main`. A pull request may merge only when its author is a lab-v2 member, or when a
+member approved its latest commit (the `pr-authorization` check).
+
 # Citing
 
 If you use this work, please cite our paper:

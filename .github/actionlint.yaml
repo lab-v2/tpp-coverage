@@ -1,0 +1,4 @@
+self-hosted-runner:
+  # The own pool's preference label (own-ci-runners skill); no runner carries a host name.
+  labels:
+    - primary
