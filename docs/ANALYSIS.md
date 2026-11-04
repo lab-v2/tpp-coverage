@@ -11,6 +11,11 @@ Everything here runs on CPU. Inputs are the loss tables in `extracted_losses/`
 Four laws x five corpora x three epoch modes (first, second, final epoch), each fitted with 30
 optimizer seeds on the NC and on the CO design and scored on the shared holdouts.
 
+`scaling_laws.laws` also defines a law the paper does not use, Skaling,
+L = (A/N^alpha + B/D^beta)^k + E (arXiv:2608.07222), which is Chinchilla at k = 1
+(`skaling_loss`, `fit_skaling`). It is registered in `EXTRA_LAWS`, not `LAWS`, so none of
+the commands below fit it.
+
 ```bash
 uv run python src/tpp_analysis/run_analysis.py full_coverage --data-dir extracted_losses/ --n-workers "$(nproc)"
 uv run python src/tpp_analysis/run_analysis.py seed_variance --data-dir extracted_losses/ --n-workers "$(nproc)"

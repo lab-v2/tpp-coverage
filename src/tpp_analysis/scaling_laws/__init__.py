@@ -17,8 +17,8 @@ from scaling_laws.tables import (
     build_summary_df, get_winners_summary,
 )
 from scaling_laws.laws import (
-    kaplan_loss, chinchilla_loss, droppo_elibol_loss,
-    fit_kaplan, fit_chinchilla, fit_droppo_elibol,
+    kaplan_loss, chinchilla_loss, droppo_elibol_loss, skaling_loss,
+    fit_kaplan, fit_chinchilla, fit_droppo_elibol, fit_skaling,
     parametric_epoch_loss, effective_data, effective_params,
     fit_parametric_epoch, evaluate_parametric_epoch,
 )
@@ -34,8 +34,8 @@ __all__ = [
     "get_winners_summary",
     "load_and_prepare",
     "prepare_epoch_expanded",
-    "kaplan_loss", "chinchilla_loss", "droppo_elibol_loss",
-    "fit_kaplan", "fit_chinchilla", "fit_droppo_elibol",
+    "kaplan_loss", "chinchilla_loss", "droppo_elibol_loss", "skaling_loss",
+    "fit_kaplan", "fit_chinchilla", "fit_droppo_elibol", "fit_skaling",
     "parametric_epoch_loss", "effective_data", "effective_params",
     "fit_parametric_epoch", "evaluate_parametric_epoch",
     "plot_3d_overview", "plot_overlay", "plot_isoflops", "plot_isoflop_single",
