@@ -22,6 +22,16 @@ uv run hf download leibnitz-lab/colinear_scaling_models --repo-type dataset \
 uv run python src/tpp_analysis/download_and_extract.py --skip-download --repo-dir colinear_scaling_models
 ```
 
+The checkpoints of one corpus only, with its metrics:
+
+```bash
+uv run hf download leibnitz-lab/colinear_scaling_models --repo-type dataset \
+    --include "wikipedia/**" "training_metrics/wikipedia/**" --local-dir colinear_scaling_models
+```
+
+A full download takes hours; run it inside `tmux` or `screen` so a dropped connection does not
+stop it.
+
 Other flags: `--datasets wikipedia c4` (subset of corpora), `--include-checkpoints` (adds the
 `.pt` files to B), `--include-results` (B plus A in one call). Run
 `download_and_extract.py --help` for the full list.
