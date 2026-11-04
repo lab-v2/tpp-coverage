@@ -68,7 +68,7 @@ uv run python vk_ratio.py
 | `vk_ratio.py` | the median V_K ratio by size band |
 | `results/` | committed reference outputs (5-seed fits and margins of the E corpus, seeds 0-7 of the 512-seed enumeration, screening logs, estimates) |
 
-`tests/test_public_checkpoints.py` refits two studies from the downloaded tables and requires
+`tests/camera_ready/test_public_checkpoints.py` refits two studies from the downloaded tables and requires
 the committed rows back, rebuilds every margin, and checks the 5-seed estimates and the
 headline numbers above. A full rerun of the E corpus reproduces `results_E.csv` exactly.
 

@@ -43,7 +43,7 @@ import numpy as np
 import torch
 
 
-# Keep in sync with src/tpp_analysis/hf_dataset.py (tests/test_entry_points.py checks it).
+# Keep in sync with src/tpp_analysis/hf_dataset.py (tests/repository/test_entry_points.py checks it).
 HF_REPO_ID = "leibnitz-lab/colinear_scaling_models"
 DEFAULT_CACHE_DIR = os.path.expanduser("~/.cache/tpp_verify")
 

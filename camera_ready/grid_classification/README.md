@@ -27,4 +27,4 @@ Result, at each paper's own fitted data exponent and kappa_target = 100:
 | `classify.py` | the classification; V_K, tau_K and the regime come from `src/tpp_analysis/subset_analysis/subset_analysis_bbox_seeded.py` |
 | `results.csv` | per design: K, ratios, exponent, V_K, tau_K, verdicts under both exponents and the sensitivity grids |
 
-`tests/test_grid_classification.py` reruns `classify.py` and requires `results.csv` unchanged.
+`tests/camera_ready/test_grid_classification.py` reruns `classify.py` and requires `results.csv` unchanged.

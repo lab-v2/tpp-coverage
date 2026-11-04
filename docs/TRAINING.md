@@ -77,7 +77,7 @@ The main design, per corpus:
   holdout ratios.
 
 Holdout runs train on the validation split (`--use-train-as-val`), so the fitted laws never
-see their data. The test `tests/test_release_match.py` checks that the generated run names
+see their data. The test `tests/analysis/test_release_match.py` checks that the generated run names
 equal the released ones for every corpus.
 
 Fixed hyperparameters: 3 epochs (1 for BigTPP), 96 sequences of 256 tokens per GPU on 4 GPUs,

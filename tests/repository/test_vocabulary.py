@@ -12,7 +12,7 @@ BANNED = ("triptych",)  # say "three-panel figure"
 
 def _tracked() -> list[str]:
     out = subprocess.run(["git", "ls-files"], cwd=REPO, capture_output=True, text=True, check=True)
-    return [f for f in out.stdout.splitlines() if f != "uv.lock" and f != "tests/test_vocabulary.py"]
+    return [f for f in out.stdout.splitlines() if f != "uv.lock" and f != "tests/repository/test_vocabulary.py"]
 
 
 def test_no_banned_word_in_names_or_text():
