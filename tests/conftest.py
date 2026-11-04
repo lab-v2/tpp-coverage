@@ -5,9 +5,12 @@ from __future__ import annotations
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-import pandas as pd
 import pytest
+
+if TYPE_CHECKING:  # pandas is imported where it is used: the privacy job installs only pytest
+    import pandas as pd
 
 REPO = Path(__file__).resolve().parents[1]
 SRC = REPO / "src"
@@ -35,6 +38,8 @@ def run(args: list[str], cwd: Path = REPO, env: dict | None = None,
 
 def assert_same_rows(fresh: pd.DataFrame, committed: pd.DataFrame, keys: list[str]) -> None:
     """Equal row sets after sorting by `keys`: the committed columns, to 1e-9 relative."""
+    import pandas as pd
+
     fresh = fresh.sort_values(keys).reset_index(drop=True)
     committed = committed.sort_values(keys).reset_index(drop=True)
     assert len(fresh) == len(committed) > 0
