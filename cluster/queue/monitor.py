@@ -71,8 +71,13 @@ def queue_state(queue_dir: Path) -> QueueState:
 
 
 def heartbeats(shared_dir: Path) -> list[dict]:
+    """Every readable heartbeat, in file-name order.
+
+    Sorted because `glob` returns the directory's own order, which differs between
+    file systems (tmpfs lists newest first, ext4 by name hash).
+    """
     out = []
-    for path in glob.glob(str(shared_dir / "heartbeats" / "*.json")):
+    for path in sorted(glob.glob(str(shared_dir / "heartbeats" / "*.json"))):
         try:
             out.append(json.loads(Path(path).read_text()))
         except (OSError, ValueError):

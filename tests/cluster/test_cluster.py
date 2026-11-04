@@ -89,6 +89,18 @@ def test_health_lines(tmp_path):
         "ALERT LOSS NaN/inf at 99.0%: RUN_A", "ALERT LOSS NOT DESCENDING at 30.0%: RUN_B"]
 
 
+def test_heartbeats_ignore_the_directory_order(tmp_path, monkeypatch):
+    """Alerts come out in file-name order whatever order the file system lists the files in."""
+    q = _queue(tmp_path)
+    _beat(q, "RUN_A", float("nan"), 99.0, 10)
+    _beat(q, "RUN_B", 11.6, 30.0, 10)
+    listed = sorted((q / "shared" / "heartbeats").glob("*.json"))
+    for order in (listed, listed[::-1]):
+        monkeypatch.setattr(monitor.glob, "glob", lambda _pattern, o=order: [str(p) for p in o])
+        assert monitor.loss_alert_lines(q / "shared") == [
+            "ALERT LOSS NaN/inf at 99.0%: RUN_A", "ALERT LOSS NOT DESCENDING at 30.0%: RUN_B"]
+
+
 def test_monitor_cli_requires_a_queue(tmp_path):
     env = {k: v for k, v in os.environ.items() if k not in ("QUEUE_DIR", "SHARED_DIR")}
     proc = subprocess.run([sys.executable, QUEUE / "monitor.py"], env=env, capture_output=True,
