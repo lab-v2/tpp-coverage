@@ -1,0 +1,89 @@
+# Tests, lint and the privacy scan, on the project's own self-hosted runners.
+# `primary` prefers the primary host and falls back to the other one; no job
+# names a machine, and the first step of each job masks the runner's paths,
+# account and machine name in this public log before anything can print them.
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  tests:
+    name: tests
+    runs-on: [self-hosted, linux, primary]
+    timeout-minutes: 45
+    steps:
+      - name: Mask this runner's paths, account and machine name
+        run: |
+          for v in "$HOME" "$(id -un)" "$(cat /proc/sys/kernel/hostname)" \
+                   "$(cut -d. -f1 /proc/sys/kernel/hostname)" \
+                   "${GITHUB_WORKSPACE%%/_work/*}" "$(echo "$GITHUB_WORKSPACE" | cut -d/ -f1-3)"; do
+            if [ "${#v}" -ge 4 ]; then
+              echo "::add-mask::$v"
+              # actions/checkout's cleanup prints paths regex-escaped (\/ and \-).
+              echo "::add-mask::$(printf '%s' "$v" | sed 's/[/.-]/\\&/g')"
+            fi
+          done
+      # Pinned to the commit behind tag v7.0.1 (as in the own-runners guard).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the locked environment
+        run: uv sync --locked --quiet
+      - name: Full test suite, in parallel
+        # -q --no-header: the header would print the worker count of this machine.
+        run: uv run --locked pytest -n auto -q --no-header
+
+  ruff:
+    name: ruff
+    runs-on: [self-hosted, linux, primary]
+    timeout-minutes: 10
+    steps:
+      - name: Mask this runner's paths, account and machine name
+        run: |
+          for v in "$HOME" "$(id -un)" "$(cat /proc/sys/kernel/hostname)" \
+                   "$(cut -d. -f1 /proc/sys/kernel/hostname)" \
+                   "${GITHUB_WORKSPACE%%/_work/*}" "$(echo "$GITHUB_WORKSPACE" | cut -d/ -f1-3)"; do
+            if [ "${#v}" -ge 4 ]; then
+              echo "::add-mask::$v"
+              # actions/checkout's cleanup prints paths regex-escaped (\/ and \-).
+              echo "::add-mask::$(printf '%s' "$v" | sed 's/[/.-]/\\&/g')"
+            fi
+          done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: ruff check
+        run: uv run --locked --only-group dev ruff check --output-format=github .
+
+  privacy:
+    name: privacy
+    runs-on: [self-hosted, linux, primary]
+    timeout-minutes: 10
+    steps:
+      - name: Mask this runner's paths, account and machine name
+        run: |
+          for v in "$HOME" "$(id -un)" "$(cat /proc/sys/kernel/hostname)" \
+                   "$(cut -d. -f1 /proc/sys/kernel/hostname)" \
+                   "${GITHUB_WORKSPACE%%/_work/*}" "$(echo "$GITHUB_WORKSPACE" | cut -d/ -f1-3)"; do
+            if [ "${#v}" -ge 4 ]; then
+              echo "::add-mask::$v"
+              # actions/checkout's cleanup prints paths regex-escaped (\/ and \-).
+              echo "::add-mask::$(printf '%s' "$v" | sed 's/[/.-]/\\&/g')"
+            fi
+          done
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Privacy scan of the tree
+        run: uv run --locked --only-group dev pytest -q --no-header tests/test_privacy.py
