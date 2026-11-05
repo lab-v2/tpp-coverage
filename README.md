@@ -215,8 +215,15 @@ If you use this work, please cite our paper:
 # Acknowledgments
 
 This work was done at the Leibniz Lab, Department of Electrical Engineering and Computer
-Science, Syracuse University. It was funded by ARO grant W911NF-24-1-0007 and NSF ACCESS
-grant CIS230318. The code is released under the GNU General Public License v2 ([`LICENSE`](LICENSE)).
+Science, Syracuse University. This research was funded by ARO grant W911NF-24-1-0007.
+Separately, this work used resources at NCSA through allocation CIS230318 from the Advanced
+Cyberinfrastructure Coordination Ecosystem: Services & Support (ACCESS) program
+([Boerner et al., 2023](https://doi.org/10.1145/3569951.3597559)), which is supported by U.S.
+National Science Foundation grants #2138259, #2138286, #2138307, #2137603, and #2138296.
+Three AMD EPYC CPU chips, donated by AMD, were used for the experiments. This research was
+supported in part through computational resources provided by Syracuse University (NSF award
+ACI-1341006). The code is released under the GNU
+General Public License v2 ([`LICENSE`](LICENSE)).
 
 <p align="center">
   <a href="https://www.syracuse.edu/"><img alt="Syracuse University" src="images/syracuse_university.svg" height="60"></a>
