@@ -40,7 +40,7 @@ class LogBandAssigner:
     distance. Because the bands are quarter-decade spaced, linear snapping is
     biased toward the lower band near every midpoint (TPP 90 would snap to 67
     rather than 120), so this project uses the log-distance rule instead. The
-    divergence is deliberate and documented in ``docs/upstream_notes.md``.
+    divergence is deliberate and documented in ``large_scale/UPSTREAM_NOTES.md``.
     """
 
     def __init__(self, bands: tuple[float, ...] = TPP_BANDS) -> None:

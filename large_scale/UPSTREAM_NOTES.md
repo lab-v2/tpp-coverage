@@ -20,7 +20,7 @@ reading one file.
 | Restart count, seed base, kappa targets, beta index, min points | `subset_analysis.subset_analysis_bbox_seeded` constants |
 | Train/holdout bucketing (`organise_runs`, `PreparedData`) | `scaling_laws.data._organise` / `PreparedData` |
 
-`tests`-free assurance: `verify_upstream_parity()` in `model/fitting.py` fits all three laws twice,
+`tests`-free assurance: `verify_upstream_parity()` in `src/tpp_large_scale/model/fitting.py` fits all three laws twice,
 once through the paper's `fit_*` entry points and once through this package, and asserts the
 sums of squared errors are bit-identical. It runs at the start of every analysis and is also
 available on its own via `uv run python large_scale/scripts/run_analysis.py --check-only`.
@@ -32,7 +32,7 @@ available on its own via `uv run python large_scale/scripts/run_analysis.py --ch
 A repo-wide search of the paper's code package finds no Jacobian construction, no condition
 number, and no covariance/CI machinery. `kappa`, `kappa_{A,B}`, the column-scaled variant and
 the CI-inflation ratio are defined analytically in the paper's tables only. Everything in
-`model/conditioning.py` is therefore local by necessity, not by choice.
+`src/tpp_large_scale/model/conditioning.py` is therefore local by necessity, not by choice.
 
 ### `full_coverage_ci.py` is not needed
 
@@ -57,7 +57,7 @@ holdout and robustness number. `model.grid.LogBandAssigner` implements the log r
 
 Upstream defines each law's bounds and initial-guess sampler as *function locals* inside
 `fit_chinchilla` / `fit_kaplan` / `fit_droppo_elibol`, so they cannot be imported. They are
-transcribed verbatim into `model/fitting.py`, and `verify_upstream_parity()` exists precisely to
+transcribed verbatim into `src/tpp_large_scale/model/fitting.py`, and `verify_upstream_parity()` exists precisely to
 catch any future drift in that transcription.
 
 ### The differential-evolution opt-out

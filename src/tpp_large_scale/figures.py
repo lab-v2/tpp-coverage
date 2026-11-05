@@ -48,7 +48,7 @@ class FigureBuilder:
             self.two_ray_threshold(results),
             self.isoflop_curves(results),
             SummaryFigure(self._config).build(results),
-            # design_grid.png is produced by figures_tikz/build_design_grid.sh, a TikZ
+            # design_grid.png is produced by large_scale/figures/tikz/build_design_grid.sh, a TikZ
             # port of the paper's appendix TPP-grid schematic. The matplotlib DesignScatter
             # class below is kept but no longer invoked, so the pipeline does not overwrite
             # the TikZ figure.

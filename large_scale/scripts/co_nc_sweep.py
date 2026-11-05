@@ -166,6 +166,6 @@ if __name__ == "__main__":
     ax.set_axisbelow(True)
     ax.legend(frameon=False, fontsize=9)
     fig.tight_layout()
-    out = REPO / "figs" / "winrate_vs_npairs.png"
+    out = REPO / "figures" / "winrate_vs_npairs.png"
     fig.savefig(out, dpi=200, bbox_inches="tight")
     print(f"wrote {out}")

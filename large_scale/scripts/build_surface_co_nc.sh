@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build figs/surface_co_vs_nc.png: dual Chinchilla surface (CO vs NC) via the
+# Build figures/surface_co_vs_nc.png: dual Chinchilla surface (CO vs NC) via the
 # paper's surface code (scripts/make_surface_co_nc.py).
 set -euo pipefail
 

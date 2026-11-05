@@ -14,7 +14,9 @@ from pathlib import Path
 from .upstream import KAPPA_TARGETS as UPSTREAM_KAPPA_TARGETS
 from .upstream import N_RESTARTS as UPSTREAM_N_RESTARTS
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+#: The large-scale experiment folder: its input data, results and figures.
+#: <repo>/src/tpp_large_scale/config.py -> parents[2] is the repository root.
+LARGE_SCALE_DIR = Path(__file__).resolve().parents[2] / "large_scale"
 
 #: Non-embedding parameter count per (n_layers, d_model), from the grid's
 #: ``grid_4d.csv`` convention. The grid's own ``N_grid`` column is the *total*
@@ -91,10 +93,10 @@ class SeedBook:
 class AnalysisConfig:
     """Paths and sample sizes for one end-to-end run."""
 
-    repo_root: Path = REPO_ROOT
-    metrics_csv: Path = field(default=REPO_ROOT / "data_final_metrics.csv")
-    results_dir: Path = field(default=REPO_ROOT / "results")
-    figures_dir: Path = field(default=REPO_ROOT / "figs")
+    component_dir: Path = LARGE_SCALE_DIR
+    metrics_csv: Path = field(default=LARGE_SCALE_DIR / "data" / "data_final_metrics.csv")
+    results_dir: Path = field(default=LARGE_SCALE_DIR / "results")
+    figures_dir: Path = field(default=LARGE_SCALE_DIR / "figures")
     seeds: SeedBook = field(default_factory=SeedBook)
 
     holdout_trials: int = 200

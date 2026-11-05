@@ -25,7 +25,7 @@ Deliberately NOT imported
     snaps to 67 linearly but to 120 in log space). See
     :class:`tpp_large_scale.model.grid.LogBandAssigner`.
 
-Both are recorded in ``docs/upstream_notes.md``.
+Both are recorded in ``large_scale/UPSTREAM_NOTES.md``.
 """
 
 from __future__ import annotations
@@ -48,8 +48,8 @@ def _candidate_roots() -> list[Path]:
     override = os.environ.get(CODE_REPO_ENV)
     if override:
         return [Path(override).expanduser().resolve()]
-    # <repo>/large_scale/src/tpp_large_scale/upstream.py -> parents[3] is the repository root.
-    return [Path(__file__).resolve().parents[3]]
+    # <repo>/src/tpp_large_scale/upstream.py -> parents[2] is the repository root.
+    return [Path(__file__).resolve().parents[2]]
 
 
 def locate_upstream_package() -> Path:
@@ -89,7 +89,7 @@ UPSTREAM_PACKAGE_DIR = _bootstrap()
 def package_dir_label(package_dir: Path = UPSTREAM_PACKAGE_DIR) -> str:
     """The package directory as recorded in results: relative to this repository when it is
     this repository's own copy, so a committed results file names no local path."""
-    repo_root = Path(__file__).resolve().parents[3]
+    repo_root = Path(__file__).resolve().parents[2]
     try:
         return package_dir.resolve().relative_to(repo_root).as_posix()
     except ValueError:

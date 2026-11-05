@@ -95,9 +95,9 @@ class TestCli:
         import subprocess
         import sys
 
-        from tpp_large_scale.config import REPO_ROOT
+        from tpp_large_scale.config import LARGE_SCALE_DIR
 
-        out = subprocess.run([sys.executable, str(REPO_ROOT / "scripts" / "run_analysis.py"),
+        out = subprocess.run([sys.executable, str(LARGE_SCALE_DIR / "scripts" / "run_analysis.py"),
                               "--help"], capture_output=True, text=True, check=True).stdout
         assert "--check-only" in out and "--workers" in out
 
@@ -115,9 +115,9 @@ class TestResultsDocument:
 
     @pytest.fixture(scope="class")
     def results(self) -> dict:
-        from tpp_large_scale.config import REPO_ROOT
+        from tpp_large_scale.config import LARGE_SCALE_DIR
 
-        return json.loads((REPO_ROOT / "results" / "results.json").read_text())
+        return json.loads((LARGE_SCALE_DIR / "results" / "results.json").read_text())
 
     def test_top_level_keys(self, results) -> None:
         expected = {

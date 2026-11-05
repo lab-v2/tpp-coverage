@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
 import numpy as np
 import pandas as pd
 import pytest
 
-from tpp_large_scale.config import REPO_ROOT, AnalysisConfig  # noqa: E402
-from tpp_large_scale.model.grid import FitArrays, TrainingGrid  # noqa: E402
+from tpp_large_scale.config import LARGE_SCALE_DIR, AnalysisConfig
+from tpp_large_scale.model.grid import FitArrays, TrainingGrid
 
 
 @pytest.fixture(scope="session")
@@ -22,7 +17,7 @@ def config() -> AnalysisConfig:
 
 @pytest.fixture(scope="session")
 def grid() -> TrainingGrid:
-    return TrainingGrid.from_csv(REPO_ROOT / "data_final_metrics.csv")
+    return TrainingGrid.from_csv(LARGE_SCALE_DIR / "data" / "data_final_metrics.csv")
 
 
 @pytest.fixture(scope="session")

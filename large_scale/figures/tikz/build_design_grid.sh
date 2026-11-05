@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
-# Compile the standalone TikZ design grid and export it to figs/design_grid.png.
+# Compile the standalone TikZ design grid and export it to figures/design_grid.png.
 # Tries pdftoppm (poppler), then magick/convert (ImageMagick), then gs (Ghostscript).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 cd "$HERE"
 DPI="${DPI:-300}"
-OUT="$HERE/../figs/design_grid.png"
-mkdir -p "$HERE/../figs"
+OUT="$HERE/../design_grid.png"
 
 # 1. LaTeX -> PDF (standalone auto-crops to content)
 latexmk -pdf -interaction=nonstopmode -halt-on-error design_grid.tex >/dev/null

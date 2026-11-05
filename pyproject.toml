@@ -56,7 +56,7 @@ dev = [
 package = false
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "large_scale/tests"]
+testpaths = ["tests"]
 addopts = ["--strict-markers", "-ra"]
 markers = [
     "network: downloads public data from HuggingFace (cached after the first run)",

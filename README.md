@@ -20,7 +20,7 @@ Joshua Shay Kricheli*, Alexander Lawrence Reid*, Soumajyoti Sarkar, Venkata Gand
 - [What is this?](#what-is-this)
 - [Installation](#installation)
 - [Quick start](#quick-start)
-- [Code structure](#code-structure)
+- [Repository structure](#repository-structure)
 - [Full pipeline](#full-pipeline)
 - [Paper item to command](#paper-item-to-command)
 - [Known behaviours](#known-behaviours)
@@ -76,7 +76,7 @@ uv run bash src/tpp_analysis/visualizations/run_appendix_figures.sh
 Add `--clear-cache` to `run_analysis.py` to refit every law from the loss tables; the refit
 reproduces the released results bit for bit (about 20 minutes on 50 cores).
 
-# Code structure
+# Repository structure
 
 ```mermaid
 %%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 50, "padding": 14}, "themeVariables": {"fontFamily": "Inter, -apple-system, Segoe UI, Helvetica, sans-serif", "fontSize": "15px", "lineColor": "#94A3B8", "clusterBkg": "transparent", "clusterBorder": "#94A3B8", "titleColor": "#94A3B8", "edgeLabelBackground": "transparent"}}}%%
@@ -104,17 +104,33 @@ flowchart TB
     class G extra
 ```
 
+## Layout
+
+Every folder below has one job; a linked folder has its own README.
+
 | Folder | What it holds |
 | --- | --- |
-| [`src/training_models/`](src/training_models) | Llama-style models and the distributed trainer |
-| [`src/tpp_analysis/`](src/tpp_analysis) | Corpora, job generation, loss extraction, law fitting, tables and figures |
-| [`camera_ready/`](camera_ready) | The two analyses added for the camera-ready version |
-| [`cluster/`](cluster/README.md) | The SLURM task queue that trained a larger Wikipedia stratum (to 380.6M parameters), and its re-analyses |
+| [`src/`](src/README.md) | The importable Python packages |
+| `src/tpp_analysis/` | The paper's analysis: corpora, job generation, loss extraction, law fits, tables and figures |
+| `src/training_models/` | Llama-style models and the distributed trainer |
+| `src/tpp_large_scale/` | The analysis package of `large_scale/` |
+| [`camera_ready/`](camera_ready/README.md) | The two analyses added for the camera-ready version |
+| [`camera_ready/grid_classification/`](camera_ready/grid_classification/README.md) | The paper's criterion applied to 24 published scaling-law designs |
+| [`camera_ready/public_checkpoints/`](camera_ready/public_checkpoints/README.md) | The reanalysis of ten public training-loss releases |
 | [`large_scale/`](large_scale/README.md) | The paper's analysis rerun on an independent grid of 461 C4 runs up to 354M parameters |
-| [`docs/`](docs) | Step-by-step guides |
-| [`tests/`](tests) | The pytest suite |
+| [`cluster/`](cluster/README.md) | A larger Wikipedia stratum (to 380.6M parameters) trained on the paper's protocol |
+| [`cluster/queue/`](cluster/queue/README.md) | The SLURM task queue that trained it |
+| [`cluster/wiki300m/`](cluster/wiki300m/README.md) | Its task generator and the queue of trained cells |
+| [`cluster/audit/`](cluster/audit/README.md) | Its re-analyses and their result tables |
+| [`docs/`](docs/README.md) | Step-by-step guides: downloading, training, analysis, figures, n-gram KL |
+| [`tests/`](tests/README.md) | The pytest suite, one folder per component |
+| `.github/` | CI on the project's own runners: tests, `ruff check .`, the privacy scan and the merge rule |
+| `images/` | The logos shown in this README |
 
-A one-line map of every top-level folder is in [docs/STRUCTURE.md](docs/STRUCTURE.md).
+The experiment folders (`camera_ready/*`, `large_scale/`, `cluster/`) share one layout: a
+README saying what the folder holds and how to run it, the scripts, and the committed outputs
+in a `results` folder (the grid classification keeps its `results.csv` beside its scripts,
+where its pre-registered protocol names it). Their tests sit in `tests/<folder>/`.
 
 # Full pipeline
 

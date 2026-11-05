@@ -12,7 +12,7 @@ Both fit Chinchilla on the training cells (N <= 85M, 6 each) at n_restarts=20
 (matching the sweep) and are scored by extrapolation R2 on the 354M frontier
 (holdout, drawn as points + residual sticks). V_K = Var(v^-beta), beta = 0.971.
 
-Output: figs/surface_co_vs_nc.png . Uses the paper's code in this repository (TPP_CODE_REPO selects another checkout).
+Output: figures/surface_co_vs_nc.png . Uses the paper's code in this repository (TPP_CODE_REPO selects another checkout).
 """
 from __future__ import annotations
 import os
@@ -143,7 +143,7 @@ ax.view_init(elev=SIDE_ELEV, azim=SIDE_AZIM)
 ax.legend(fontsize=int(LEGEND_FS * 0.6), loc="upper left", framealpha=LEGEND_ALPHA)
 style_ticks_3d(ax)
 plt.tight_layout()
-out = REPO / "figs" / "surface_co_vs_nc.png"
+out = REPO / "figures" / "surface_co_vs_nc.png"
 out.parent.mkdir(exist_ok=True)
 fig.savefig(out, dpi=200, bbox_inches="tight", pad_inches=0.4)
 print(f"wrote {out}")

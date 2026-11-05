@@ -35,7 +35,12 @@ def test_entry_points_are_discovered():
 
 @pytest.mark.parametrize("script", ENTRY_POINTS, ids=lambda p: str(p.relative_to(REPO)))
 def test_help(script: Path):
-    out = run(["python", script, "--help"], cwd=script.parent, timeout=300)
+    if re.search(r"^from \.", script.read_text(), re.M):
+        # A package module with relative imports runs as `python -m` from src/.
+        module = ".".join(script.relative_to(REPO / "src").with_suffix("").parts)
+        out = run(["python", "-m", module, "--help"], cwd=REPO / "src", timeout=300)
+    else:
+        out = run(["python", script, "--help"], cwd=script.parent, timeout=300)
     assert "usage:" in out.stdout.lower()
 
 

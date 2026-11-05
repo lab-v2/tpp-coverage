@@ -10,9 +10,9 @@ this repository (`src/tpp_analysis`, parity-checked on every run).
 From the repository root, in the repository's environment (`uv sync`):
 
 ```bash
-uv run python large_scale/scripts/run_analysis.py               # results/ and figs/
+uv run python large_scale/scripts/run_analysis.py               # results/ and figures/
 uv run python large_scale/scripts/run_analysis.py --check-only  # parity with the paper's fitters
-uv run pytest large_scale/tests -n auto                         # this module's tests
+uv run pytest tests/large_scale -n auto                         # this module's tests
 ```
 
 The analysis writes `results/results.json` and `results/envelope.csv`; results do not depend on
@@ -24,14 +24,17 @@ number, compare `results/results.json` against the report's tables before rebuil
 
 | Path | What |
 |---|---|
-| `data_final_metrics.csv` | the grid's per-run final metrics (the analysis input) |
-| `src/tpp_large_scale/` | the analysis package: `upstream.py` (the one import point for the paper's code), `config.py`, `model/` (grid, fits, conditioning, diversity), `experiments/` (report sections and their workers), `figures.py`, `runner.py`, `cli.py` |
+| `data/data_final_metrics.csv` | the grid's per-run final metrics (the analysis input) |
 | `scripts/` | the command line (`run_analysis.py`), the CO/NC pair sweep and surface figure, the README math check |
-| `tests/` | correctness, determinism and pipeline tests |
-| `results/`, `figs/` | the committed outputs |
-| `figures_tikz/` | the TikZ source of the design-grid figure |
+| `results/` | the committed outputs (`results.json`, `envelope.csv`) |
+| `figures/` | the committed figures; `figures/tikz/` is the TikZ source of the design-grid figure |
 | `report.tex`, `report.pdf` | the written report |
-| `docs/upstream_notes.md` | what is reused from the paper's code and what is not, and why |
+| `UPSTREAM_NOTES.md` | what is reused from the paper's code and what is not, and why |
+
+The analysis package is [`src/tpp_large_scale/`](../src/tpp_large_scale) (`upstream.py`, the one
+import point for the paper's code, `config.py`, `model/` for the grid, fits, conditioning and
+diversity, `experiments/` for the report sections, `figures.py`, `runner.py`, `cli.py`). Its tests
+are [`tests/large_scale/`](../tests/large_scale) (correctness, determinism, pipeline).
 
 ## Design grid
 
@@ -46,10 +49,10 @@ number, compare `results/results.json` against the report's tables before rebuil
 | 85M   | 29, 43, 63, 93, 136, 200 | 6 |
 | 354M  | 20, 29, 43, 63, 93 | 5 |
 
-![Design grid](figs/design_grid.png)
+![Design grid](figures/design_grid.png)
 
 The 29-cell envelope (best-loss run per (N, D)): blue = train (N <= 85M, 24 cells), red = 354M
-holdout frontier (5 cells). TikZ port of the paper's appendix grid; source in `figures_tikz/`.
+holdout frontier (5 cells). TikZ port of the paper's appendix grid; source in `figures/tikz/`.
 
 ## CO vs NC surface (representative pair)
 
@@ -59,7 +62,7 @@ kappa_AB ~120). Each is Chinchilla-fit on the training cells (N <= 85M, 6 each) 
 the 354M frontier (holdout, drawn as points with residual sticks), using the paper's
 `plot_scaling_law_surface` machinery.
 
-![CO vs NC surface](figs/surface_co_vs_nc.png)
+![CO vs NC surface](figures/surface_co_vs_nc.png)
 
 The non-collinear NC tracks the frontier well while the collinear CO does not: holdout R2 +0.78 vs
 -1.95. Built by `scripts/build_surface_co_nc.sh` (glue in `scripts/make_surface_co_nc.py`).
@@ -132,7 +135,7 @@ against $n = 1, \ldots, 100$: the pairs with the largest coverage ratio, where t
 $S_{\mathrm{CO}}$ to be genuinely collinear (small denominator) rather than merely less diverse
 than $S_{\mathrm{NC}}$.
 
-![win rate over top pairs](figs/winrate_vs_npairs.png)
+![win rate over top pairs](figures/winrate_vs_npairs.png)
 
 Over the top $100$ pairs, $\mathrm{WR}(\mathcal{P}')$ stays in $[0.80,\ 0.93]$ (minimum $0.80$, mean
 $0.91$), above the chance level $\frac{1}{2}$. Built by `scripts/co_nc_sweep.py`; the fit RNG is
