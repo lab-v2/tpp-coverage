@@ -135,6 +135,24 @@ on, and `download_and_extract.py --results-only` downloads the released ones.
 - **What to do:** pass `--clear-cache` whenever the inputs change. A full refit reproduces the
   released results bit for bit (about 20 minutes on 50 cores).
 
+## Scale pairs left at a start draw
+
+`_fit_generic` runs L-BFGS-B on the parameters in native units, where the bounds of a scale
+coefficient span eleven or twelve orders of magnitude (Kaplan's and Droppo-Elibol's N_c and D_c
+in [1e3, 1e14], Chinchilla's A and B in [1e-2, 1e10]). In 183 of the 900 Kaplan fits and 510 of
+the 900 Droppo-Elibol fits of `full_coverage_all_seeds.parquet`, and in 1 Kaplan and 14
+Droppo-Elibol fits of the 180 BF16 fits of each law, the optimizer left the scale pair within a
+relative 1e-6 of one of its 100 start draws and moved only the other parameters. Chinchilla's A
+and B move: only 3 of its 900 fits match a start draw exactly.
+
+- **Changes:** any reuse of a fitted Kaplan or Droppo-Elibol scale pair as an estimate: in these
+  fits it is the best of the start draws, not an optimum of the loss.
+- **Leaves alone:** the holdout scores the paper compares: these fits' mean holdout R^2 is within
+  0.07 of the other fits' (higher for Droppo-Elibol, lower for Kaplan: 0.69 against 0.75 on CO).
+- **What to do:** to find these fits, replay each fit's start draws: `run_analysis.py` seeds fit
+  s with `base_seed + s` (base 0), and `full_coverage_ci.py`, which wrote the BF16 fits, with
+  `137 s`. To optimize the scale pair itself, fit it in log units, as `fit_skaling` does.
+
 ## Driver and hardware drift
 
 The released runs used PyTorch 2.5 with CUDA 12.4 on GH200 GPUs. Training is bitwise

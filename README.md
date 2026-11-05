@@ -188,6 +188,8 @@ leaves alone and what to do: [Known behaviours](docs/KNOWN_BEHAVIOURS.md).
   analysed as NC training.
 - **Fits are cached by name.** `run_analysis.py` re-renders stored fits; pass `--clear-cache`
   after changing the loss tables.
+- **Scale pairs can sit at a start draw.** In 183 of 900 Kaplan and 510 of 900 Droppo-Elibol
+  fits the optimizer left (N_c, D_c) at a start draw, so do not reuse those pairs as estimates.
 - **Bitwise on one driver.** A CUDA driver update moved the training loss by O(1e-3); compare
   a retrained run with `--atol 1e-2`.
 
