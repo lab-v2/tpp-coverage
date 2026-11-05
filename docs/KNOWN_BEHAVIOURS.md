@@ -27,7 +27,7 @@ checkpoints have not been re-evaluated with padding masked.
 `--use-bf16`, which `generate_jobs.py --precision bf16` adds, calls `model.bfloat16()`: every
 parameter and buffer becomes BF16, so the gradients and the AdamW states are BF16 as well, with
 no FP32 master copy and no autocast. Only the logits are cast to FP32 for the loss. This is the
-paper's BF16 mixed-precision replication.
+paper's pure-BF16 replication.
 
 - **Changes:** the BF16 replication only. A run under `torch.autocast`, which keeps FP32
   weights, trains a different model and does not reproduce it.
