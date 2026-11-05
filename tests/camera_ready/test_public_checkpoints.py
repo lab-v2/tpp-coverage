@@ -24,12 +24,9 @@ KEY = ["cell", "window", "ray_bin", "n_rays", "seed", "law"]
 
 
 @pytest.fixture(scope="module")
-def work(tmp_path_factory):
+def work(pc_work):
     """A private work directory holding the HuggingFace run tables."""
-    path = tmp_path_factory.mktemp("pc_work")
-    env = {**os.environ, "TPP_PC_WORK": str(path)}
-    run(["python", A2 / "get_runs.py"], cwd=A2, env=env)
-    return path, env
+    return pc_work
 
 
 def test_run_tables_downloaded(work):
@@ -125,3 +122,83 @@ def test_regime_win_rates():
     assert [round(100 * sep[k]) for k in (1e4, 1e5, 1e6)] == [59, 61, 76]
     same = dr[dr["regime_cell"].isin(["CO=A,NC=A", "CO=B,NC=B"]) & (dr["pairs_512"] > 10_000)]
     assert same["win_512"].between(0.43, 0.47).all()
+
+
+COMPANIONS = ["no fixed effect (pooled)", "no FE, suite-weighted (A4.4)",
+              "cell FE, suite-weighted (A4.4)", "(cell,window) FE", "cell FE, complete case",
+              "law = Chinchilla", "law = Kaplan", "C2 beta_eff = 0.1", "C2 beta_eff = 0.5",
+              "NCM arm, cell FE", "NCM arm, (cell,window) FE", "NCM arm, no fixed effect"]
+
+
+def _rows(corpus: str, section: str | None = None) -> pd.DataFrame:
+    est = pd.read_csv(RESULTS / "estimates_seeds512.csv")
+    est = est[est["corpus"] == corpus]
+    return (est if section is None else est[est["section"] == section]).set_index("spec")
+
+
+def _pct3(row: pd.Series) -> tuple[int, int, int]:
+    return round(row["pct_512"]), round(row["pct_lo_512"]), round(row["pct_hi_512"])
+
+
+def test_results_paragraph_five_releases():
+    """The appendix's Results paragraph, the five fully trained releases."""
+    e = _rows("E")
+    suite = _rows("E", "2 per suite")
+    assert [round(suite.loc[f"suite = {s}", "pct_512"]) for s in
+            ("chinchilla_isoflop", "farseer", "gemstones_cooldown", "gadre_overtrain")] == \
+        [32, 38, 168, -42]
+    gadre = suite.loc["suite = gadre_overtrain"]
+    assert gadre["lo_512"] == gadre["hi_512"] == gadre["beta_512"]  # three cells, one window each
+    assert "NOT IDENTIFIED" in suite.loc["suite = olmo_ladder", "note"]
+    # every companion of the results table excludes zero
+    assert e.loc[COMPANIONS, "excl0_512"].all()
+    # the secondary regressor, per tenfold larger shortfall of V_K below tau_K: 10**(-beta) - 1
+    sec = e.loc["secondary regressor m_CO (pred < 0)"]
+    assert [round(100 * (10 ** -sec[c] - 1)) for c in ("beta_512", "hi_512", "lo_512")] == [23, 6, 35]
+    # the middle values of the beta_eff grid
+    mid = [round(e.loc[f"C2 beta_eff = {b}", "pct_512"]) for b in (0.2, 0.28, 0.35)]
+    assert (min(mid), max(mid)) == (38, 40)
+    # refits that each drop one study: ten positive points, every cell-FE interval excludes 0,
+    # every pooled one but the refit without the OLMo ladder
+    cell, pooled = _rows("E", "2 LOSO cellFE"), _rows("E", "2 LOSO pooled")
+    assert len(cell) == len(pooled) == 5
+    assert (cell["beta_512"] > 0).all() and (pooled["beta_512"] > 0).all()
+    assert cell["excl0_512"].all()
+    assert pooled.index[~pooled["excl0_512"]].tolist() == ["drop olmo_ladder"]
+    assert _pct3(pooled.loc["drop olmo_ladder"])[1:] == (-1, 20)
+
+
+def test_results_paragraph_all_ten():
+    """The appendix's Results paragraph, all ten releases."""
+    x = _rows("X")
+    assert _pct3(x.loc["cell FE (PRIMARY)"]) == (4, -10, 21)
+    assert _pct3(x.loc["no fixed effect (pooled)"]) == (0, -11, 15)
+    sec = x.loc["secondary regressor m_CO (pred < 0)"]
+    assert [round(100 * (10 ** -sec[c] - 1)) for c in ("beta_512", "hi_512", "lo_512")] == [7, -5, 20]
+    exclude = x.loc[COMPANIONS][x.loc[COMPANIONS, "excl0_512"].astype(bool)]
+    assert sorted(exclude.index) == sorted(["no FE, suite-weighted (A4.4)", "NCM arm, cell FE",
+                                            "NCM arm, (cell,window) FE"])
+    assert [_pct3(exclude.loc[s]) for s in ("no FE, suite-weighted (A4.4)", "NCM arm, cell FE",
+                                            "NCM arm, (cell,window) FE")] == \
+        [(7, 3, 13), (15, 2, 29), (15, 4, 27)]
+    mid = [round(x.loc[f"C2 beta_eff = {b}", "pct_512"]) for b in (0.2, 0.28, 0.35)]
+    assert (min(mid), max(mid)) == (3, 5)
+    suite = _rows("X", "2 per suite")
+    assert _pct3(suite.loc["suite = datadecide"]) == (19, 4, 35)
+    assert _pct3(suite.loc["suite = gemstones_hot"]) == (188, 54, 347)
+    assert _pct3(suite.loc["suite = mad"]) == (-86, -95, -54)
+    assert _pct3(suite.loc["suite = gpt3"]) == (18, -34, 180)
+    assert round(suite.loc["suite = opt_trajectories", "pct_512"]) == -63
+    assert suite.loc["suite = opt_trajectories", "n_windows"] == 1
+    cell = _rows("X", "2 LOSO cellFE")
+    assert cell.index[cell["excl0_512"].astype(bool)].tolist() == ["drop mad"]
+    assert _pct3(cell.loc["drop mad"]) == (28, 16, 41)
+
+
+def test_scale_paragraph_bands():
+    x = _rows("X", "3 stratum")
+    x = x[x["arm"] == "NC"]
+    assert [round(x.loc[f"stratum {b}", "pct_512"]) for b in ("<100M", "100M-1B", ">=1B")] == \
+        [32, -28, 23]
+    assert _pct3(_rows("X", "3 interaction").query("arm == 'NC'").loc["b1 Delta x logN"]) == \
+        (-39, -57, -18)
