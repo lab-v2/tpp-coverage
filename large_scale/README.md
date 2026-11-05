@@ -94,7 +94,9 @@ the paper's fitted Chinchilla data exponent on C4 (appendix fitted-parameter tab
 $V_{K_S}$ is more diverse coverage.
 
 **Paired comparison.** The paper's budget-matched bounding-box NC pool does not exist on this grid,
-so the higher-coverage subset takes the NC role: a pair is two subset designs with
+so the higher-coverage subset takes the NC role. The win rate below therefore compares two
+TPP-subset designs of one grid, not the paper's CO rays against an NC bounding box. The fitter,
+the holdout rule and the win-rate definition are the paper's. A pair is two subset designs with
 
 $$n_{S_{\mathrm{CO}}} = n_{S_{\mathrm{NC}}}, \qquad V_{K}(S_{\mathrm{NC}}) > V_{K}(S_{\mathrm{CO}}).$$
 
@@ -138,6 +140,7 @@ than $S_{\mathrm{NC}}$.
 ![win rate over top pairs](figures/winrate_vs_npairs.png)
 
 Over the top $100$ pairs, $\mathrm{WR}(\mathcal{P}')$ stays in $[0.80,\ 0.93]$ (minimum $0.80$, mean
-$0.91$), above the chance level $\frac{1}{2}$. Built by `scripts/co_nc_sweep.py`; the fit RNG is
-pinned (`FIT_SEED = 40`, overridable via the environment) since the $20$-restart fits are
-seed-sensitive.
+$0.91$), above the chance level $\frac{1}{2}$. Built by `scripts/co_nc_sweep.py`. The
+20-restart fits are seed-sensitive, so the fit RNG is pinned (`FIT_SEED = 40`, overridable via
+the environment). Another seed moves the holdout RMSEs and with them the curve; the pairs and
+their ranking depend on V_K alone and stay the same.

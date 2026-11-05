@@ -1,7 +1,7 @@
 # Pre-registered criteria for the public-checkpoint re-analysis
 
 Release note. This is the pre-registration as written, with references to the private review
-process removed and "the paper" read as "the paper". Nothing in the protocol changed.
+process removed and "the submission" read as "the paper". Nothing in the protocol changed.
 Several scripts were renamed for the release: `tighten1b_fit.py` is `enumerate_seeds.py`,
 `tighten1b_boot.py` is `cluster_bootstrap.py`, `phase4_estimate.py` is `estimate.py`, and its
 outputs `phase4_seedcompare.csv` / `phase4_doseresponse.csv` are `estimates_seeds512.csv` /

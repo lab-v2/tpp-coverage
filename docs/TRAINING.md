@@ -9,7 +9,7 @@ GPU-hours on 4-GPU nodes, ~0.5 TB for the tokenized corpora and ~1.6 TB for chec
 ## 0. Environment
 
 `uv sync` installs the pinned stack, including PyTorch 2.5.1 built for CUDA 12.4 on x86_64,
-and `transformers` 5.7.0 (later 5.x releases refuse PyTorch < 2.6).
+and `transformers` 5.7.0.
 
 On aarch64 GPU nodes (for example NVIDIA GH200), PyPI has no CUDA build of PyTorch 2.5, so use
 the cluster's PyTorch and install the remaining pins from the lock file:
@@ -23,9 +23,9 @@ source .venv-train/bin/activate
 python -c "import torch; assert torch.cuda.is_available() and torch.distributed.is_nccl_available()"
 ```
 
-The released runs used PyTorch 2.5 with CUDA 12.4 on GH200 GPUs (driver ~550). Training is
-bitwise reproducible on a fixed driver; across drivers or GPU models expect per-epoch losses
-to differ by up to ~1e-2.
+The released runs used PyTorch 2.5 with CUDA 12.4 on GH200 GPUs. Training is bitwise
+reproducible on a fixed CUDA driver; a driver update moved the training loss by O(1e-3) over
+three epochs ([Known behaviours](KNOWN_BEHAVIOURS.md#driver-and-hardware-drift)).
 
 ## 1. Corpora
 
@@ -42,8 +42,6 @@ uv run python src/tpp_analysis/dataset_downloaders/download_redpj.py        # Re
 uv run python src/tpp_analysis/dataset_downloaders/download_peso.py         # allenai/peS2o v2
 uv run python src/tpp_analysis/dataset_downloaders/download_c4.py           # allenai/c4 en
 ```
-
-`allenai/peS2o` is a loading-script dataset, which is why `datasets` is pinned below 4.0.
 
 ## 2. The trained grid
 
@@ -113,8 +111,9 @@ Add `--use-train-as-val` (instead of `--skip-val`) for holdout runs and `--use-b
 Checkpoints go to `saved_checkpoints/`, per-batch metrics to `training_metrics/`, and a second
 copy of both to `$SHARED_DIR` (else `$DATA_DIR`, else `shared_backup/`).
 
-`--model-size` is a target: the trainer picks the nearest valid `LlamaForCausalLM` shape, so
-realized sizes differ slightly:
+`--model-size` is a target. The paper's targets map to these `LlamaForCausalLM` shapes, and any
+other target is matched on an older count formula, so it can train a larger model than asked
+for ([Known behaviours](KNOWN_BEHAVIOURS.md#model-sizes)):
 
 | Target | Realized N | (layers, d_model, d_ff, heads, head dim) |
 |---|---|---|
@@ -134,11 +133,14 @@ realized sizes differ slightly:
 | 70,362,112 | 76,520,192 | (24, 256, 1024, 1, 256) |
 
 Run names matter: `get_results.py` classifies a run by the `NxD_GRID`, `COLINEAR`, `HOLDOUT`
-and `COLINEAR_HOLDOUT` tokens in its prefix and finds its corpus from the `_<dataset>_m<N>_`
-tag the trainer appends. `generate_jobs.py` uses the released names (`WIKI_`, `cosmopedia_`,
-`RP_`, `PES2O_`, `C4_`, with `BF16` or `BIGTPP_` in front for those designs).
+and `COLINEAR_HOLDOUT` tokens in its prefix, counts a run with none of them as NC training,
+and finds its corpus from the `_<dataset>_m<N>_` tag the trainer appends
+([Known behaviours](KNOWN_BEHAVIOURS.md#run-names)). `generate_jobs.py` uses the released names
+(`WIKI_`, `cosmopedia_`, `RP_`, `PES2O_`, `C4_`, with `BF16` or `BIGTPP_` in front for those
+designs).
 
-See the README's "Known behaviours" for how the loss treats padding and what `--use-bf16` does.
+How the loss treats padding, what `--use-bf16` does and why every run needs 4 GPUs:
+[Known behaviours](KNOWN_BEHAVIOURS.md).
 
 Options beyond the paper's protocol (the defaults are the protocol, except for the padding
 mask):
@@ -146,12 +148,12 @@ mask):
 | Flag | What |
 |---|---|
 | `--score-padding` | score padded positions in the loss, as the released runs did; needed to reproduce a released run |
-| `--grad-accum-steps K` | split each per-GPU batch into K micro-batches, for a GPU too small for 96 x 256 tokens; the optimizer step, schedule and step count stay those of the full batch |
+| `--grad-accum-steps K` | split each per-GPU batch into K micro-batches, for a GPU too small for 96 x 256 tokens; the optimizer step, schedule and step count stay those of the full batch, and so does the gradient (up to rounding) when every position is scored, as with `--score-padding`; with the padding mask it approximates it |
 | `--seed S` | training seed (initialization and data order), default 42 |
 | `--shape d_model,n_layers,n_heads,d_ff` | an explicit architecture instead of the `--model-size` search |
 | `--optimizer` | `adamw` (protocol), `adam` (AdamW without decay), `sgd` (Nesterov, momentum 0.9), `lion`, `adafactor` |
 | `--schedule` | `cosine` (protocol), `wsd` (flat for 80% of the post-warmup steps, then linear to 0.1), `constant` |
-| `--dataset fineweb` | a pre-tokenized FineWeb corpus in `$DATA_DIR/fineweb/` (no downloader is included) |
+| `--dataset fineweb` | a pre-tokenized FineWeb corpus in `$DATA_DIR/fineweb/` |
 
 Each run also writes `heartbeats/<output prefix>.json` under the shared directory every log
 interval (step, loss, learning rate, tokens seen, time per step), for monitoring a run while it

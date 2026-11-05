@@ -31,7 +31,7 @@ Usage:
 
 The authoritative reference is hosted at
 https://huggingface.co/datasets/leibnitz-lab/colinear_scaling_models
-and was produced on NVIDIA GH200 GPUs (driver ~550.x, CUDA 12.4) in early 2026.
+and was produced on NVIDIA GH200 GPUs with CUDA 12.4 in early 2026.
 """
 
 import os

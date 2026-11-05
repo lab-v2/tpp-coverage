@@ -2,7 +2,7 @@
 
 [README](../README.md) · [Training](TRAINING.md)
 
-Validates that train/val splits are statistically equivalent by computing symmetric KL divergence and cosine similarity across n-gram distributions (n = 1-5).
+Validates that train/val splits are statistically equivalent by computing symmetric KL divergence and cosine similarity across n-gram distributions (n = 1-3, the orders of the paper's table).
 
 This analysis is independent of the scaling-law fitting pipeline. It requires only the pre-tokenized `.bin` files produced by the dataset downloaders.
 
@@ -96,7 +96,7 @@ ngram_results/
   wikipedia_ngram_1.json
   wikipedia_ngram_2.json
   ...
-  c4_ngram_5.json
+  c4_ngram_3.json
   ngram_kl_table.tex          # LaTeX table for the appendix
 ```
 
@@ -174,17 +174,3 @@ it's safe to clear the caches:
 rm -rf ~/.cache/huggingface/datasets
 rm -rf $DATA_DIR/{c4,redpajama}/shard_cache
 ```
-
-**peS2o is the outlier.** Unlike the other four datasets - which stream
-shards on demand and tokenize on the fly - `allenai/peS2o` ships as a
-HuggingFace loading script that requires the full `v2` corpus to be
-downloaded and converted to Arrow format before random-access tokenization
-can begin. On our hardware this resulted in a ~300 GB HuggingFace cache
-footprint and roughly 15 minutes of "Generating train split: ..." progress
-*after* the download bar finishes and *before* the first tokenization log
-line appears. If disk space is tight, run the peS2o downloader last and
-clear `~/.cache/huggingface/datasets` immediately afterward. 
-
-Note also that `datasets` is pinned to `<4.0` in `pyproject.toml` because
-peS2o v2's loading script is no longer supported in datasets 4.0+. This
-pin preserves exact data parity with the trained models.

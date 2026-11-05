@@ -29,9 +29,6 @@ uv run hf download leibnitz-lab/colinear_scaling_models --repo-type dataset \
     --include "wikipedia/**" "training_metrics/wikipedia/**" --local-dir colinear_scaling_models
 ```
 
-A full download takes hours; run it inside `tmux` or `screen` so a dropped connection does not
-stop it.
-
 Other flags: `--datasets wikipedia c4` (subset of corpora), `--include-checkpoints` (adds the
 `.pt` files to B), `--include-results` (B plus A in one call). Run
 `download_and_extract.py --help` for the full list.
@@ -55,9 +52,10 @@ runs and carry `HOLDOUT` in their names.
 uv run python src/tpp_analysis/get_results/get_results.py from_local path/to/training_metrics -o extracted_losses
 ```
 
-The loss of a run at the end of an epoch is the mean of its last 100 batch losses. Keep each
-design (main, BF16, BigTPP) in its own metrics directory: runs are matched to a corpus by
-name, so a BigTPP Wikipedia run would otherwise join the Wikipedia table.
+The loss of a run at the end of an epoch is the mean of its last 100 batch losses. A run's
+corpus, design and role come from its file name
+([Known behaviours](KNOWN_BEHAVIOURS.md#run-names)); add `--include-special` for BF16 runs and
+`--include-prelim` for BigTPP runs.
 
 ## Loss table format
 
