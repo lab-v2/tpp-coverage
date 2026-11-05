@@ -41,13 +41,18 @@ def pct(b: float) -> float:
 
 
 def prepare(path: str | Path) -> pd.DataFrame:
-    """Attach the A3.1 regressors to a slim `enumerate_seeds.py` frame.
+    """Attach the A3.1 regressors to a slim `enumerate_seeds.py` table read from `path`."""
+    return prepare_frame(pd.read_csv(path))
+
+
+def prepare_frame(df: pd.DataFrame) -> pd.DataFrame:
+    """Attach the A3.1 regressors to a slim `enumerate_seeds.py` frame, in place.
 
     Identical to `conditional.add_margins` in every respect that matters: the same
     winsorisation of a non-finite m_CO, the same complete-case column kept alongside, the
-    same Delta definition, the same coarse strata.
+    same Delta definition, the same coarse strata. The winsorisation floor is the minimum
+    over `df`, so a subset passed here gets the floor of that analysis set (A3.1).
     """
-    df = pd.read_csv(path)
     b = C.BETA_PRIMARY
     for arm in ("CO", "NC", "NCM"):
         df[f"m_{arm}"] = df[f"{arm}_m_beta{b}"].replace([np.inf, -np.inf], np.nan)
@@ -103,6 +108,30 @@ def est(df: pd.DataFrame, y: str, x: str | list[str], fe: str = "cell",
 # Medians for the dose-response (A3.2 / A3.3), with both pre-registered bootstraps
 # ════════════════════════════════════════════════════════════════════════════
 
+def pair_medians(vals: np.ndarray, rng: np.random.Generator, n: int) -> np.ndarray:
+    """`n` bootstrap medians of `vals`, resampling pairs, in chunks of at most 2e7 values."""
+    m = len(vals)
+    chunk = max(1, min(n, int(2e7 // max(1, m))))
+    draws = np.empty(n)
+    for lo_i in range(0, n, chunk):
+        b = min(chunk, n - lo_i)
+        draws[lo_i:lo_i + b] = np.median(vals[rng.integers(0, m, size=(b, m))], axis=1)
+    return draws
+
+
+def cluster_medians(vals: np.ndarray, groups: list[list[np.ndarray]],
+                    rng: np.random.Generator, n: int) -> np.ndarray:
+    """`n` bootstrap medians of `vals`, resampling the (cell, window) clusters within cell.
+
+    `groups` holds the row positions of each window, one list per cell (`window_groups`).
+    """
+    d2 = np.empty(n)
+    for b in range(n):
+        picked = [g[i] for g in groups for i in rng.integers(0, len(g), size=len(g))]
+        d2[b] = np.median(vals[np.concatenate(picked)])
+    return d2
+
+
 def _median_job(job):
     tag, vals, groups, seedkey = job
     # crc32, not hash(): str hashes are salted per process, which made these CIs irreproducible.
@@ -111,20 +140,10 @@ def _median_job(job):
         return tag, dict(n_pairs=0, n_windows=0, median=np.nan, lo=np.nan, hi=np.nan,
                          lo_cl=np.nan, hi_cl=np.nan, win=np.nan, signp=np.nan)
     med = float(np.median(vals))
-    n = len(vals)
-    chunk = max(1, min(MED_BOOT, int(2e7 // max(1, n))))
-    draws = np.empty(MED_BOOT)
-    for lo_i in range(0, MED_BOOT, chunk):
-        b = min(chunk, MED_BOOT - lo_i)
-        draws[lo_i:lo_i + b] = np.median(vals[rng.integers(0, n, size=(b, n))], axis=1)
-    lo, hi = np.percentile(draws, [2.5, 97.5])
+    lo, hi = np.percentile(pair_medians(vals, rng, MED_BOOT), [2.5, 97.5])
     n_cl = sum(len(g) for g in groups)
     if n_cl >= 2:
-        d2 = np.empty(MED_BOOT)
-        for b in range(MED_BOOT):
-            picked = [g[i] for g in groups for i in rng.integers(0, len(g), size=len(g))]
-            d2[b] = np.median(vals[np.concatenate(picked)])
-        lo_cl, hi_cl = np.percentile(d2, [2.5, 97.5])
+        lo_cl, hi_cl = np.percentile(cluster_medians(vals, groups, rng, MED_BOOT), [2.5, 97.5])
     else:
         lo_cl = hi_cl = np.nan
     wins = int((vals > 0).sum())

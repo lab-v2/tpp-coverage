@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -30,6 +31,15 @@ def run(args: list[str], cwd: Path = REPO, env: dict | None = None,
         pytest.fail(f"{' '.join(map(str, cmd))} exited {proc.returncode}\n"
                     f"--- stdout ---\n{proc.stdout[-4000:]}\n--- stderr ---\n{proc.stderr[-4000:]}")
     return proc
+
+
+@pytest.fixture(scope="session")
+def pc_work(tmp_path_factory) -> tuple[Path, dict]:
+    """A private reanalysis work directory holding the HuggingFace run tables, and its env."""
+    path = tmp_path_factory.mktemp("pc_work")
+    env = {**os.environ, "TPP_PC_WORK": str(path)}
+    run(["python", A2 / "get_runs.py"], cwd=A2, env=env)
+    return path, env
 
 
 def assert_same_rows(fresh: pd.DataFrame, committed: pd.DataFrame, keys: list[str]) -> None:
