@@ -22,8 +22,18 @@ Result, at each paper's own fitted data exponent and kappa_target = 100:
   aghajanyan2023 still passes. Before it the split was 13 / 11;
 - Amendments 5 read kaplan2020's 38 runs from its own vector figure (Fig. 9 left) instead of
   the whole study's size range: K = 34, margin 2.07, still a pass. No pass now rests on an
-  endpoints-mode ratio list. It also records that Prop. 2 is stated for collinear designs;
-  for the 18 other designs one weight per distinct ratio is a convention.
+  endpoints-mode ratio list.
+
+Prop. 2 covers collinear designs, which train every size at every ratio. Six of the 24 designs
+are collinear, and all six fail. The other 18, all 11 passes among them, train different sizes
+at different ratios, so for them the pre-registered test, one weight per distinct ratio, is a
+heuristic. The proof's Gram block weights each run by N^(-2 alpha) instead, alpha the
+model-side exponent. On the 17 designs whose runs can be rebuilt, those weights turn two passes
+into fails, gadre2024 and rosenfeld2019, whose smallest models carry most of the weight. No
+other verdict changes, so the split would be 9 pass and 15 fail if muennighoff2023 keeps its
+pass. The camera-ready table marks those two passes. A verdict `classify.py` gives a
+non-collinear design, a new one included, rests on the same heuristic (Amendments 5 in
+`CRITERIA.md`).
 
 | File | Contents |
 |---|---|

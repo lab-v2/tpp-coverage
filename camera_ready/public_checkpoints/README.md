@@ -136,11 +136,17 @@ check the values the appendix prints against the committed outputs of `intervals
 `amendments/`, run each script on the committed seeds 0-7 slice against a direct computation,
 and, when `results_E_seeds512.csv` and `results_X_seeds512.csv.gz` (and, for Amendment 5, the
 `results_E_win<V>.csv` tables) are in the work directory, rerun each script and require its
-committed output back. The repository does not ship those tables, so without them the rerun
-tests skip and name the file. `tests/camera_ready/test_public_checkpoints_tables.py` rebuilds the five
-table bodies from the committed CSVs byte for byte, checks the printed study counts, and
-reruns `per_study.py` on the downloaded tables.
+committed output back. The repository ships only seeds 0-7 of the E enumeration
+(`results/results_E_seeds512_seeds0-7.csv.gz`), so without the full tables the rerun tests skip
+and name the missing file. A passing suite has then checked the printed values against the
+committed outputs and each script on the seeds 0-7 slice; it has not rebuilt the 512-seed
+outputs. Writing the tables with `enumerate_seeds.py` (see Reproduce) runs those tests too.
+`tests/camera_ready/test_public_checkpoints_tables.py` rebuilds the five table bodies from the
+committed CSVs byte for byte, checks the printed study counts, and reruns `per_study.py` on the
+downloaded tables.
 
-Note: `estimate.py` now seeds the median intervals of the dose-response table with a CRC32 of
-the cell label. The committed table was computed with Python's per-process string hash, so
-its interval columns (not its medians or win rates) differ slightly from a rerun.
+The interval columns of the committed `results/doseresponse_seeds512.csv` were drawn with
+Python's per-process string hash as the seed, which changes from one process to the next, so no
+rerun repeats them. `estimate.py` now seeds them with a CRC32 of the cell label, and a rerun
+gives slightly different bounds. The table's medians and win rates do not depend on that seed,
+and the appendix takes its regime intervals from `regime_cells.csv` (200,000 draws) instead.

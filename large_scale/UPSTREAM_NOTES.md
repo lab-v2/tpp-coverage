@@ -24,49 +24,47 @@ reading one file.
 once through the paper's `fit_*` entry points and once through this package, and asserts the
 sums of squared errors are bit-identical. It runs at the start of every analysis and is also
 available on its own via `uv run python large_scale/scripts/run_analysis.py --check-only`.
+It guards the one transcription in this package: upstream defines each law's bounds and
+initial-guess sampler as function locals of `fit_chinchilla`, `fit_kaplan` and
+`fit_droppo_elibol`, so `fitting.py` copies them verbatim.
 
 ## What is NOT reused, and why
 
-### The Gauss-Newton conditioning objects have no upstream implementation
+### Conditioning
 
-A repo-wide search of the paper's code package finds no Jacobian construction, no condition
-number, and no covariance/CI machinery. `kappa`, `kappa_{A,B}`, the column-scaled variant and
-the CI-inflation ratio are defined analytically in the paper's tables only. Everything in
-`src/tpp_large_scale/model/conditioning.py` is therefore local by necessity, not by choice.
+The paper's code has no Jacobian, condition number or covariance machinery (`kappa`,
+`kappa_{A,B}`, the column-scaled variant and the CI-inflation ratio are analytic in the paper),
+so `src/tpp_large_scale/model/conditioning.py` implements them here. `full_coverage_ci.py`,
+which fits the paper's seed-variance confidence intervals, is not used.
 
-### `full_coverage_ci.py` is not needed
+### TPP band snapping
 
-It fits the paper's seed-variance confidence intervals, which this analysis does not use. In the
-code package as first released it did not import (`sys.path.insert(...)` above
-`from __future__ import annotations`, and `os` used before its import); in this repository the
-import order is fixed and it imports.
-
-### `incremental_coverage.coverage.snap_to_nearest` snaps on the wrong metric
+`incremental_coverage.coverage.snap_to_nearest` snaps a TPP to the nearest bin in linear
+distance:
 
 ```python
 return min(bins, key=lambda b: abs(b - value))
 ```
 
-That is linear distance. The design-TPP bands here are quarter-decade spaced
-(20, 37, 67, 120, 215), so the correct nearest-bin rule is log distance. The two disagree
-near every band midpoint: TPP 90 snaps to 67 linearly but to 120 in log space. Using the
-upstream function would silently reassign envelope cells and move every downstream ray,
-holdout and robustness number. `model.grid.LogBandAssigner` implements the log rule instead.
+The design-TPP bands here are quarter-decade spaced (20, 37, 67, 120, 215), and on such bands
+the two rules disagree near every band midpoint: TPP 90 snaps to 67 linearly but to 120 in log
+space. Using the upstream function here would silently reassign cells of
+`results/envelope.csv` and move every downstream ray, holdout and robustness number, so
+`model.grid.LogBandAssigner` snaps in log distance instead. In the paper's own subset analysis
+the linear rule is the definition behind the published numbers, so it stays there; anyone
+reusing `snap_to_nearest` on log-spaced bins should snap in log distance as this package does.
 
-### Bounds and samplers are transcribed, not imported
+### Fits without differential evolution
 
-Upstream defines each law's bounds and initial-guess sampler as *function locals* inside
-`fit_chinchilla` / `fit_kaplan` / `fit_droppo_elibol`, so they cannot be imported. They are
-transcribed verbatim into `src/tpp_large_scale/model/fitting.py`, and `verify_upstream_parity()` exists precisely to
-catch any future drift in that transcription.
-
-### The differential-evolution opt-out
-
-Upstream `_fit_generic` always runs differential evolution after the multi-start phase and
-exposes no way to skip it. The resampling loops here run thousands of fits, so
-`LawFitter(global_search=False)` uses a DE-free multi-start that is otherwise identical to
-upstream's. This was verified to reproduce the previous script's `use_de=False` path to
-within 1e-12 in sum of squared errors.
+Upstream `_fit_generic` always follows its multi-start L-BFGS-B with a differential-evolution
+search (the paper's "global fallback") and keeps the better fit, with no way to skip it. The
+resampling experiments here run thousands of fits, so they use `LawFitter(global_search=False)`,
+the same multi-start without the differential-evolution step: every CO-versus-NC comparison
+trial (the holdout win rate and the robustness checks that resample it), every conditioning
+trial, and the subset fits of the formal-statement validation. Their numbers in
+`results/results.json` are therefore not exactly the paper fitter's, though a fit whose
+multi-start already reaches the best optimum is identical. The full-grid fits, the ray fits, the
+other robustness fits and the README's pair sweep keep the differential-evolution step.
 
 ## Environment
 

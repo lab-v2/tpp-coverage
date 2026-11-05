@@ -1,8 +1,10 @@
 # Audit re-analyses of the WIKI300M runs
 
 These compare CO and NC designs on the stratum's runs, per model-size stratum, with the paper's
-own fitters and design machinery (`src/tpp_analysis`). They were run on an interim set of the
-runs (147 of them, before the queue finished), so their numbers are interim.
+own fitters and design machinery (`src/tpp_analysis`). They were run on 147 runs, an interim set
+taken before the queue finished, so every number in `results/` and in the tables computed from it
+is interim, and none of them is in the paper. For final numbers, rerun the fits with
+`WIKI300M_DIR` pointing at the metrics of the whole queue.
 
 | Folder | What |
 |---|---|

@@ -14,14 +14,14 @@ stratum has its own generator.
 | [`wiki300m/`](wiki300m/README.md) | The stratum's task generator and the 468-cell queue that was trained |
 | [`audit/`](audit/README.md) | Re-analyses of the stratum's runs (CO versus NC per size stratum, holdout splits, bootstraps, fitter checks) and their result tables |
 
-Scripts that dispatch to particular machines are not part of this repository; everything here
-takes its locations and cluster settings from environment variables or the `sbatch` command line.
+Every script takes its locations and cluster settings from environment variables or the `sbatch`
+command line.
 
 ## Running a sweep
 
 ```bash
 export QUEUE_DIR=/path/to/run DATA_DIR=/path/to/corpora VENV=/path/to/venv
-uv run python cluster/wiki300m/generate_tasks.py "$QUEUE_DIR"     # or copy cluster/wiki300m/tasks/
+uv run python cluster/wiki300m/generate_tasks.py "$QUEUE_DIR"     # the first 100 cells; cluster/wiki300m/tasks/ is the 468 trained
 mkdir -p slurm_logs
 sbatch --partition=<partition> --account=<account> cluster/queue/run_queue.sbatch
 JOBID=<job id> SBATCH_ARGS="--partition=<partition> --account=<account>" \
@@ -30,17 +30,17 @@ python cluster/queue/monitor.py --watch 60
 ```
 
 Run from the repository root. A resubmitted job resumes the queue where the last one stopped:
-the queue's state is its `done/`, `claims/` and `failed/` marker directories. Exactly one watchdog
-should run; two would resubmit a dead job twice.
+the queue's state is its `done/`, `claims/` and `failed/` marker directories.
 
 ## Protocol invariants
 
 - Wikipedia only, the pre-tokenized corpus chunked at 256 tokens.
 - Training cells use `--skip-val` (the train split); holdout cells `--use-train-as-val` (the
   validation split), as in the paper's generator.
-- One model per node of 4 GPUs: the learning-rate schedule follows the per-GPU step count, so
-  another GPU count trains a different model. On smaller GPUs, `--grad-accum-steps` keeps the
-  per-step batch (see docs/TRAINING.md).
+- One model per node of 4 GPUs: the GPU count sets the global batch and the step count the
+  learning-rate schedule follows, so another count trains a different model
+  ([Known behaviours](../docs/KNOWN_BEHAVIOURS.md#gpu-count-and-the-learning-rate-schedule)).
+  On GPUs with less memory, `--grad-accum-steps` keeps the per-step batch.
 - For sizes the paper did not train, `--model-size` takes the legacy parameter count, which is
-  what the size search matches on; `generate_tasks.py` checks that each one maps back to the
-  intended parameter count.
+  what the size search matches on ([Known behaviours](../docs/KNOWN_BEHAVIOURS.md#model-sizes));
+  `generate_tasks.py` checks that each one maps back to the intended parameter count.

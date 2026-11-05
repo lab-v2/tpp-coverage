@@ -122,7 +122,7 @@ Every folder below has one job; a linked folder has its own README.
 | [`cluster/queue/`](cluster/queue/README.md) | The SLURM task queue that trained it |
 | [`cluster/wiki300m/`](cluster/wiki300m/README.md) | Its task generator and the queue of trained cells |
 | [`cluster/audit/`](cluster/audit/README.md) | Its re-analyses and their result tables |
-| [`docs/`](docs/README.md) | Step-by-step guides: downloading, training, analysis, figures, n-gram KL |
+| [`docs/`](docs/README.md) | Step-by-step guides: downloading, training, analysis, figures, n-gram KL, and the known behaviours |
 | [`tests/`](tests/README.md) | The pytest suite, one folder per component |
 | `.github/` | CI on the project's own runners: tests, `ruff check .`, the privacy scan and the merge rule |
 | `images/` | The logos shown in this README |
@@ -167,18 +167,29 @@ The theorems and the severity, eigenvalue and R_min tables are analytic; no scri
 
 # Known behaviours
 
-These produced the paper's numbers.
+Each of these changes a reproduced number when it is missed. What each one changes, what it
+leaves alone and what to do: [Known behaviours](docs/KNOWN_BEHAVIOURS.md).
 
-- **Padding was scored.** In the released runs padded positions counted toward the loss, so
-  their reported losses sit below the loss on real tokens. The trainer now masks padding out of
-  the loss; `--score-padding` restores the released behaviour, for reproducing a released run.
-- **BF16 is a full cast.** `--use-bf16` calls `model.bfloat16()`; only the logits are cast to
-  FP32 for the loss.
-- **Four GPUs per run.** The learning-rate schedule follows the per-GPU step count, so another
-  GPU count trains a different model.
-- **One training seed.** Every model is trained with seed 42; the analysis seeds are fitting
-  restarts and subset draws.
-- **Released runs.** C4 has 321 of its 324 runs; epoch-2 and epoch-3 checkpoints exist for all.
+- **Padding was scored.** The released losses include padded positions, so they sit below the
+  loss on real tokens; the win rates and conditioning comparisons are unaffected. The trainer
+  now masks padding; `--score-padding` reproduces a released run.
+- **BF16 is a full cast.** `--use-bf16` calls `model.bfloat16()`, so weights, gradients and
+  AdamW states are all BF16; only the logits are cast to FP32 for the loss.
+- **Four GPUs per run.** The GPU count sets the global batch and the step count the
+  learning-rate schedule follows, so another count trains a different model.
+- **One training seed.** Every run of the paper uses seed 42; the analysis seeds are fitting
+  restarts and subset draws, so the intervals measure fitting variance.
+- **Two releases are incomplete.** C4 has 99% of its runs (321 of 324, three NC holdout runs
+  missing) and the BF16 replication 93% (302 of 324); a retrain matches the paper only
+  without the missing runs.
+- **Sizes are targets.** `--model-size` trains the shape its search finds: up to 8.8% larger
+  for the paper's targets and 13% for a 150M target. The analysis uses the realized count.
+- **Run names set the role.** A run whose name lacks `NxD_GRID`, `COLINEAR` and `HOLDOUT` is
+  analysed as NC training.
+- **Fits are cached by name.** `run_analysis.py` re-renders stored fits; pass `--clear-cache`
+  after changing the loss tables.
+- **Bitwise on one driver.** A CUDA driver update moved the training loss by O(1e-3); compare
+  a retrained run with `--atol 1e-2`.
 
 # Testing
 

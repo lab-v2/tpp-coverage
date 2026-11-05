@@ -12,3 +12,4 @@ own README.
 | [ANALYSIS](ANALYSIS.md) | Fitting the laws and writing the tables |
 | [VISUALIZATIONS](VISUALIZATIONS.md) | The figures |
 | [NGRAM_KL](NGRAM_KL.md) | The n-gram KL divergence between train and validation splits |
+| [KNOWN_BEHAVIOURS](KNOWN_BEHAVIOURS.md) | What changes a reproduced number: padding, BF16, GPU count, seed, released runs, model sizes, run names, cached fits, drivers |

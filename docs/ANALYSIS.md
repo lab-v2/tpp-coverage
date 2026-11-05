@@ -32,10 +32,11 @@ uv run python src/tpp_analysis/generate_appendix_tables.py full_coverage_results
 | `full_coverage_results/full_coverage_all_seeds.parquet` | every fit, one row per corpus x law x mode x design x seed |
 | `seed_variance_results/` | coverage-fraction data behind the convergence panels |
 
-Fits are cached per combination (`fullcov_*.parquet`, `seed_variance_*.parquet`); a cached
-combination is re-rendered, not refitted. `--clear-cache` refits from scratch. The paper's
-tables are hand-edited from these files (rows dropped, parameters rounded to three decimals),
-so the generated `.tex` is the source of the numbers, not a drop-in copy.
+Fits are cached per combination (`fullcov_*.parquet`, `seed_variance_*.parquet`), and a cached
+combination is re-rendered, not refitted, so pass `--clear-cache` after any change to the loss
+tables ([Known behaviours](KNOWN_BEHAVIOURS.md#cached-fits)). The paper's tables were edited by
+hand from the generated `.tex` (rows dropped, parameters rounded to three decimals), so
+compare a rerun with the paper value by value, not file against file.
 
 ## BF16 replication and BigTPP preliminary
 
@@ -57,15 +58,14 @@ classifies each by the paper's V_K >= tau_K criterion and records which one extr
 better. It is the expensive step: about an hour per seed on 480 cores, 22 seeds.
 
 ```bash
-bash src/tpp_analysis/dispatch_seeds.sh 0 21 subset_bbox_seeds "$(nproc)"   # run from the repository root
+uv run bash src/tpp_analysis/dispatch_seeds.sh 0 21 subset_bbox_seeds "$(nproc)"   # run from the repository root
 uv run python src/tpp_analysis/subset_analysis/aggregate_seed_runs.py \
     --seed-dir subset_bbox_seeds/ --out-dir subset_bbox_seeds/aggregated
 uv run python src/tpp_analysis/subset_analysis/per_law_winrate_ci.py \
     --seed-dir subset_bbox_seeds/ --out-dir subset_bbox_seeds/aggregated --mode first
 ```
 
-`dispatch_seeds.sh` calls `python`, so run it inside the environment (`source .venv/bin/activate`
-or `uv run bash ...`). The per-seed CSVs of the paper are on HuggingFace
+The per-seed CSVs of the paper are on HuggingFace
 (`subset_bbox_seeds/`, 3.9 GB), so the two aggregation steps can run without the enumeration.
 Outputs: `subset_bbox_seeds/aggregated/per_law_ci.csv` and `per_dataset_ci.csv` (the Regime-A
 table) and the kappa_target sweep figures.

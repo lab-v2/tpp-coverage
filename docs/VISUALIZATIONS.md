@@ -24,8 +24,7 @@ FIG1_DATASET=Wikipedia FIG1_LAW=Chinchilla FIG1_MODE=First FIG1_PREFIX=custom_ \
 
 Figures go to `full_coverage_results/figures/` as PDF and PNG.
 
-The notebooks need the `notebooks` extra; they resolve the repository root from their own
-folder, so start Jupyter there:
+The notebooks need the `notebooks` extra; start Jupyter in their folder:
 
 ```bash
 uv sync --extra notebooks
