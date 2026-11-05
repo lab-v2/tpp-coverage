@@ -60,6 +60,7 @@ testpaths = ["tests"]
 addopts = ["--strict-markers", "-ra"]
 markers = [
     "network: downloads public data from HuggingFace (cached after the first run)",
+    "slow: large-scale analysis checks over the full grid or a process pool",
 ]
 
 [tool.ruff]

@@ -140,6 +140,95 @@ def create_deterministic_generator(seed: int = DEFAULT_SEED) -> torch.Generator:
     return g
 
 
+
+class Lion(optim.Optimizer):
+    """Lion (Chen et al. 2023, "Symbolic Discovery of Optimization Algorithms"): the sign of an
+    interpolated momentum, decoupled weight decay. Not in torch 2.5, so written here."""
+
+    def __init__(self, params, lr=1e-4, betas=(0.9, 0.99), weight_decay=0.0):
+        super().__init__(params, dict(lr=lr, betas=betas, weight_decay=weight_decay))
+
+    @torch.no_grad()
+    def step(self, closure=None):
+        loss = closure() if closure is not None else None
+        for group in self.param_groups:
+            b1, b2 = group["betas"]
+            for p in group["params"]:
+                if p.grad is None:
+                    continue
+                state = self.state[p]
+                if not state:
+                    state["exp_avg"] = torch.zeros_like(p)
+                m = state["exp_avg"]
+                p.mul_(1 - group["lr"] * group["weight_decay"])
+                p.add_(torch.sign(m * b1 + p.grad * (1 - b1)), alpha=-group["lr"])
+                m.mul_(b2).add_(p.grad, alpha=1 - b2)
+        return loss
+
+
+def shift_for_next_token(input_ids: torch.Tensor, attention_mask: torch.Tensor,
+                         mask_padding: bool = True):
+    """Inputs, labels and mask for next-token prediction, with padding masked out of the loss.
+
+    Labels at padded positions are set to -100, which ``nn.CrossEntropyLoss`` ignores, so the
+    loss is the mean over real tokens only. Without the mask every padded position is scored,
+    which biases the reported loss low by the padding share. The released runs of the paper
+    scored padding; ``mask_padding=False`` (``--score-padding``) reproduces them.
+    """
+    labels = input_ids[:, 1:]
+    if mask_padding:
+        labels = labels.masked_fill(attention_mask[:, 1:] == 0, -100)
+    labels = labels.contiguous()
+    return input_ids[:, :-1].contiguous(), labels, attention_mask[:, :-1].contiguous()
+
+
+def accumulation_group(micro_idx: int, grad_accum_steps: int, num_micro_batches: int,
+                       batch_size: int, n_examples: int) -> tuple[int, int]:
+    """(micro-batches, examples) in the optimizer step that micro-batch ``micro_idx`` belongs to.
+
+    ``batch_size`` is the per-step batch and ``n_examples`` the length of the epoch's sampler.
+    The last step of an epoch may hold fewer micro-batches and a short last micro-batch
+    (``drop_last=False``); weighting each micro-batch loss by ``n_micro / n_group`` then gives
+    the same gradient as one batch of ``n_group`` examples, exactly when every example has the
+    same number of scored tokens (no padding); with padding the per-example weights are an
+    approximation of the token mean.
+    """
+    group_idx = micro_idx // grad_accum_steps
+    group_size = min(grad_accum_steps, num_micro_batches - group_idx * grad_accum_steps)
+    n_group = min(n_examples, (group_idx + 1) * batch_size) - group_idx * batch_size
+    return group_size, n_group
+
+
+OPTIMIZERS = ("adamw", "adam", "sgd", "lion", "adafactor")
+SCHEDULES = ("cosine", "wsd", "constant")
+
+
+def make_optimizer(name: str, params, lr: float, weight_decay: float) -> optim.Optimizer:
+    """Optimizer by name: adamw is the protocol default (every released run); adam is AdamW
+    without decay; sgd is Nesterov momentum 0.9; lion; adafactor (torch >= 2.5)."""
+    if name == "adamw":
+        return optim.AdamW(params, lr=lr, weight_decay=weight_decay)
+    if name == "adam":
+        return optim.AdamW(params, lr=lr, weight_decay=0.0)
+    if name == "sgd":
+        return optim.SGD(params, lr=lr, momentum=0.9, nesterov=True, weight_decay=weight_decay)
+    if name == "lion":
+        return Lion(params, lr=lr, weight_decay=weight_decay)
+    if name == "adafactor":
+        return optim.Adafactor(params, lr=lr, weight_decay=weight_decay)
+    raise ValueError(f"unknown optimizer {name!r}; expected one of {OPTIMIZERS}")
+
+
+def schedule_factor(schedule: str, step: int, decay_steps: int) -> float:
+    """LR multiplier after warmup. wsd: warmup-stable-decay, flat for 80% of the post-warmup
+    steps, then linear to the cosine floor (0.1). constant: flat."""
+    if schedule == "constant":
+        return 1.0
+    if schedule == "wsd":
+        frac = step / max(1, decay_steps)
+        return 1.0 if frac < 0.8 else 1.0 - 0.9 * (frac - 0.8) / 0.2
+    raise ValueError(f"unknown schedule {schedule!r}; expected one of {SCHEDULES}")
+
 class DistributedTrainer(BaseTrainer):
     """Distributed training implementation using PyTorch DDP with full features."""
 
@@ -152,6 +241,7 @@ class DistributedTrainer(BaseTrainer):
         """
         super().__init__()
         self.seed = seed
+        self.mask_padding = True
 
     def get_gpu_scheme(self) -> str:
         return "distributed"
@@ -208,6 +298,11 @@ class DistributedTrainer(BaseTrainer):
                     max_seq_len, skip_val
                 )
             )
+        elif dataset_name == "fineweb":
+            # FineWeb, pre-tokenized like the other corpora into $DATA_DIR/fineweb
+            train_dataset, val_dataset = (
+                PretokenizedLoader.load_fineweb_dataset_pretokenized(max_seq_len, skip_val)
+            )
 
         return train_dataset, val_dataset
 
@@ -234,6 +329,34 @@ class DistributedTrainer(BaseTrainer):
         keep_checkpoints = kwargs["keep_checkpoints"]
         weight_decay = kwargs["weight_decay"]
         use_bf16 = kwargs.get("use_bf16", False)
+        optimizer_name = kwargs.get("optimizer", "adamw")
+        # The released runs scored padding; --score-padding reproduces them bitwise.
+        self.mask_padding = not kwargs.get("score_padding", False)
+        schedule = kwargs.get("schedule", "cosine")
+
+        # ====================================================================
+        # GRAD ACCUMULATION: batch_size stays the PROTOCOL (per-optimizer-step)
+        # batch; the train DataLoader yields micro-batches of
+        # batch_size / grad_accum_steps. Serial emulation of data-parallel
+        # ranks on one GPU (or within each rank under DDP); validation and checkpoints are unaffected.
+        # ====================================================================
+        grad_accum_steps = int(kwargs.get("grad_accum_steps", 1) or 1)
+        world_size_env = int(os.environ.get("WORLD_SIZE", 1))
+        if grad_accum_steps > 1:
+            assert batch_size % grad_accum_steps == 0, (
+                f"batch_size {batch_size} not divisible by "
+                f"grad_accum_steps {grad_accum_steps}"
+            )
+            # DDP-compatible: the per-rank micro weighting (n_micro / n_group) composes with
+            # DDP's mean reduction to the exact protocol gradient (DistributedSampler pads
+            # ranks to equal length, and the all-reduce is linear, so accumulating reduced
+            # micro-gradients equals reducing the accumulated ones).
+            if world_size_env > 1 and int(os.environ.get("RANK", 0)) == 0:
+                print_info(
+                    f"grad accumulation x{grad_accum_steps} under DDP "
+                    f"(world={world_size_env}, micro={batch_size // grad_accum_steps}/GPU)"
+                )
+        micro_batch_size = batch_size // grad_accum_steps
 
         # Get seed from kwargs or use default
         seed = kwargs.get("seed", self.seed)
@@ -414,7 +537,9 @@ class DistributedTrainer(BaseTrainer):
             )
             val_loader = DataLoader(
                 dataset=val_dataset,
-                batch_size=batch_size,
+                # Validation in training-sized micro-batches: with gradient accumulation the full
+                # protocol batch of fp32 logits alone can exceed one GPU's memory.
+                batch_size=micro_batch_size,
                 sampler=val_sampler,
                 num_workers=0,
                 pin_memory=True,
@@ -430,7 +555,7 @@ class DistributedTrainer(BaseTrainer):
         )
         train_loader = DataLoader(
             dataset=train_data,
-            batch_size=batch_size,
+            batch_size=micro_batch_size,
             sampler=train_sampler,
             num_workers=0,
             pin_memory=True,
@@ -461,6 +586,9 @@ class DistributedTrainer(BaseTrainer):
             weight_decay=weight_decay,
             seed=seed,  # Pass seed for metadata
             use_bf16=use_bf16,
+            grad_accum_steps=grad_accum_steps,
+            optimizer_name=optimizer_name,
+            schedule=schedule,
         )
 
         dist.barrier()
@@ -561,6 +689,28 @@ class DistributedTrainer(BaseTrainer):
             print(f"[Rank 0] Initial metadata saved: {checkpoint_prefix}_initial.json")
         except Exception as e:
             print(f"Initial metadata save failed: {e}")
+
+    def _write_heartbeat(self, shared_dir: str, prefix: str, payload: dict):
+        """Atomically write a small JSON with the current training state.
+
+        Monitoring only: wrapped so any failure (quota, NFS hiccup) can never
+        interrupt training.
+        """
+        try:
+            if not prefix or not shared_dir:
+                return
+            hb_dir = os.path.join(shared_dir, "heartbeats")
+            os.makedirs(hb_dir, exist_ok=True)
+            payload = dict(payload)
+            payload["host"] = os.uname().nodename
+            payload["prefix"] = prefix
+            final_path = os.path.join(hb_dir, f"{prefix}.json")
+            tmp_path = final_path + ".tmp"
+            with open(tmp_path, "w") as f:
+                json.dump(payload, f)
+            os.replace(tmp_path, final_path)
+        except Exception:
+            pass
 
     def _save_intermediate_metrics(
         self, checkpoint_prefix: str, metrics: dict, global_step: int
@@ -666,11 +816,18 @@ class DistributedTrainer(BaseTrainer):
         weight_decay: float = DEFAULT_WEIGHT_DECAY,
         seed: int = DEFAULT_SEED,
         use_bf16: bool = False,
+        optimizer_name: str = "adamw",
+        schedule: str = "cosine",
+        grad_accum_steps: int = 1,
     ) -> tuple[float, list[float], dict]:
         # make sure weights and optimizer states are being resumed
-        num_batches = len(train_loader)
+        # With gradient accumulation the train_loader yields micro-batches;
+        # schedulers, metrics, checkpoints and step counts are all per
+        # OPTIMIZER step so the schedule matches a single-batch-per-step run.
+        num_micro_batches = len(train_loader)
+        num_batches = -(-num_micro_batches // grad_accum_steps)
 
-        optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+        optimizer = make_optimizer(optimizer_name, model.parameters(), lr, weight_decay)
         criterion = nn.CrossEntropyLoss()
 
         total_steps = epochs * num_batches
@@ -789,19 +946,24 @@ class DistributedTrainer(BaseTrainer):
             desc = f"Train e{epoch+1}/{epochs} [R{rank}]"
             train_pbar = tqdm(train_loader, desc=desc, leave=False, disable=(rank != 0))
 
-            for batch in train_pbar:
-                t0 = time.time()
+            micro_losses = []
+            micro_sizes = []
+            group_tokens = 0
+            train_sampler_len = len(train_loader.sampler)
+            optimizer.zero_grad()
+            for micro_idx, batch in enumerate(train_pbar):
+                if not micro_losses:
+                    t0 = time.time()
                 input_ids = batch["input_ids"].to(device, non_blocking=True)
                 attention_mask = batch["attention_mask"].to(device, non_blocking=True)
 
                 batch_tokens = attention_mask.sum().item()
                 total_tokens_seen += batch_tokens
+                group_tokens += batch_tokens
 
-                labels = input_ids[:, 1:].contiguous()
-                input_ids = input_ids[:, :-1].contiguous()
-                attention_mask = attention_mask[:, :-1].contiguous()
-
-                optimizer.zero_grad()
+                input_ids, labels, attention_mask = shift_for_next_token(
+                    input_ids, attention_mask, self.mask_padding
+                )
 
                 # ================================================================
                 # BF16: model is already .bfloat16(), no autocast or scaler needed.
@@ -815,23 +977,50 @@ class DistributedTrainer(BaseTrainer):
                     outputs.float().view(-1, outputs.size(-1)), labels.view(-1)
                 )
 
-                loss.backward()
+                # ================================================================
+                # GRAD ACCUMULATION: grad_accum_steps micro-batches form one
+                # optimizer step (the serial equivalent of data-parallel ranks).
+                # Each micro is weighted by its EXAMPLE count over the group's
+                # example count, which reproduces the single-batch token-mean
+                # (exactly when no example is padded): the final group of an epoch may hold fewer
+                # micro-batches AND a short last micro-batch (drop_last=False).
+                # ================================================================
+                group_size, n_group = accumulation_group(
+                    micro_idx, grad_accum_steps, num_micro_batches, batch_size, train_sampler_len
+                )
+                n_micro = input_ids.size(0)
+                (loss * (n_micro / n_group)).backward()
+                micro_losses.append(loss.item())
+                micro_sizes.append(n_micro)
+                if len(micro_losses) < group_size:
+                    continue
+
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
                 optimizer.step()
+                optimizer.zero_grad()
 
                 if current_step < warmup_steps:
                     warmup_scheduler.step()
                     current_lr = warmup_scheduler.get_last_lr()[0]
-                else:
+                elif schedule == "cosine":
                     if current_step == warmup_steps:
                         cosine_scheduler.base_lrs = [
                             g["lr"] for g in optimizer.param_groups
                         ]
                     cosine_scheduler.step()
                     current_lr = cosine_scheduler.get_last_lr()[0]
+                else:
+                    # closed form, so a resumed run lands on the same value
+                    current_lr = lr * schedule_factor(
+                        schedule, current_step - warmup_steps, total_steps - warmup_steps
+                    )
+                    for g in optimizer.param_groups:
+                        g["lr"] = current_lr
                 current_step += 1
 
-                batch_loss = loss.item()
+                batch_loss = sum(
+                    l * n for l, n in zip(micro_losses, micro_sizes)
+                ) / sum(micro_sizes)
                 total_loss += batch_loss
                 num_batches += 1
 
@@ -840,7 +1029,7 @@ class DistributedTrainer(BaseTrainer):
                     metrics["learning_rates"].append(current_lr)
                     metrics["steps"].append(global_step)
                     metrics["batch_times"].append(time.time() - t0)
-                    metrics["tokens_per_batch"].append(batch_tokens * world_size)
+                    metrics["tokens_per_batch"].append(group_tokens * world_size)
                     metrics["cumulative_tokens"].append(total_tokens_seen * world_size)
 
                     train_pbar.set_postfix(
@@ -851,12 +1040,40 @@ class DistributedTrainer(BaseTrainer):
                         }
                     )
 
+                    # Live-state heartbeat: atomic JSON per run, overwritten
+                    # every log_interval steps so training state can be
+                    # monitored at any time. Additive only; never raises.
+                    if global_step % log_interval == 0:
+                        self._write_heartbeat(
+                            shared_dir=shared_dir,
+                            prefix=checkpoint_prefix,
+                            payload={
+                                "time": time.time(),
+                                "epoch": epoch + 1,
+                                "epochs": epochs,
+                                "step_in_epoch": current_step,
+                                "total_steps": total_steps,
+                                "global_step": global_step,
+                                "pct": round(100.0 * current_step / max(1, total_steps), 2),
+                                "loss": batch_loss,
+                                "lr": current_lr,
+                                "tokens_seen": total_tokens_seen * world_size,
+                                "sec_per_step": round(time.time() - t0, 4),
+                                "eta_h": round(
+                                    (total_steps - current_step)
+                                    * max(time.time() - t0, 1e-9) / 3600.0, 3),
+                            },
+                        )
+
                     # if writer and global_step % log_interval == 0:
                     #    writer.add_scalar('Loss/Train_Batch', batch_loss, global_step)
                     #    writer.add_scalar('LR', current_lr, global_step)
                     #    writer.add_scalar('Tokens/Cumulative_M', (total_tokens_seen * world_size) / 1e6, global_step)
 
                 global_step += 1
+                micro_losses = []
+                micro_sizes = []
+                group_tokens = 0
             epoch_time = time.time() - epoch_start
             cumulative_train_time += epoch_time
 
@@ -1030,9 +1247,9 @@ class DistributedTrainer(BaseTrainer):
                 batch_tokens = attention_mask.sum().item()
                 local_tokens_seen += batch_tokens
 
-                labels = input_ids[:, 1:].contiguous()
-                input_ids = input_ids[:, :-1].contiguous()
-                attention_mask = attention_mask[:, :-1].contiguous()
+                input_ids, labels, attention_mask = shift_for_next_token(
+                    input_ids, attention_mask, self.mask_padding
+                )
 
                 outputs = model(input_ids, attention_mask=attention_mask)
                 loss = criterion(

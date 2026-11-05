@@ -137,6 +137,14 @@ class PretokenizedLoader:
         return train_dataset, val_dataset
 
     @staticmethod
+    def load_fineweb_dataset_pretokenized(
+        max_seq_len: int, skip_val: bool
+    ) -> PretokenizedDataset:
+        train_dataset = _load_split("fineweb", "train", max_seq_len)
+        val_dataset = None if skip_val else _load_split("fineweb", "val", max_seq_len)
+        return train_dataset, val_dataset
+
+    @staticmethod
     def load_c4_dataset_pretokenized_train(max_seq_len: int) -> PretokenizedDataset:
         return _load_split("c4", "train", max_seq_len)
 

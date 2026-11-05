@@ -1,10 +1,14 @@
 """
 Scaling law definitions, fitting, and evaluation.
 
-Three laws:
+The paper's three (N, D) laws, plus the repeated-data epoch law:
   1. Kaplan (2020)        - L = [(Nc/N)^(αN/αD) + Dc/D]^αD
   2. Chinchilla (2022)    - L = E + A/N^α + B/D^β
   3. Droppo-Elibol (2021) - L = [L∞^(1/α) + (Nc/N)^(αN/α) + (Dc/D)^(αD/α)]^α
+
+and one law that is not part of the paper's analysis, available for follow-up work:
+  Skaling (2026)          - L = (A/N^α + B/D^β)^k + E     [arXiv:2608.07222]
+It is in ``EXTRA_LAWS``, not ``LAWS``, so every table and figure of the paper is unchanged.
 """
 
 from __future__ import annotations
@@ -43,6 +47,28 @@ def droppo_elibol_loss(N, D, L_inf, N_c, D_c, alpha_N, alpha_D, alpha):
         + np.power(D_c / D, alpha_D / alpha)
     )
     return np.power(inner, alpha)
+
+
+def skaling_loss(N, D, A, alpha, B, beta, k, E):
+    """Skaling (2026), arXiv:2608.07222 Eq. 3: L = (A/N^α + B/D^β)^k + E.
+
+    A minimal generalisation of Chinchilla: the same two additive source terms,
+    but their sum is raised to one free outer exponent k. At k == 1 this is
+    Chinchilla EXACTLY - `skaling_loss(N, D, A, a, B, b, 1.0, E)` reproduces
+    `chinchilla_loss(N, D, E, A, a, B, b)` to floating-point equality, since
+    x**1.0 is exact and float addition commutes. That nesting makes a comparison
+    with Chinchilla controlled: any advantage Skaling shows over Chinchilla on
+    the same data and splits is attributable to k alone.
+
+    k != 1 buys a non-zero mixed derivative,
+        ∂²L/∂N∂D = k(k-1) u^(k-2) · αA N^(-α-1) · βB D^(-β-1),   u = A/N^α + B/D^β,
+    which every purely additive law (Kaplan, Chinchilla, Droppo-Elibol in its
+    additive-inner form) has identically zero. Monotone decrease in each of N
+    and D survives for every k > 0, because the other axis enters ∂L/∂N only
+    through the positive factor u^(k-1).
+    """
+    inner = A / np.power(N, alpha) + B / np.power(D, beta)
+    return np.power(inner, k) + E
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -163,6 +189,79 @@ def fit_droppo_elibol(N, D, L, n_restarts=300):
         ]
 
     return _fit_generic(droppo_elibol_loss, N, D, L, bounds, sampler, n_restarts)
+
+
+def _skaling_loss_logcoef(N, D, log_A, alpha, log_B, beta, k, E):
+    """`skaling_loss` reparameterised with log A and log B, for the optimiser.
+
+    Fitting-only helper. A and B span ten orders of magnitude while α, β, k sit
+    in [0.01, 2], and L-BFGS-B's finite-difference gradient cannot see both
+    scales at once: from a start 30% away from a planted optimum it stalls at
+    SSE 1.2 in natural coefficients and reaches 1e-25 in log coefficients on the
+    same grid. Only the optimiser's coordinates change - the surface, and the
+    parameters `fit_skaling` returns, are the natural-unit ones.
+    """
+    return skaling_loss(N, D, np.exp(log_A), alpha, np.exp(log_B), beta, k, E)
+
+
+def fit_skaling(N, D, L, n_restarts=300, seed=42):
+    """Fit Skaling law. Returns (params, sse, success) with params in the
+    natural (A, α, B, β, k, E) order of the Skaling paper's Eq. 3.
+
+    Goes through the same `_fit_generic` multi-start L-BFGS-B + differential
+    evolution as Kaplan / Chinchilla / Droppo-Elibol, on the same raw-space SSE
+    objective, so a comparison with those laws is not confounded by a different
+    optimiser. The one difference is coordinates: A and B are searched as logs
+    (see `_skaling_loss_logcoef`) and exponentiated before returning, which is
+    also how the Skaling paper fits this law.
+
+    Bounds: α, β ∈ [0.01, 2.0] and E ≥ 0 are the Skaling paper's Table 4. `k` is
+    widened to [0.01, 4.0] because on the five corpora here Table 4's ceiling of 2.0
+    is not a bound on the law, it is a bound on the fitter: 90% of 900 fits
+    came back with k exactly 2.0, so the reported value was the constraint
+    rather than the data. A k pinned at its ceiling also silently understates
+    the N-D coupling, which is the one quantity this law exists to measure.
+    The coefficient range is this repo's `fit_chinchilla` range rather than Table
+    4's [1e-6, 1e7], and E's ceiling is `fit_chinchilla`'s 10 rather than Table
+    4's 3, because Table 4 fits N and D normalised by their maxima while every
+    fitter here takes raw N and D - normalisation shifts A and B by N_max^α and
+    D_max^β.
+
+    `seed` is exposed (the other three fitters hard-code `_fit_generic`'s
+    default) so the seed-variance harnesses can delegate here instead of
+    duplicating the log-coefficient reparameterisation.
+    """
+    bounds = [
+        (np.log(1e-2), np.log(1e10)),   # log A
+        (0.01, 2.0),                    # alpha
+        (np.log(1e-2), np.log(1e10)),   # log B
+        (0.01, 2.0),                    # beta
+        (0.01, 4.0),                    # k  widened from Table 4's 2.0, see above
+        (0.0, 10.0),                    # E
+    ]
+
+    def sampler(rng, L):
+        return [
+            np.log(10 ** rng.uniform(0, 8)),
+            rng.uniform(0.1, 1.5),
+            np.log(10 ** rng.uniform(0, 8)),
+            rng.uniform(0.1, 1.5),
+            rng.uniform(0.5, 3.0),      # k starts must reach above the old ceiling
+            rng.uniform(0.0, min(L) * 0.9),
+        ]
+
+    params, sse, success = _fit_generic(
+        _skaling_loss_logcoef, N, D, L, bounds, sampler, n_restarts, seed=seed,
+    )
+    if params is None:
+        return None, sse, success
+
+    log_A, alpha, log_B, beta, k, E = params
+    return (
+        np.array([np.exp(log_A), alpha, np.exp(log_B), beta, k, E]),
+        sse,
+        success,
+    )
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -329,7 +428,7 @@ def evaluate_parametric_epoch(params_dict, N_tr, U_D_tr, R_tr, L_tr,
 
 
 # ════════════════════════════════════════════════════════════════════════════
-# Registry - makes looping over all three laws easy
+# Registry - makes looping over the paper's laws easy
 # ════════════════════════════════════════════════════════════════════════════
 
 @dataclass
@@ -347,3 +446,8 @@ LAWS: List[ScalingLaw] = [
     ScalingLaw("Parametric-Epoch", parametric_epoch_loss, fit_parametric_epoch,
                ["A", "α", "B", "β", "E", "R*_D", "R*_N"], is_epoch_law=True),
 ]
+
+# Laws that are not part of the paper's analysis. Kept out of LAWS so that the paper's
+# tables, figures and the large-scale parity check iterate over exactly the paper's laws.
+SKALING = ScalingLaw("Skaling", skaling_loss, fit_skaling, ["A", "α", "B", "β", "k", "E"])
+EXTRA_LAWS: List[ScalingLaw] = [SKALING]

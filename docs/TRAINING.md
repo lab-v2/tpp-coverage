@@ -77,7 +77,7 @@ The main design, per corpus:
   holdout ratios.
 
 Holdout runs train on the validation split (`--use-train-as-val`), so the fitted laws never
-see their data. The test `tests/test_release_match.py` checks that the generated run names
+see their data. The test `tests/tpp_analysis/test_release_match.py` checks that the generated run names
 equal the released ones for every corpus.
 
 Fixed hyperparameters: 3 epochs (1 for BigTPP), 96 sequences of 256 tokens per GPU on 4 GPUs,
@@ -140,6 +140,23 @@ tag the trainer appends. `generate_jobs.py` uses the released names (`WIKI_`, `c
 
 See the README's "Known behaviours" for how the loss treats padding and what `--use-bf16` does.
 
+Options beyond the paper's protocol (the defaults are the protocol, except for the padding
+mask):
+
+| Flag | What |
+|---|---|
+| `--score-padding` | score padded positions in the loss, as the released runs did; needed to reproduce a released run |
+| `--grad-accum-steps K` | split each per-GPU batch into K micro-batches, for a GPU too small for 96 x 256 tokens; the optimizer step, schedule and step count stay those of the full batch |
+| `--seed S` | training seed (initialization and data order), default 42 |
+| `--shape d_model,n_layers,n_heads,d_ff` | an explicit architecture instead of the `--model-size` search |
+| `--optimizer` | `adamw` (protocol), `adam` (AdamW without decay), `sgd` (Nesterov, momentum 0.9), `lion`, `adafactor` |
+| `--schedule` | `cosine` (protocol), `wsd` (flat for 80% of the post-warmup steps, then linear to 0.1), `constant` |
+| `--dataset fineweb` | a pre-tokenized FineWeb corpus in `$DATA_DIR/fineweb/` (no downloader is included) |
+
+Each run also writes `heartbeats/<output prefix>.json` under the shared directory every log
+interval (step, loss, learning rate, tokens seen, time per step), for monitoring a run while it
+trains.
+
 ## 4. Checking a retrained run against the released one
 
 ```bash
@@ -150,6 +167,7 @@ uv run python src/training_models/training/verify_reproducibility.py weights --f
 ```
 
 `--from-hf` downloads only the matching released file (cached in `~/.cache/tpp_verify/`).
-Pass `--atol 1e-2` on hardware other than the reference. Then extract the losses
+Pass `--atol 1e-2` on hardware other than the reference, and train with `--score-padding`,
+since the released runs scored padding. Then extract the losses
 ([DOWNLOADING](DOWNLOADING.md#extracting-losses-from-your-own-runs)) and run the
 [analysis](ANALYSIS.md).

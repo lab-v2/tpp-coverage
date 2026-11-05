@@ -128,16 +128,16 @@ Each folder has a README with what the appendix prints from each output:
 | Scale paragraph and the two Amendment-5 tables | `amendments/amendment5_1b.py`, `tables/tables_a5_tex.py` | `amendment5_1b.csv`, `tables/public_checkpoints_1b.tex`, `tables/public_checkpoints_windows.tex` |
 | The margin ratio and its intervals | `vk_ratio.py`, `intervals/vk_ratio_seeds.py`, `intervals/vk_ratio_boot.py` | `vk_ratio.csv`, `vk_ratio_seeds.csv`, `vk_ratio_boot_ge1B_windows.csv` |
 
-`tests/public_checkpoints/test_public_checkpoints.py` refits two studies from the downloaded tables and requires
+`tests/camera_ready/test_public_checkpoints.py` refits two studies from the downloaded tables and requires
 the committed rows back, rebuilds every margin, and checks the 5-seed estimates and the
 headline numbers above. A full rerun of the E corpus reproduces `results_E.csv` exactly.
-`tests/public_checkpoints/test_public_checkpoints_intervals.py` and `test_public_checkpoints_amendments.py`
+`tests/camera_ready/test_public_checkpoints_intervals.py` and `test_public_checkpoints_amendments.py`
 check the values the appendix prints against the committed outputs of `intervals/` and
 `amendments/`, run each script on the committed seeds 0-7 slice against a direct computation,
 and, when `results_E_seeds512.csv` and `results_X_seeds512.csv.gz` (and, for Amendment 5, the
 `results_E_win<V>.csv` tables) are in the work directory, rerun each script and require its
 committed output back. The repository does not ship those tables, so without them the rerun
-tests skip and name the file. `tests/public_checkpoints/test_public_checkpoints_tables.py` rebuilds the five
+tests skip and name the file. `tests/camera_ready/test_public_checkpoints_tables.py` rebuilds the five
 table bodies from the committed CSVs byte for byte, checks the printed study counts, and
 reruns `per_study.py` on the downloaded tables.
 
