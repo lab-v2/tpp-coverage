@@ -3,6 +3,8 @@ message: "If you use this code, please cite the paper."
 title: "Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation"
 type: software
 license: GPL-2.0-only
+version: "neurips2026-camera-ready"
+date-released: "2026-11-09"
 repository-code: "https://github.com/lab-v2/tpp-coverage"
 identifiers:
   - type: other
@@ -25,6 +27,8 @@ preferred-citation:
   type: conference-paper
   title: "Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation"
   collection-title: "Advances in Neural Information Processing Systems"
+  conference:
+    name: "40th Conference on Neural Information Processing Systems (NeurIPS 2026)"
   year: 2026
   authors:
     - family-names: Kricheli
