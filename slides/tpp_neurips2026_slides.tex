@@ -1,0 +1,137 @@
+% Five-minute NeurIPS 2026 talk: Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation.
+% Build: make (from this folder). Logos come from ../images (SVG, converted by the Makefile); figures from figures/.
+\documentclass[aspectratio=169,11pt]{beamer}
+\usetheme{default}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+\setbeamercolor{frametitle}{fg=black}
+\setbeamercolor{structure}{fg=orange!80!black}
+\setbeamertemplate{itemize items}[circle]
+\usepackage{amsmath,amssymb,booktabs,tikz,graphicx}
+\usetikzlibrary{arrows.meta}
+\graphicspath{{figures/}{build/}}
+
+\title{Tokens-per-Parameter Coverage Is Critical for\\Robust LLM Scaling Law Extrapolation}
+\author{Joshua Shay Kricheli\textsuperscript{*}\quad Alexander Lawrence Reid\textsuperscript{*}\quad
+  Soumajyoti Sarkar\\ Venkata Gandikota\quad Paulo Shakarian}
+\institute{Syracuse University: Leibniz Lab, Institute for Artificial Intelligence\quad
+  Amazon AGI Foundations\textsuperscript{\dag}\\[2pt]
+  {\scriptsize \textsuperscript{*}Equal contribution.\quad
+  \textsuperscript{\dag}This work does not relate to the author's position at Amazon.}}
+\date{NeurIPS 2026, Sydney}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \titlepage
+  \vspace{-6pt}
+  \centering
+  \includegraphics[height=0.6cm]{neurips.pdf}\hspace{0.5cm}%
+  \includegraphics[height=0.6cm]{syracuse_university.pdf}\hspace{0.5cm}%
+  \includegraphics[height=0.6cm]{syracuse_ai_institute.pdf}\hspace{0.5cm}%
+  \includegraphics[height=0.6cm]{../images/leibniz_lab.png}
+\end{frame}
+
+\begin{frame}{Collinear designs}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \begin{itemize}
+        \item Scaling laws are fitted on small runs and used to predict large ones.
+        \item Many studies train at a fixed tokens-per-parameter ratio $k = D/N$: a ray.
+        \item On a ray both power-law terms move~together:
+      \end{itemize}
+      \[ L(N, kN) = A N^{-\alpha} + B k^{-\beta} N^{-\beta} + E. \]
+      \begin{itemize}
+        \item Only the exponent gap $\varepsilon = |\alpha - \beta|$ separates $A$ from $B$.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.42\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=0.5]
+        \foreach \x/\lab in {0/Collinear (CO), 5.2/Non-collinear (NC)} {
+          \draw[-{Stealth}] (\x,0) -- (\x+4.4,0) node[right] {\scriptsize $\log N$};
+          \draw[-{Stealth}] (\x,0) -- (\x,4.4) node[above right] {\scriptsize $\log D$};
+          \node at (\x+2.2,-0.8) {\footnotesize \lab};
+        }
+        \foreach \i in {0,...,5} {
+          \fill[blue!70] (0.4+0.6*\i, 0.6+0.6*\i) circle (5pt);
+        }
+        \foreach \i/\j in {0.5/1.2, 1.1/3.4, 1.6/0.7, 2.2/2.4, 2.7/3.9, 3.2/1.5, 3.7/3.0, 0.8/2.2, 2.0/0.4, 3.5/0.9} {
+          \fill[red!75] (5.2+\i, \j) circle (5pt);
+        }
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Theory: when the scale pair is identified}
+  \begin{itemize}
+    \item One ray: $\kappa_{A,B} = \Theta(\varepsilon^{-2})$, and the interval on $A$ is
+      $\Omega(\varepsilon^{-1})$ times the one on the combined $\psi = A + Bk^{-\alpha}$.
+    \item $K$ rays $k_1 < \cdots < k_K$: to leading order $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever
+  \end{itemize}
+  {\small\[
+    \underbrace{\frac{1}{K}\sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
+      - \Bigl(\frac{1}{K}\sum_{\ell=1}^{K} k_\ell^{-\beta_{\mathrm{eff}}}\Bigr)^{2}}_{V_K}
+    \;\geq\;
+    \underbrace{\frac{\bigl(K + \sum_{\ell} k_\ell^{-2\beta_{\mathrm{eff}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}}}_{\tau_K},
+  \]}
+  \begin{itemize}
+    \item and $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ iff $V_K \geq \tau_K/(1 + 1/\kappa_{\mathrm{target}})^2$.
+    \item One ray never passes; two rays pass once $k_2/k_1 \geq R_{\min}(k_1)$, a check made before~training.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Results: non-collinear designs extrapolate}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \small
+      \begin{tabular}{@{}lr@{}}
+        \toprule
+        Comparison (NC vs.\ CO) & NC wins \\
+        \midrule
+        Full fan, FP32 (1,460 of 1,500) & $97.3\%$ \\
+        Full fan, BF16 (296 of 300) & $98.7\%$ \\
+        \midrule
+        Budget-matched, Chinchilla & $68.5\%$ \\
+        Budget-matched, Droppo-Elibol & $57.4\%$ \\
+        Budget-matched, Kaplan & $80.6\%$ \\
+        \bottomrule
+      \end{tabular}
+
+      \vspace{6pt}
+      \begin{itemize}
+        \item About 1,900 models, 5.04M-76.5M parameters, five corpora, four laws.
+        \item Budget-matched rows: CO subsets below the threshold.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \centering
+      \includegraphics[width=0.85\linewidth]{01_convergence_Red_Pajama_Kaplan_First.pdf}\\
+      {\scriptsize Holdout $R^2$ against TPP coverage (Kaplan, RedPajama).}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Takeaway and design recipe}
+  \begin{columns}[T]
+    \begin{column}{0.62\textwidth}
+      \begin{itemize}
+        \item Report coefficients only from designs that span TPP ratios.
+        \item Recipe: pick $k_1$, read $R_{\min}(k_1)$, train two ratios at the ends of that
+          spread, split runs evenly, and check the exact $\kappa_{A,B}$ before training.
+        \item Code, data and checkpoints are public.
+      \end{itemize}
+      \vspace{2pt}
+      \centering
+      \href{https://lab-v2.github.io/tpp-coverage/}{\texttt{lab-v2.github.io/tpp-coverage}}
+    \end{column}
+    \begin{column}{0.34\textwidth}
+      \centering
+      \includegraphics[width=0.9\linewidth]{qr_project_page.pdf}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\end{document}

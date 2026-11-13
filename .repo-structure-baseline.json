@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "about": "Structure violations this repository had when it adopted repo-structure. Each is tolerated for the reason given; anything not listed is refused, and an entry whose violation is fixed must be removed (`repo-structure baseline --prune`).",
+  "entries": [
+    {
+      "rule": "mixed-dir",
+      "path": "camera_ready/public_checkpoints",
+      "measure": 11,
+      "reason": "pre-existing loose-file folders of the camera-ready release, untouched by the slides and project-page change"
+    },
+    {
+      "rule": "mixed-dir",
+      "path": "camera_ready/public_checkpoints/results",
+      "measure": 20,
+      "reason": "pre-existing loose-file folders of the camera-ready release, untouched by the slides and project-page change"
+    },
+    {
+      "rule": "mixed-dir",
+      "path": "cluster/audit/fits",
+      "measure": 9,
+      "reason": "pre-existing loose-file folders of the camera-ready release, untouched by the slides and project-page change"
+    },
+    {
+      "rule": "mixed-dir",
+      "path": "cluster/wiki300m/tasks",
+      "measure": 9,
+      "reason": "pre-existing loose-file folders of the camera-ready release, untouched by the slides and project-page change"
+    },
+    {
+      "rule": "mixed-dir",
+      "path": "large_scale/figures",
+      "measure": 12,
+      "reason": "pre-existing loose-file folders of the camera-ready release, untouched by the slides and project-page change"
+    },
+    {
+      "rule": "mixed-dir",
+      "path": "src/tpp_analysis",
+      "measure": 10,
+      "reason": "pre-existing loose-file folders of the camera-ready release, untouched by the slides and project-page change"
+    }
+  ]
+}

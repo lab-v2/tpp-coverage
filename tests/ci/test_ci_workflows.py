@@ -25,6 +25,8 @@ WORKFLOWS = REPO / ".github" / "workflows"
 OWN_POOL = ["self-hosted", "linux", "primary"]
 #: The status-check contexts branch protection requires (job `name:`s).
 REQUIRED_CHECKS = {"tests", "ruff", "privacy", "pr-authorization", "Own runners guard"}
+#: Jobs that are not status checks: the Pages deploy of the project page (pages.yml).
+DEPLOY_JOBS = {"deploy"}
 
 
 def load(name: str) -> dict[str, Any]:
@@ -40,7 +42,7 @@ JOBS = [(f, jid, job) for f, doc in ALL.items() for jid, job in doc["jobs"].item
 
 
 def test_the_workflows_are_found() -> None:
-    assert set(ALL) == {"ci.yml", "pr-authorization.yml", "own-runners-guard.yml"}
+    assert set(ALL) == {"ci.yml", "pr-authorization.yml", "own-runners-guard.yml", "pages.yml"}
 
 
 @pytest.mark.parametrize(("wf", "jid", "job"), JOBS, ids=[f"{f}:{j}" for f, j, _ in JOBS])
@@ -50,7 +52,7 @@ def test_every_job_runs_on_the_own_pool_with_primary(wf: str, jid: str, job: dic
 
 
 def test_required_check_names_exist() -> None:
-    assert {job["name"] for _, _, job in JOBS} == REQUIRED_CHECKS
+    assert {job["name"] for _, _, job in JOBS} == REQUIRED_CHECKS | DEPLOY_JOBS
 
 
 def test_ci_runs_on_pull_requests_and_pushes_to_main() -> None:
