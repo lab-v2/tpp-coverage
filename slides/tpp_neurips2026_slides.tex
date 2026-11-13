@@ -34,31 +34,29 @@
 \end{frame}
 
 \begin{frame}{Collinear designs}
-  \begin{columns}[T]
-    \begin{column}{0.55\textwidth}
-      \begin{itemize}
+  \begin{columns}[c]
+    \begin{column}{0.52\textwidth}
+      \begin{itemize}\setlength{\itemsep}{10pt}
         \item Scaling laws are fitted on small runs and used to predict large ones.
-        \item Many studies train at a fixed tokens-per-parameter ratio $k = D/N$: a ray.
-        \item On a ray both power-law terms move~together:
-      \end{itemize}
-      \[ L(N, kN) = A N^{-\alpha} + B k^{-\beta} N^{-\beta} + E. \]
-      \begin{itemize}
+        \item Many studies train at a fixed tokens-per-parameter ratio $k = D/N$: a~ray.
+        \item On a ray both power-law terms move~together:\\[4pt]
+          $L(N, kN) = A N^{-\alpha} + B k^{-\beta} N^{-\beta} + E$.
         \item Only the exponent gap $\varepsilon = |\alpha - \beta|$ separates $A$ from $B$.
       \end{itemize}
     \end{column}
-    \begin{column}{0.42\textwidth}
+    \begin{column}{0.44\textwidth}
       \centering
-      \begin{tikzpicture}[scale=0.5]
-        \foreach \x/\lab in {0/Collinear (CO), 5.2/Non-collinear (NC)} {
-          \draw[-{Stealth}] (\x,0) -- (\x+4.4,0) node[right] {\scriptsize $\log N$};
-          \draw[-{Stealth}] (\x,0) -- (\x,4.4) node[above right] {\scriptsize $\log D$};
-          \node at (\x+2.2,-0.8) {\footnotesize \lab};
+      \begin{tikzpicture}[scale=0.48]
+        \foreach \x/\lab in {0/Collinear (CO), 6.2/Non-collinear (NC)} {
+          \draw[-{Stealth}] (\x,0) -- (\x+4.4,0) node[below left] {\scriptsize $\log N$};
+          \draw[-{Stealth}] (\x,0) -- (\x,4.4) node[above] {\scriptsize $\log D$};
+          \node at (\x+2.2,-1.2) {\footnotesize \lab};
         }
         \foreach \i in {0,...,5} {
           \fill[blue!70] (0.4+0.6*\i, 0.6+0.6*\i) circle (5pt);
         }
         \foreach \i/\j in {0.5/1.2, 1.1/3.4, 1.6/0.7, 2.2/2.4, 2.7/3.9, 3.2/1.5, 3.7/3.0, 0.8/2.2, 2.0/0.4, 3.5/0.9} {
-          \fill[red!75] (5.2+\i, \j) circle (5pt);
+          \fill[red!75] (6.2+\i, \j) circle (5pt);
         }
       \end{tikzpicture}
     \end{column}
