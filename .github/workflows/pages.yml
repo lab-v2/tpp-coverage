@@ -33,6 +33,7 @@ jobs:
                    "${GITHUB_WORKSPACE%%/_work/*}" "$(echo "$GITHUB_WORKSPACE" | cut -d/ -f1-3)"; do
             if [ "${#v}" -ge 4 ]; then
               echo "::add-mask::$v"
+              # actions/checkout's cleanup prints paths regex-escaped (\/ and \-).
               echo "::add-mask::$(printf '%s' "$v" | sed 's/[/.-]/\\&/g')"
             fi
           done
