@@ -123,6 +123,8 @@ Every folder below has one job; a linked folder has its own README.
 | [`cluster/wiki300m/`](cluster/wiki300m/README.md) | Its task generator and the queue of trained cells |
 | [`cluster/audit/`](cluster/audit/README.md) | Its re-analyses and their result tables |
 | [`docs/`](docs/README.md) | Step-by-step guides: downloading, training, analysis, figures, n-gram KL, and the known behaviours |
+| [`slides/`](slides/README.md) | The five-minute NeurIPS 2026 talk (Beamer source and PDF) |
+| [`website/`](website/README.md) | The project page at [lab-v2.github.io/tpp-coverage](https://lab-v2.github.io/tpp-coverage/) |
 | [`tests/`](tests/README.md) | The pytest suite, one folder per component |
 | `.github/` | CI on the project's own runners: tests, `ruff check .`, the privacy scan and the merge rule |
 | `images/` | The logos shown in this README |

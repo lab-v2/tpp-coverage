@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TPP Coverage | NeurIPS 2026</title>
+  <meta name="description" content="Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation (NeurIPS 2026).">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Noto+Sans&display=swap" rel="stylesheet">
+  <script>window.MathJax = {tex: {inlineMath: [['$', '$']]}};</script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-chtml.min.js"></script>
+  <style>
+    body { font-family: 'Noto Sans', sans-serif; }
+    .title, .subtitle { font-family: 'Google Sans', sans-serif; }
+    .publication-title { font-size: 2.4rem; }
+    .author-block { display: inline-block; margin: 0 0.4rem; }
+    .logos img { height: 44px; margin: 0.5rem 1rem; vertical-align: middle; }
+    .button.is-dark { border-radius: 999px; margin: 0.25rem; }
+    .content figure img { border-radius: 6px; }
+    pre { white-space: pre-wrap; }
+    footer.footer { padding: 2rem 1.5rem; }
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop has-text-centered">
+      <h1 class="title publication-title">Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation</h1>
+      <div class="is-size-5">
+        <span class="author-block">Joshua Shay Kricheli<sup>*</sup>,</span>
+        <span class="author-block">Alexander Lawrence Reid<sup>*</sup>,</span>
+        <span class="author-block">Soumajyoti Sarkar<sup>&dagger;</sup>,</span>
+        <span class="author-block">Venkata Gandikota,</span>
+        <span class="author-block">Paulo Shakarian</span>
+      </div>
+      <div class="is-size-6 mt-2">
+        Syracuse University (Leibniz Lab, Institute for Artificial Intelligence) &middot; Amazon AGI Foundations<sup>&dagger;</sup><br>
+        <span class="is-size-7"><sup>*</sup>Equal contribution. <sup>&dagger;</sup>This work does not relate to the author's position at Amazon.</span>
+      </div>
+      <p class="is-size-5 mt-2"><strong>NeurIPS 2026</strong> &middot; Sydney</p>
+      <div class="logos mt-3">
+        <img src="images/neurips.svg" alt="NeurIPS">
+        <img src="images/syracuse_university.svg" alt="Syracuse University">
+        <img src="images/syracuse_ai_institute.svg" alt="Syracuse University Institute for Artificial Intelligence">
+        <img src="images/leibniz_lab.png" alt="Leibniz Lab">
+      </div>
+      <div class="mt-4">
+        <a class="button is-dark" href="https://arxiv.org/abs/2605.08541">arXiv</a>
+        <a class="button is-dark" href="https://github.com/lab-v2/tpp-coverage">Code</a>
+        <a class="button is-dark" href="https://huggingface.co/datasets/leibnitz-lab/colinear_scaling_models">Data</a>
+        <a class="button is-dark" href="slides/tpp_neurips2026_slides.pdf">Slides</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section pt-2">
+  <div class="container is-max-desktop content">
+
+    <h2 class="title is-3">Summary</h2>
+    <ul>
+      <li>Many scaling-law studies train at one or a few fixed tokens-per-parameter ratios $k = D/N$ (a <em>collinear</em> design).</li>
+      <li>On such rays the model and data terms move together, so the fit cannot tell them apart: the scale pair is ill-conditioned, and extrapolation off the ray fails.</li>
+      <li>A closed-form threshold on the spread of the ratios, checked before training, says when a design is well conditioned.</li>
+      <li>Designs that spread runs over TPP (non-collinear) win 97.3% of extrapolation comparisons.</li>
+    </ul>
+
+    <h2 class="title is-3">Abstract</h2>
+    <p>Neural scaling laws approximate a language model's loss as a power-law function of parameter count $N$ and token count $D$. Following Chinchilla-style compute-optimal training, many studies fit scaling laws from runs at one or a few fixed tokens-per-parameter (TPP) ratios $k$, with $D = kN$. We show that this collinear design, combined with the empirically common near-equality of the exponents governing $N$ and $D$, induces an inherent ill-conditioning in the Gauss-Newton least-squares problem: the condition number of the design grows as the inverse square of the gap between the $N$- and $D$-exponents. The scale coefficients become practically unidentifiable, with confidence intervals inflating by orders of magnitude, yielding a "sloppy" model whose extrapolations degrade sharply off the training ray. We prove this for four scaling-law formalisms and derive a closed-form TPP-diversity threshold that characterizes well-conditioned estimation to leading order. Empirically, in controlled experiments with 5M-77M-parameter models, non-collinear designs outperform collinear ones on held-out data with a 97.3% win rate across four laws and five corpora, and 98.7% in bfloat16. We further show the degeneracy is rooted in Jacobian geometry and is not an artifact of the loss function: any smooth objective whose Gauss-Newton weights are bounded above and away from zero inherits the same ill-conditioning.</p>
+
+    <h2 class="title is-3">One ray cannot separate model and data</h2>
+    <p>On a ray $D = kN$ the Chinchilla law becomes</p>
+    <p>$$L(N, kN) = A N^{-\alpha} + B k^{-\beta} N^{-\beta} + E,$$</p>
+    <p>so only the exponent gap $\varepsilon = |\alpha - \beta|$ separates $A$ from $B$. The scale pair's condition number grows as $\kappa_{A,B} = \Theta(\varepsilon^{-2})$, and the confidence interval on $A$ is $\Omega(\varepsilon^{-1})$ times the one on the identified combination $\psi = A + Bk^{-\alpha}$.</p>
+
+    <h2 class="title is-3">A threshold checkable before training</h2>
+    <p>For a collinear design with ratios $k_1 &lt; \cdots &lt; k_K$, to leading order $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever</p>
+    <p>$$V_K = \frac{1}{K}\sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} - \Bigl(\frac{1}{K}\sum_{\ell=1}^{K} k_\ell^{-\beta_{\mathrm{eff}}}\Bigr)^{2} \;\geq\; \tau_K = \frac{\bigl(K + \sum_{\ell} k_\ell^{-2\beta_{\mathrm{eff}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}},$$</p>
+    <p>and $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ exactly when $V_K \geq \tau_K/(1 + 1/\kappa_{\mathrm{target}})^2$. One ray never passes; two rays pass once their spread $k_2/k_1$ reaches $R_{\min}(k_1)$.</p>
+
+    <h2 class="title is-3">Results</h2>
+    <table class="table is-narrow is-striped">
+      <thead><tr><th>Comparison (NC vs. CO)</th><th class="has-text-right">NC wins</th></tr></thead>
+      <tbody>
+        <tr><td>Full fan, FP32 (1,460 of 1,500)</td><td class="has-text-right">97.3%</td></tr>
+        <tr><td>Full fan, BF16 (296 of 300)</td><td class="has-text-right">98.7%</td></tr>
+        <tr><td>Budget-matched below the threshold, Chinchilla</td><td class="has-text-right">68.5%</td></tr>
+        <tr><td>Budget-matched below the threshold, Droppo-Elibol</td><td class="has-text-right">57.4%</td></tr>
+        <tr><td>Budget-matched below the threshold, Kaplan</td><td class="has-text-right">80.6%</td></tr>
+      </tbody>
+    </table>
+    <div class="columns">
+      <figure class="column"><img src="static/images/01_surface_Red_Pajama_Kaplan_First.png" alt="Fitted loss surface with holdout points"><figcaption>Fitted surface with holdout points.</figcaption></figure>
+      <figure class="column"><img src="static/images/01_convergence_Red_Pajama_Kaplan_First.png" alt="Holdout R squared against TPP coverage"><figcaption>Holdout $R^2$ against TPP coverage.</figcaption></figure>
+      <figure class="column"><img src="static/images/01_isoflop_Red_Pajama_Kaplan_First.png" alt="Induced isoFLOP curves"><figcaption>Induced isoFLOP curves.</figcaption></figure>
+    </div>
+    <p class="is-size-7">Kaplan law on RedPajama, first epoch; CO in blue, NC in red.</p>
+
+    <h2 class="title is-3">Design recipe</h2>
+    <ol>
+      <li>Pick the lower ratio $k_1$ and read the minimum spread $R_{\min}(k_1)$ at $\kappa_{\mathrm{target}} = 100$.</li>
+      <li>Train on two ratios at the ends of that spread, runs split evenly, log-uniform in $N$.</li>
+      <li>Check the exact $\kappa_{A,B}$ of the planned $(N, D)$ before training.</li>
+    </ol>
+
+    <h2 class="title is-3">BibTeX</h2>
+    <pre><code>@inproceedings{kricheli2026tpp,
+  title     = {Tokens-per-Parameter Coverage Is Critical for Robust {LLM} Scaling Law Extrapolation},
+  author    = {Kricheli, Joshua Shay and Reid, Alexander Lawrence and Sarkar, Soumajyoti and Gandikota, Venkata and Shakarian, Paulo},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2026},
+  note      = {arXiv:2605.08541}
+}</code></pre>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="content has-text-centered is-size-7">
+    This page uses the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template">Academic Project Page Template</a>,
+    adapted from the <a href="https://nerfies.github.io">Nerfies</a> project page, under
+    <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.
+  </div>
+</footer>
+</body>
+</html>

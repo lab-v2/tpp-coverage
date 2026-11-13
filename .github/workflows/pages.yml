@@ -1,0 +1,53 @@
+# Project page (website/) and the talk slides, published to GitHub Pages from the project's own
+# self-hosted runners; no job names a machine, and the first step masks the runner's identity.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths: [website/**, slides/**, images/**, .github/workflows/pages.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: [self-hosted, linux, primary]
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Mask this runner's paths, account and machine name
+        run: |
+          for v in "$HOME" "$(id -un)" "$(cat /proc/sys/kernel/hostname)" \
+                   "$(cut -d. -f1 /proc/sys/kernel/hostname)" \
+                   "${GITHUB_WORKSPACE%%/_work/*}" "$(echo "$GITHUB_WORKSPACE" | cut -d/ -f1-3)"; do
+            if [ "${#v}" -ge 4 ]; then
+              echo "::add-mask::$v"
+              echo "::add-mask::$(printf '%s' "$v" | sed 's/[/.-]/\\&/g')"
+            fi
+          done
+      # Pinned to the commit behind tag v7.0.1 (as in ci.yml).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Assemble the site
+        run: |
+          mkdir -p _site/images _site/slides
+          cp -r website/. _site/
+          cp images/neurips.svg images/syracuse_university.svg images/syracuse_ai_institute.svg images/leibniz_lab.png _site/images/
+          cp slides/tpp_neurips2026_slides.pdf _site/slides/
+          touch _site/.nojekyll
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
