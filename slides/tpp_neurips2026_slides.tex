@@ -37,18 +37,18 @@
 
 \begin{frame}{Motivation and collinear designs}
   \begin{columns}[c]
-    \begin{column}{0.52\textwidth}
-      \begin{itemize}\setlength{\itemsep}{6pt}
-        \item Motivation: LLM runs cost millions; labs fit scaling laws [1,~2] to choose $N$, $D$, not trial and~error
-        \item Chinchilla rule: $k = D/N \approx 20$ tokens per parameter [1]; often one fixed $k$, one~ray
-        \item Chinchilla law [1], on a ray both terms move~together:\\[4pt]
-          $L(N, kN) = A N^{-\alpha} + B k^{-\beta} N^{-\beta} + E$
-        \item Only the gap $\varepsilon = |\alpha - \beta|$ separates $A$ from~$B$
+    \begin{column}{0.44\textwidth}
+      \begin{itemize}\setlength{\itemsep}{12pt}
+        \item LLM runs cost millions: scaling laws [1,~2] pick $N$,~$D$
+        \item Chinchilla rule: $k = D/N \approx 20$~[1], one~ray
+        \item On a ray [1]:\\[3pt]
+          $L = A N^{-\alpha} + B k^{-\beta} N^{-\beta} + E$
+        \item Only $\varepsilon = |\alpha - \beta|$ separates $A$,~$B$
       \end{itemize}
     \end{column}
-    \begin{column}{0.44\textwidth}
+    \begin{column}{0.54\textwidth}
       \centering
-      \begin{tikzpicture}[scale=0.48]
+      \begin{tikzpicture}[scale=0.66]
         \foreach \x/\lab in {0/Collinear (CO), 6.2/Non-collinear (NC)} {
           \draw[-{Stealth}] (\x,0) -- (\x+4.4,0) node[below left] {\scriptsize $\log N$};
           \draw[-{Stealth}] (\x,0) -- (\x,4.4) node[above] {\scriptsize $\log D$};
