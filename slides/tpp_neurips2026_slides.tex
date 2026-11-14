@@ -11,6 +11,8 @@
 \usepackage{amsmath,amssymb,booktabs,tikz,graphicx}
 \usetikzlibrary{arrows.meta}
 \graphicspath{{figures/}{build/}}
+% Short author-year sources, set at the foot of the slide that uses them.
+\newcommand{\slidecite}[1]{\vfill{\tiny\color{gray}#1\par}}
 
 \title{Tokens-per-Parameter Coverage Is Critical for\\Robust LLM Scaling Law Extrapolation}
 \author{Joshua Shay Kricheli\textsuperscript{*}\quad Alexander Lawrence Reid\textsuperscript{*}\quad
@@ -36,10 +38,10 @@
 \begin{frame}{Motivation and collinear designs}
   \begin{columns}[c]
     \begin{column}{0.52\textwidth}
-      \begin{itemize}\setlength{\itemsep}{10pt}
-        \item Motivation: LLM runs cost millions; labs fit scaling laws to choose $N$, $D$, not trial and~error
-        \item Common practice: fixed ratio $k = D/N$, one~ray
-        \item On a ray, both terms move~together:\\[4pt]
+      \begin{itemize}\setlength{\itemsep}{6pt}
+        \item Motivation: LLM runs cost millions; labs fit scaling laws [1,~2] to choose $N$, $D$, not trial and~error
+        \item Chinchilla rule: $k = D/N \approx 20$ tokens per parameter [1]; often one fixed $k$, one~ray
+        \item Chinchilla law [1], on a ray both terms move~together:\\[4pt]
           $L(N, kN) = A N^{-\alpha} + B k^{-\beta} N^{-\beta} + E$
         \item Only the gap $\varepsilon = |\alpha - \beta|$ separates $A$ from~$B$
       \end{itemize}
@@ -61,6 +63,7 @@
       \end{tikzpicture}
     \end{column}
   \end{columns}
+  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.}
 \end{frame}
 
 \begin{frame}{Theory: when the scale pair is identified}
@@ -83,7 +86,7 @@
 
 \begin{frame}{Results: non-collinear designs extrapolate}
   \begin{columns}[T]
-    \begin{column}{0.48\textwidth}
+    \begin{column}{0.51\textwidth}
       \small
       \begin{tabular}{@{}lr@{}}
         \toprule
@@ -92,25 +95,26 @@
         Full fan, FP32 (1,460 of 1,500) & $97.3\%$ \\
         Full fan, BF16 (296 of 300) & $98.7\%$ \\
         \midrule
-        Budget-matched, Chinchilla & $68.5\%$ \\
-        Budget-matched, Droppo-Elibol & $57.4\%$ \\
-        Budget-matched, Kaplan & $80.6\%$ \\
+        Budget-matched, Chinchilla [1] & $68.5\%$ \\
+        Budget-matched, Droppo-Elibol [3] & $57.4\%$ \\
+        Budget-matched, Kaplan [2] & $80.6\%$ \\
         \bottomrule
       \end{tabular}
 
       \vspace{6pt}
       \begin{itemize}
         \item 1,900 models, 5M-77M params
-        \item 5 corpora, 4 laws
+        \item 5 corpora; 4 laws [1-4]
         \item Budget-matched: CO subsets below~threshold
       \end{itemize}
     \end{column}
-    \begin{column}{0.48\textwidth}
+    \begin{column}{0.45\textwidth}
       \centering
       \includegraphics[width=0.85\linewidth]{01_convergence_Red_Pajama_Kaplan_First.pdf}\\
       {\scriptsize Holdout $R^2$ against TPP coverage (Kaplan, RedPajama).}
     \end{column}
   \end{columns}
+  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., Scaling data-constrained language models, JMLR 2025.}
 \end{frame}
 
 \begin{frame}{Takeaway and design recipe}
