@@ -33,15 +33,15 @@
   \includegraphics[height=0.6cm]{../images/leibniz_lab.png}
 \end{frame}
 
-\begin{frame}{Collinear designs}
+\begin{frame}{Motivation and collinear designs}
   \begin{columns}[c]
     \begin{column}{0.52\textwidth}
       \begin{itemize}\setlength{\itemsep}{10pt}
-        \item Scaling laws are fitted on small runs and used to predict large ones.
-        \item Many studies train at a fixed tokens-per-parameter ratio $k = D/N$: a~ray.
-        \item On a ray both power-law terms move~together:\\[4pt]
-          $L(N, kN) = A N^{-\alpha} + B k^{-\beta} N^{-\beta} + E$.
-        \item Only the exponent gap $\varepsilon = |\alpha - \beta|$ separates $A$ from $B$.
+        \item Motivation: LLM runs cost millions; labs fit scaling laws to choose $N$, $D$, not trial and~error
+        \item Common practice: fixed ratio $k = D/N$, one~ray
+        \item On a ray, both terms move~together:\\[4pt]
+          $L(N, kN) = A N^{-\alpha} + B k^{-\beta} N^{-\beta} + E$
+        \item Only the gap $\varepsilon = |\alpha - \beta|$ separates $A$ from~$B$
       \end{itemize}
     \end{column}
     \begin{column}{0.44\textwidth}
@@ -65,9 +65,8 @@
 
 \begin{frame}{Theory: when the scale pair is identified}
   \begin{itemize}
-    \item One ray: $\kappa_{A,B} = \Theta(\varepsilon^{-2})$, and the interval on $A$ is
-      $\Omega(\varepsilon^{-1})$ times the one on the combined $\psi = A + Bk^{-\alpha}$.
-    \item $K$ rays $k_1 < \cdots < k_K$: to leading order $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever
+    \item One ray: $\kappa_{A,B} = \Theta(\varepsilon^{-2})$; CI on $A$ is $\Omega(\varepsilon^{-1})\times$ CI on $\psi = A + Bk^{-\alpha}$
+    \item $K$ rays: $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ (leading order) whenever
   \end{itemize}
   {\small\[
     \underbrace{\frac{1}{K}\sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
@@ -76,8 +75,9 @@
     \underbrace{\frac{\bigl(K + \sum_{\ell} k_\ell^{-2\beta_{\mathrm{eff}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}}}_{\tau_K},
   \]}
   \begin{itemize}
-    \item and $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ iff $V_K \geq \tau_K/(1 + 1/\kappa_{\mathrm{target}})^2$.
-    \item One ray never passes; two rays pass once $k_2/k_1 \geq R_{\min}(k_1)$, a check made before~training.
+    \item Exact: $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ iff $V_K \geq \tau_K/(1 + 1/\kappa_{\mathrm{target}})^2$
+    \item One ray never passes; two pass once $k_2/k_1 \geq R_{\min}(k_1)$
+    \item Checkable before~training
   \end{itemize}
 \end{frame}
 
@@ -100,8 +100,9 @@
 
       \vspace{6pt}
       \begin{itemize}
-        \item About 1,900 models, 5.04M-76.5M parameters, five corpora, four laws.
-        \item Budget-matched rows: CO subsets below the threshold.
+        \item 1,900 models, 5M-77M params
+        \item 5 corpora, 4 laws
+        \item Budget-matched: CO subsets below~threshold
       \end{itemize}
     \end{column}
     \begin{column}{0.48\textwidth}
@@ -116,10 +117,10 @@
   \begin{columns}[T]
     \begin{column}{0.62\textwidth}
       \begin{itemize}
-        \item Report coefficients only from designs that span TPP ratios.
-        \item Recipe: pick $k_1$, read $R_{\min}(k_1)$, train two ratios at the ends of that
-          spread, split runs evenly, and check the exact $\kappa_{A,B}$ before training.
-        \item Code, data and checkpoints are public.
+        \item Fit on designs that span TPP~ratios
+        \item Recipe: pick $k_1$, read $R_{\min}(k_1)$, train both ends, split runs~evenly
+        \item Check exact $\kappa_{A,B}$ before~training
+        \item Code, data, checkpoints:~public
       \end{itemize}
       \vspace{2pt}
       \centering
