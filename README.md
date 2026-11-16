@@ -2,7 +2,8 @@
 
 <p align="center">
 <a href="https://arxiv.org/abs/2605.08541"><img alt="arXiv" src="https://img.shields.io/badge/arXiv-2605.08541-b31b1b.svg"></a>
-<a href="https://neurips.cc/Conferences/2026"><img alt="NeurIPS 2026" src="https://img.shields.io/badge/NeurIPS-2026-6f42c1.svg"></a>
+<a href="https://lab-v2.github.io/tpp-coverage/"><img alt="Project page" src="https://img.shields.io/badge/project-page-F76900.svg"></a>
+<a href="https://neurips.cc/virtual/2026/loc/sydney/poster/149648"><img alt="NeurIPS 2026" src="https://img.shields.io/badge/NeurIPS-2026-6f42c1.svg"></a>
 <a href="https://huggingface.co/datasets/leibnitz-lab/colinear_scaling_models"><img alt="Data on HuggingFace" src="https://img.shields.io/badge/data-HuggingFace-ffcc4d.svg"></a>
 <a href="LICENSE"><img alt="License: GPL-2.0" src="https://img.shields.io/badge/license-GPL--2.0-blue.svg"></a>
 <a href="https://www.python.org/"><img alt="Python 3.10" src="https://img.shields.io/badge/python-3.10-blue.svg"></a>
