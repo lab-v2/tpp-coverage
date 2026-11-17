@@ -73,10 +73,11 @@
   \begin{itemize}\setlength{\itemsep}{6pt}
     \item Measured loss of run $i$: $L_i$
     \item Predicted loss: $\hat{L}(N, D; \theta)$, \ $\theta = (E, A, B, \alpha, \beta)$
-  \end{itemize}\medskip
-  Residuals $r_i = L_i - \hat{L}(N_i, D_i; \theta)$; the fitted law minimizes the cost $S$:\par
-  \[ \hat{L}(\cdot\,;\hat{\theta}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\theta)} \; S(\theta), \qquad S(\theta) = \dfrac{1}{2} \sum_i r_i^2 \]
-  Jacobian: $J_{ij} = \dfrac{\partial r_i}{\partial \theta_j}$, rows are runs, columns parameters\par
+    \item Residuals: $r_i = L_i - \hat{L}(N_i, D_i; \theta)$, stacked in the vector $\mathbf{r}$
+    \item Cost: $S(\theta) = \dfrac{1}{2} \sum_i r_i^2$; the fitted law minimizes it:
+      \[ \hat{L}(\cdot\,;\hat{\theta}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\theta)} \; S(\theta) \]
+    \item Jacobian: $J_{ij} = \dfrac{\partial r_i}{\partial \theta_j}$, rows are runs, columns parameters
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{Gauss-Newton}
@@ -84,7 +85,7 @@
     \item Gram matrix of the Jacobian columns: $G = J^\top J$
     \item Hessian of the cost $S$ (slide 5): \ $H = G + \sum_i r_i \nabla^2 r_i$
     \item Gauss-Newton drops the second term: $H \approx G$
-    \item Gauss-Newton step: solve $G\,\Delta\theta = -J^\top r$
+    \item Gauss-Newton step: solve $G\,\Delta\theta = -J^\top \mathbf{r}$
     \item Ill-conditioned $G$: small noise in $L_i$ moves $\hat{\theta}$ far
   \end{itemize}
 \end{frame}
