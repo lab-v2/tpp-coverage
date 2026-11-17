@@ -64,8 +64,11 @@
 \end{frame}
 
 \begin{frame}{Least-squares fit and its Jacobian}
-  Measured loss of run $i$: $L_i$; predicted loss: $\hat{L}(N, D; \theta)$, parameters $\theta = (E, A, B, \alpha, \beta)$.
-  The fitted law is a least-squares minimizer:\par
+  \begin{tabular}{@{}ll@{}}
+    Measured loss of run $i$: & $L_i$ \\
+    Predicted loss: & $\hat{L}(N, D; \theta)$, \ $\theta = (E, A, B, \alpha, \beta)$ \\
+  \end{tabular}\par\medskip
+  Fitted law, a least-squares minimizer:\par
   \[ \hat{L}(\cdot\,;\hat{\theta}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\theta)} \; \sum_i \bigl(L_i - \hat{L}(N_i, D_i; \theta)\bigr)^2 \]
   \begin{itemize}\setlength{\itemsep}{8pt}
     \item Jacobian $J_{ij} = \dfrac{\partial \hat{L}(N_i, D_i; \theta)}{\partial \theta_j}$: rows are runs, columns parameters
