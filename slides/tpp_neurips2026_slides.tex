@@ -62,15 +62,16 @@
   \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.}
 \end{frame}
 
-\begin{frame}{The result, and where the Jacobian comes from}
-  \textbf{Result} (one ray $D = kN$, gap $\varepsilon = |\alpha - \beta|$, all four laws)
-  \begin{itemize}
+\begin{frame}{The result: one ray leaves $A$ and $B$ unidentified}
+  One ray $D = kN$, exponent gap $\varepsilon = |\alpha - \beta|$, all four laws:
+  \begin{itemize}\setlength{\itemsep}{10pt}
     \item Condition number of the scale pair: $\kappa_{A,B} = \Theta(\varepsilon^{-2})$
     \item CI on $A$ is $\Omega(\varepsilon^{-1})$ times the CI on the identified combination $\psi = A + Bk^{-\alpha}$
   \end{itemize}
-  \vspace{6pt}
-  \textbf{Jacobian}
-  \begin{itemize}
+\end{frame}
+
+\begin{frame}{Where the Jacobian comes from}
+  \begin{itemize}\setlength{\itemsep}{10pt}
     \item Fit by least squares over runs $i$: \ $\min_\theta \sum_i \bigl(L_i - L(N_i, D_i; \theta)\bigr)^2$, \ $\theta = (E, A, B, \alpha, \beta)$
     \item Jacobian $J_{ij} = \partial L(N_i, D_i; \theta)/\partial \theta_j$: one row per run, one column per parameter
     \item Gauss-Newton uses $G = J^\top J$: its conditioning sets how stable the fit is
