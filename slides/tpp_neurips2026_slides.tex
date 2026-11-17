@@ -129,12 +129,13 @@
     \tau_K = \dfrac{\bigl(K + \sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}} \]}
 \end{frame}
 
-\begin{frame}{TPP-diversity threshold: exact form and use}
+\begin{frame}{Designs compared: CO and NC}
   \begin{itemize}\setlength{\itemsep}{14pt}
-    \item Exact: $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ iff $V_K \geq \dfrac{\tau_K}{\bigl(1 + \frac{1}{\kappa_{\mathrm{target}}}\bigr)^2}$
-    \item One ray never passes
-    \item Two rays pass once $\dfrac{k_2}{k_1} \geq R_{\min}(k_1)$, the smallest passing spread
-    \item Checkable before~training
+    \item CO (collinear): every run on a fixed-TPP ray $D = kN$
+    \item Full fan: CO on all 12 training ratios
+    \item NC (non-collinear): runs spread over the $(N, D)$ plane
+    \item Budget-matched: CO and NC with the same number of runs
+    \item The threshold is checkable before~training
   \end{itemize}
 \end{frame}
 
@@ -156,10 +157,9 @@
   \vspace{10pt}
   \raggedright
   \begin{itemize}\setlength{\itemsep}{6pt}
-    \item CO: runs on rays (full fan: all 12); NC: spread over $(N, D)$
     \item 1,900 models (5M-77M), 5 corpora
     \item 4 laws: the 3 above, repeated-data~[8]
-    \item Budget-matched: same run count, CO below~threshold
+    \item Budget-matched CO designs: below the~threshold
   \end{itemize}
   \slidecite{[5] Hoffmann et al., NeurIPS 2022.\quad [6] Kaplan et al., arXiv 2020.\quad [7] Droppo and Elibol, Interspeech 2021.\quad [8] Muennighoff et al., JMLR 2025.}
 \end{frame}
@@ -187,7 +187,7 @@
     \begin{column}{0.62\textwidth}
       \begin{itemize}
         \item Fit on designs that span TPP~ratios
-        \item Recipe: pick $k_1$, read $R_{\min}(k_1)$
+        \item Recipe: pick $k_1$, then $k_2$ with $V_2 \geq \tau_2$
         \item Train both ends, split runs~evenly
         \item Check exact $\kappa_{A,B}$ before~training
         \item Code, data, checkpoints:~public
