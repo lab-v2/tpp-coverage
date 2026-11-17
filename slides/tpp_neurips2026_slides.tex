@@ -186,9 +186,10 @@
     \begin{column}{0.62\textwidth}
       \begin{itemize}
         \item Fit on designs that span TPP~ratios
-        \item Recipe: pick $k_1 < \dots < k_K$ with $V_K \geq \tau_K$
+        \item Recipe: set $\kappa_{\mathrm{target}}$ (e.g.\ 100)
+        \item Pick $k_1 < \dots < k_K$ with $V_K \geq \tau_K$
         \item Split runs evenly over the $K$~ratios
-        \item Check exact $\kappa_{A,B}$ before~training
+        \item Check exact $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ before~training
         \item Code, data, checkpoints:~public
       \end{itemize}
       \vspace{2pt}
