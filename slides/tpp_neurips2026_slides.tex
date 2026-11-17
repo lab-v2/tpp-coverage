@@ -35,36 +35,40 @@
   \href{https://leibniz.syracuse.edu/}{\includegraphics[height=0.6cm]{../images/leibniz_lab.png}}
 \end{frame}
 
-\begin{frame}{Motivation: scaling laws}
+\begin{frame}{Motivation}
   \begin{itemize}\setlength{\itemsep}{12pt}
-    \item Frontier LLM runs cost months and up to billions of dollars
+    \item Frontier LLM runs: months and billions of dollars
     \item Choosing parameters $N$ and tokens $D$ before training pays off
-    \item Scaling laws fit small pilot runs, then extrapolate the loss: Chinchilla~[1], Kaplan~[2], Droppo-Elibol~[3], repeated-data~[4]; also Hestness~[5], Henighan~[6], broken laws~[7]
+    \item Scaling laws: fit small runs, extrapolate the loss
+    \item Laws: Chinchilla~[1], Kaplan~[2], Droppo-Elibol~[3], repeated-data~[4]
+    \item Also: Hestness~[5], Henighan~[6], broken laws~[7]
     \item Chinchilla law~[1]: irreducible loss $E$, model term, data term
   \end{itemize}
   \[ L(N, D) = E + \underbrace{\dfrac{A}{N^{\alpha}}}_{\text{model}} + \underbrace{\dfrac{B}{D^{\beta}}}_{\text{data}} \]
   \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., JMLR 2025.\quad [5] Hestness et al., arXiv 2017.\quad [6] Henighan et al., arXiv 2020.\quad [7] Caballero et al., ICLR 2023.}
 \end{frame}
 
-\begin{frame}{A fixed ratio makes the fit degenerate}
+\begin{frame}{Fixed tokens-per-parameter ratio}
   \begin{itemize}\setlength{\itemsep}{14pt}
-    \item Many labs fix the ratio $k = \dfrac{D}{N}$, the tokens per parameter (TPP)
+    \item Common practice: fixed tokens per parameter $k = \dfrac{D}{N}$
     \item Chinchilla rule: $k \approx 20$~[1]
     \item Plug in $D = kN$: \quad $L = E + \dfrac{A}{N^{\alpha}} + \dfrac{B}{k^{\beta} N^{\beta}}$
   \end{itemize}
   \slidecite{[1] Hoffmann et al., NeurIPS 2022.}
 \end{frame}
 
-\begin{frame}{Where the Jacobian comes from}
-  \begin{itemize}\setlength{\itemsep}{10pt}
-    \item Fit by least squares over runs $i$: \ $\min_\theta \sum_i \bigl(L_i - L(N_i, D_i; \theta)\bigr)^2$, \ $\theta = (E, A, B, \alpha, \beta)$
-    \item Jacobian $J_{ij} = \dfrac{\partial L(N_i, D_i; \theta)}{\partial \theta_j}$: one row per run, one column per parameter
-    \item Gauss-Newton uses $G = J^\top J$: its conditioning sets how stable the fit is
-    \item CIs come from $G^{-1}$: a near-singular $G$ means wide CIs
+\begin{frame}{Least-squares fit and its Jacobian}
+  Fitted law $\hat{L}$: a least-squares minimizer over the parameters $\theta = (E, A, B, \alpha, \beta)$,
+  with $L_i$ the measured loss of run $i$\par
+  \[ \hat{L} \in \operatorname*{arg\,min}_{L(\cdot\,;\,\theta)} \; \sum_i \bigl(L_i - L(N_i, D_i; \theta)\bigr)^2 \]
+  \begin{itemize}\setlength{\itemsep}{8pt}
+    \item Jacobian $J_{ij} = \dfrac{\partial L(N_i, D_i; \theta)}{\partial \theta_j}$: rows are runs, columns parameters
+    \item Gauss-Newton: $G = J^\top J$; its conditioning sets fit stability
+    \item CIs from $G^{-1}$: near-singular $G$, wide CIs
   \end{itemize}
 \end{frame}
 
-\begin{frame}{The two scale columns nearly coincide}
+\begin{frame}{Scale columns of the Jacobian}
   \begin{itemize}\setlength{\itemsep}{10pt}
     \item Jacobian columns of $A$, $B$:\quad
       $\dfrac{\partial L}{\partial A} = \dfrac{1}{N^{\alpha}}$,\ \ $\dfrac{\partial L}{\partial B} = \dfrac{1}{k^{\beta} N^{\beta}}$
@@ -75,20 +79,16 @@
   \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.}
 \end{frame}
 
-\begin{frame}{The result: one ray leaves $A$ and $B$ unidentified}
-  One ray $D = kN$, exponent gap $\varepsilon = |\alpha - \beta|$, all four laws:
+\begin{frame}{Main result}
+  One ray $D = kN$, exponent gap $\varepsilon = |\alpha - \beta|$, all four laws:\par\medskip
   \vspace{8pt}
-  \begin{itemize}
-    \item Condition number of the scale pair:
-  \end{itemize}
+  Condition number of the scale pair:\par
   {\Large\boldmath \[ \kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right) \]}
-  \begin{itemize}
-    \item CI on $A$ against the CI on the identified combination $\psi = A + \dfrac{B}{k^{\alpha}}$:
-  \end{itemize}
+  CI on $A$ against the CI on the identified combination $\psi = A + \dfrac{B}{k^{\alpha}}$:\par
   {\Large\boldmath \[ \dfrac{\mathrm{CI}(A)}{\mathrm{CI}(\psi)} = \Omega\!\left(\dfrac{1}{\varepsilon}\right) \]}
 \end{frame}
 
-\begin{frame}{Proof sketch: the columns are nearly parallel}
+\begin{frame}{Proof sketch: near-parallel columns}
   \begin{itemize}\setlength{\itemsep}{10pt}
     \item Jacobian row of run $i$: $\dfrac{\partial L}{\partial A} = \dfrac{1}{N_i^{\alpha}}$, \ $\dfrac{\partial L}{\partial B} = \dfrac{1}{k^{\beta} N_i^{\beta}}$
     \item Small gap: $\dfrac{1}{N_i^{\beta}} = \dfrac{N_i^{\alpha - \beta}}{N_i^{\alpha}} \approx \dfrac{1 + (\alpha - \beta)\ln N_i}{N_i^{\alpha}}$, so
@@ -105,10 +105,8 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Theory: when several ratios fix the degeneracy}
-  \begin{itemize}
-    \item $K$ rays: $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ (leading order) whenever
-  \end{itemize}
+\begin{frame}{TPP-diversity threshold}
+  $K$ rays: $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ (leading order) whenever\par
   {\small\[
     \underbrace{\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}
       - \Bigl(\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{\beta_{\mathrm{eff}}}}\Bigr)^{2}}_{V_K}
@@ -122,7 +120,7 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Results: non-collinear designs extrapolate}
+\begin{frame}{Results: win rates}
   \centering
   \begin{tabular}{@{}lr@{}}
     \toprule
@@ -140,13 +138,14 @@
   \vspace{10pt}
   \raggedright
   \begin{itemize}\setlength{\itemsep}{6pt}
-    \item 1,900 models (5M-77M), 5 corpora, 4 laws: the 3 above and repeated-data~[4]
+    \item 1,900 models (5M-77M), 5 corpora
+    \item 4 laws: the 3 above, repeated-data~[4]
     \item Budget-matched: CO subsets below~threshold
   \end{itemize}
   \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., JMLR 2025.}
 \end{frame}
 
-\begin{frame}{Results: confidence intervals match the theory}
+\begin{frame}{Results: confidence intervals}
   \begin{columns}[c]
     \begin{column}{0.40\textwidth}
       \begin{itemize}\setlength{\itemsep}{10pt}
@@ -169,7 +168,8 @@
     \begin{column}{0.62\textwidth}
       \begin{itemize}
         \item Fit on designs that span TPP~ratios
-        \item Recipe: pick $k_1$, read $R_{\min}(k_1)$, train both ends, split runs~evenly
+        \item Recipe: pick $k_1$, read $R_{\min}(k_1)$
+        \item Train both ends, split runs~evenly
         \item Check exact $\kappa_{A,B}$ before~training
         \item Code, data, checkpoints:~public
       \end{itemize}
