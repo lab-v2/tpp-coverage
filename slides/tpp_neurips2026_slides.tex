@@ -36,11 +36,14 @@
 \end{frame}
 
 \begin{frame}{Motivation}
-  \begin{itemize}\setlength{\itemsep}{18pt}
+  \begin{itemize}\setlength{\itemsep}{12pt}
     \item Frontier LLM runs: months and billions of dollars
     \item Choosing parameters $N$ and tokens $D$ before training pays off
+    \item Also scaled: learning rate~[9], batch size~[9,~10]
+    \item Weight decay~[10], data mixture~[11], precision~[12]
     \item Scaling laws: fit small runs, extrapolate the loss
   \end{itemize}
+  \slidecite{[9] Li et al., Step Law, arXiv 2025.\quad [10] Bergsma et al., Power Lines, NeurIPS 2025.\quad [11] Shukor et al., Optimal data mixtures, NeurIPS 2025.\quad [12] Kumar et al., Scaling laws for precision, ICLR 2025.}
 \end{frame}
 
 \begin{frame}{Scaling laws}
