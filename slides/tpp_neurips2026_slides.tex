@@ -182,25 +182,20 @@
 \end{frame}
 
 \begin{frame}{Takeaway and design recipe}
-  \begin{columns}[T]
-    \begin{column}{0.62\textwidth}
-      \begin{itemize}
-        \item Fit on designs that span TPP~ratios
-        \item Recipe: set $\kappa_{\mathrm{target}}$ (e.g.\ 100)
-        \item Pick $k_1 < \dots < k_K$ with $V_K \geq \tau_K$
-        \item Split runs evenly over the $K$~ratios
-        \item Check exact $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ before~training
-        \item Code, data, checkpoints:~public
-      \end{itemize}
-      \vspace{2pt}
-      \centering
-      \href{https://lab-v2.github.io/tpp-coverage/}{\texttt{lab-v2.github.io/tpp-coverage}}
-    \end{column}
-    \begin{column}{0.34\textwidth}
-      \centering
-      \includegraphics[width=0.9\linewidth]{qr_project_page.pdf}
-    \end{column}
-  \end{columns}
+  \begin{itemize}\setlength{\itemsep}{12pt}
+    \item Fit on designs that span TPP~ratios
+    \item Recipe: set $\kappa_{\mathrm{target}}$ (e.g.\ 100)
+    \item Pick $k_1 < \dots < k_K$ with $V_K \geq \tau_K$
+    \item Split runs evenly over the $K$~ratios
+    \item Check exact $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ before~training
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Project page}
+  \centering
+  Code, data and checkpoints are public\par\bigskip
+  \includegraphics[width=0.38\textwidth]{qr_project_page.pdf}\par\bigskip
+  {\Large \href{https://lab-v2.github.io/tpp-coverage/}{\texttt{lab-v2.github.io/tpp-coverage}}}
 \end{frame}
 
 \end{document}
