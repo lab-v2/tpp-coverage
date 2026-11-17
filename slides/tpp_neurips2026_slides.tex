@@ -39,11 +39,11 @@
   \begin{itemize}\setlength{\itemsep}{14pt}
     \item Frontier LLM runs cost months and up to billions of dollars
     \item Choosing parameters $N$ and tokens $D$ before training pays off
-    \item Scaling laws fit small pilot runs, then extrapolate the loss: Chinchilla~[1], Kaplan~[2]
+    \item Scaling laws fit small pilot runs, then extrapolate the loss: Chinchilla~[1], Kaplan~[2], Droppo-Elibol~[3], repeated-data~[4]
     \item Many labs fix the ratio $k = D/N$, the tokens per parameter (TPP)
     \item Chinchilla rule: $k \approx 20$~[1]
   \end{itemize}
-  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.}
+  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., JMLR 2025.}
 \end{frame}
 
 \begin{frame}{A fixed ratio makes the fit degenerate}
@@ -64,8 +64,10 @@
 
 \begin{frame}{Why the condition number blows up: proof sketch}
   \begin{itemize}\setlength{\itemsep}{7pt}
-    \item Columns $u_i = N_i^{-\alpha}$, $v_i = k^{-\beta} N_i^{-\beta}$; expand $N^{-\beta} = N^{-\alpha} e^{(\alpha-\beta)\ln N}$:
-      \[ v_i = k^{-\beta}\, u_i \bigl(1 + (\alpha - \beta)\ln N_i + O(\varepsilon^2)\bigr) \]
+    \item Columns: $u_i = N_i^{-\alpha}$ and $v_i = k^{-\beta} N_i^{-\beta}$
+    \item Small gap: $N^{-\beta} = N^{-\alpha} \cdot N^{\alpha - \beta} \approx N^{-\alpha}\bigl(1 + (\alpha - \beta)\ln N\bigr)$, so
+      \[ v_i \approx k^{-\beta} u_i \;+\; \underbrace{k^{-\beta}(\alpha - \beta)\, u_i \ln N_i}_{\text{small, } O(\varepsilon)} \]
+      $v$ is a multiple of $u$ plus an $O(\varepsilon)$ correction
     \item Gram matrix $G = J^\top J$ of $(A, B)$: $\operatorname{tr} G = \Theta(1)$,
       \ $\det G = \|u\|^2\|v\|^2 - (u^\top v)^2 = \Theta(\varepsilon^2)$
       (the spread of $\ln N_i$ sets the constant)
