@@ -24,8 +24,9 @@ class TestUpstreamBootstrap:
         assert upstream.package_dir_label(upstream.Path("/elsewhere/src/tpp_analysis")) == \
             "/elsewhere/src/tpp_analysis"
 
-    def test_missing_checkout_raises_actionable_error(self, monkeypatch) -> None:
-        monkeypatch.setenv(upstream.CODE_REPO_ENV, "/nonexistent/path/xyz")
+    def test_missing_checkout_raises_actionable_error(self, monkeypatch, tmp_path) -> None:
+        # A path under tmp_path is absent on every host; a fixed /nonexistent can exist unreadable.
+        monkeypatch.setenv(upstream.CODE_REPO_ENV, str(tmp_path / "absent"))
         with pytest.raises(upstream.UpstreamNotFound, match="TPP_CODE_REPO"):
             upstream.locate_upstream_package()
 
