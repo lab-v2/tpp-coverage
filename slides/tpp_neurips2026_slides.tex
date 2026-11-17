@@ -52,8 +52,9 @@
   \begin{itemize}\setlength{\itemsep}{14pt}
     \item Common practice: fixed tokens per parameter $k = \dfrac{D}{N}$
     \item Chinchilla rule: $k \approx 20$~[1]
-    \item Plug in $D = kN$: \quad $\hat{L} = E + \dfrac{A}{N^{\alpha}} + \dfrac{B}{k^{\beta} N^{\beta}}$
+    \item Plug in $D = kN$: both scale terms become powers of $N$ alone
   \end{itemize}
+  \[ \hat{L}(N, kN) = E + \underbrace{A}_{\text{const}} \cdot \dfrac{1}{N^{\alpha}} + \underbrace{\dfrac{B}{k^{\beta}}}_{\text{const}} \cdot \dfrac{1}{N^{\beta}} \]
   \slidecite{[1] Hoffmann et al., NeurIPS 2022.}
 \end{frame}
 
