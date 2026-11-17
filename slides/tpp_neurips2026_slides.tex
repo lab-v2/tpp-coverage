@@ -82,10 +82,11 @@
 \end{frame}
 
 \begin{frame}{Gauss-Newton and conditioning}
-  \begin{itemize}\setlength{\itemsep}{14pt}
-    \item Gauss-Newton step: solve $(J^\top J)\,\Delta\theta = -J^\top r$
-    \item Ill-conditioned $J^\top J$: small noise in $L_i$ moves $\hat{\theta}$ far
-    \item $G_{A,B}$: the $A$, $B$ rows and columns of $J^\top J$
+  \begin{itemize}\setlength{\itemsep}{10pt}
+    \item Gram matrix of the Jacobian columns: $G = J^\top J$
+    \item Gauss-Newton step: solve $G\,\Delta\theta = -J^\top r$
+    \item Ill-conditioned $G$: small noise in $L_i$ moves $\hat{\theta}$ far
+    \item Gram block $G_{A,B}$: the $A$, $B$ rows and columns of $G$
     \item $\kappa_{A,B} = \dfrac{\lambda_{\max}(G_{A,B})}{\lambda_{\min}(G_{A,B})}$, its condition number
     \item Large $\kappa_{A,B}$: wide confidence intervals on $A$ and $B$
   \end{itemize}
@@ -95,8 +96,8 @@
   \begin{itemize}\setlength{\itemsep}{10pt}
     \item Jacobian columns of $A$, $B$ (up to sign):\quad
       $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N^{\alpha}}$,\ \ $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N^{\beta}}$
-    \item Fitted exponents are often close: Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$~[1];
-      Kaplan $0.076$, $0.095$~[2]
+    \item Fitted exponents are often close:\\
+      Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$~[1]; Kaplan $0.076$, $0.095$~[2]
     \item Small gap $\varepsilon = |\alpha - \beta|$: the two columns are nearly parallel
   \end{itemize}
   \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.}
