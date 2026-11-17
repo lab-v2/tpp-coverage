@@ -39,36 +39,36 @@
 
 \begin{frame}{Motivation}
   \begin{itemize}\setlength{\itemsep}{12pt}
-    \item Frontier LLM runs: months and billions of dollars
+    \item Frontier training cost: $2.4\times$ per year, over \$1B by 2027~[1]
     \item Choosing parameters $N$ and tokens $D$ before training pays off
     \item Scaling laws: fit small runs, extrapolate the loss
-    \item Also scaled: learning rate~[1], batch size~[1,~2]
-    \item Weight decay~[2], data mixture~[3], precision~[4]
+    \item Also scaled: learning rate~[2], batch size~[2,~3]
+    \item Weight decay~[3], data mixture~[4], precision~[5]
   \end{itemize}
-  \slidecite{[1] Li et al., Step Law, arXiv 2025.\quad [2] Bergsma et al., Power Lines, NeurIPS 2025.\quad [3] Shukor et al., Optimal data mixtures, NeurIPS 2025.\quad [4] Kumar et al., Scaling laws for precision, ICLR 2025.}
+  \slidecite{[1] Cottier et al., The rising costs of training frontier AI models, arXiv 2024.\quad [2] Li et al., Step Law, arXiv 2025.\quad [3] Bergsma et al., Power Lines, NeurIPS 2025.\quad [4] Shukor et al., Optimal data mixtures, NeurIPS 2025.\quad [5] Kumar et al., Scaling laws for precision, ICLR 2025.}
 \end{frame}
 
 \begin{frame}{Scaling laws}
   \begin{itemize}\setlength{\itemsep}{12pt}
-    \item Laws: Chinchilla~[5], Kaplan~[6], Droppo-Elibol~[7], repeated-data~[8]
-    \item Also: Hestness~[9], Henighan~[10], broken laws~[11]
-    \item Chinchilla law~[5]: loss floor $E$, scale coefficients $A, B$, exponents $\alpha, \beta$
+    \item Laws: Chinchilla~[6], Kaplan~[7], Droppo-Elibol~[8], repeated-data~[9]
+    \item Also: Hestness~[10], Henighan~[11], broken laws~[12]
+    \item Chinchilla law~[6]: loss floor $E$, scale coefficients $A, B$, exponents $\alpha, \beta$
   \end{itemize}
   \[ \hat{L}(N, D) = E + \underbrace{\dfrac{A}{N^{\alpha}}}_{\text{model}} + \underbrace{\dfrac{B}{D^{\beta}}}_{\text{data}} \]
-  \slidecite{[5] Hoffmann et al., NeurIPS 2022.\quad [6] Kaplan et al., arXiv 2020.\quad [7] Droppo and Elibol, Interspeech 2021.\quad [8] Muennighoff et al., JMLR 2025.\quad [9] Hestness et al., arXiv 2017.\quad [10] Henighan et al., arXiv 2020.\quad [11] Caballero et al., ICLR 2023.}
+  \slidecite{[6] Hoffmann et al., NeurIPS 2022.\quad [7] Kaplan et al., arXiv 2020.\quad [8] Droppo and Elibol, Interspeech 2021.\quad [9] Muennighoff et al., JMLR 2025.\quad [10] Hestness et al., arXiv 2017.\quad [11] Henighan et al., arXiv 2020.\quad [12] Caballero et al., ICLR 2023.}
 \end{frame}
 
 \begin{frame}{Fixed tokens-per-parameter ratio}
   \begin{itemize}\setlength{\itemsep}{14pt}
     \item Common practice: fixed tokens per parameter $k = \dfrac{D}{N}$
     \item Each fixed $k$ is a ray $D = kN$ in the $(N, D)$ plane
-    \item Chinchilla rule: $k \approx 20$~[5]
+    \item Chinchilla rule: $k \approx 20$~[6]
     \item Plug in $D = kN$; for $\alpha \approx \beta$ the two scale terms merge
   \end{itemize}
   \[ \hat{L}(N, kN) = E + \dfrac{A}{N^{\alpha}} + \dfrac{B}{k^{\beta} N^{\beta}}
      \;\overset{\alpha \approx \beta}{\approx}\; E + \underbrace{\Bigl(A + \dfrac{B}{k^{\alpha}}\Bigr)}_{\psi} \dfrac{1}{N^{\alpha}} \]
   The fit pins down $\psi$, not $A$ and $B$ separately\par
-  \slidecite{[5] Hoffmann et al., NeurIPS 2022.}
+  \slidecite{[6] Hoffmann et al., NeurIPS 2022.}
 \end{frame}
 
 \begin{frame}{Least-squares fit and its Jacobian}
@@ -87,9 +87,10 @@
     \item Gram matrix of the Jacobian columns: $G(\boldsymbol{\theta}) = J(\boldsymbol{\theta})^\top J(\boldsymbol{\theta})$
     \item Hessian of the cost $S$ (slide 5): \ $H(\boldsymbol{\theta}) = G(\boldsymbol{\theta}) + \sum_{i=1}^{m} r_i(\boldsymbol{\theta}) \nabla^2 r_i(\boldsymbol{\theta})$
     \item Gauss-Newton drops the second term: $H(\boldsymbol{\theta}) \approx G(\boldsymbol{\theta})$
-    \item Gauss-Newton step: solve $G(\boldsymbol{\theta})\,\Delta\boldsymbol{\theta} = -J(\boldsymbol{\theta})^\top \mathbf{r}(\boldsymbol{\theta})$
+    \item Gauss-Newton step~[13]: solve $G(\boldsymbol{\theta})\,\Delta\boldsymbol{\theta} = -J(\boldsymbol{\theta})^\top \mathbf{r}(\boldsymbol{\theta})$
     \item Ill-conditioned $G(\boldsymbol{\theta})$: small noise in $L_i$ moves $\hat{\boldsymbol{\theta}}$ far
   \end{itemize}
+  \slidecite{[13] Nocedal and Wright, Numerical Optimization, Springer 2006.}
 \end{frame}
 
 \begin{frame}{Conditioning of the scale pair}
@@ -98,9 +99,9 @@
     \item $\kappa_{A,B} = \dfrac{\lambda_{\max}(G_{A,B}(\boldsymbol{\theta}))}{\lambda_{\min}(G_{A,B}(\boldsymbol{\theta}))}$, its condition number
     \item $\kappa_{A,B}$ measures how much noise in $L_i$ is amplified in $\hat{A}$, $\hat{B}$
     \item Large $\kappa_{A,B}$: wide confidence intervals on $A$ and $B$
-    \item A \emph{sloppy} model~[12]: $A$ and $B$ can trade off with little change in the fit
+    \item A \emph{sloppy} model~[14]: $A$ and $B$ can trade off with little change in the fit
   \end{itemize}
-  \slidecite{[12] Transtrum et al., PRL 2010.}
+  \slidecite{[14] Transtrum et al., PRL 2010.}
 \end{frame}
 
 \begin{frame}{Scale columns of the Jacobian}
@@ -108,10 +109,10 @@
     \item Jacobian columns of $A$, $B$ (up to sign):\quad
       $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N_i^{\alpha}}$,\ \ $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N_i^{\beta}}$
     \item Fitted exponents are often close:\\
-      Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$~[5]; Kaplan $\alpha_N \approx 0.076$, $\alpha_D \approx 0.095$~[6]
+      Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$~[6]; Kaplan $\alpha_N \approx 0.076$, $\alpha_D \approx 0.095$~[7]
     \item Small gap $\varepsilon = |\alpha - \beta|$: the two columns are nearly parallel
   \end{itemize}
-  \slidecite{[5] Hoffmann et al., NeurIPS 2022.\quad [6] Kaplan et al., arXiv 2020.}
+  \slidecite{[6] Hoffmann et al., NeurIPS 2022.\quad [7] Kaplan et al., arXiv 2020.}
 \end{frame}
 
 \begin{frame}{Main result}
@@ -166,17 +167,17 @@
     \begin{column}{0.40\textwidth}
       \begin{itemize}\setlength{\itemsep}{10pt}
         \item 30 seeds: mean and 5th-95th percentile bars
-        \item Wide CO bars: sloppy $(A, B)$~[12], $\kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right)$
+        \item Wide CO bars: sloppy $(A, B)$~[14], $\kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right)$
         \item NC bars tight
       \end{itemize}
     \end{column}
     \begin{column}{0.56\textwidth}
       \centering
       \includegraphics[width=0.72\linewidth]{01_convergence_Red_Pajama_Kaplan_First.pdf}\\
-      {\scriptsize Holdout $R^2$ vs.\ share of TPP levels used,\\ Kaplan [6] on~RedPajama}
+      {\scriptsize Holdout $R^2$ vs.\ share of TPP levels used,\\ Kaplan [7] on~RedPajama~[15]}
     \end{column}
   \end{columns}
-  \slidecite{[6] Kaplan et al., arXiv 2020.\quad [12] Transtrum et al., PRL 2010.}
+  \slidecite{[7] Kaplan et al., arXiv 2020.\quad [14] Transtrum et al., PRL 2010.\quad [15] Weber et al., RedPajama, NeurIPS 2024.}
 \end{frame}
 
 \begin{frame}{Design recipe}
