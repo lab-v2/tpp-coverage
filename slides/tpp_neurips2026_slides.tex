@@ -181,13 +181,13 @@
   \slidecite{[6] Kaplan et al., arXiv 2020.\quad [12] Transtrum et al., PRL 2010.}
 \end{frame}
 
-\begin{frame}{Takeaway and design recipe}
+\begin{frame}{Design recipe}
   \begin{itemize}\setlength{\itemsep}{12pt}
-    \item Fit on designs that span TPP~ratios
-    \item Recipe: set $\kappa_{\mathrm{target}}$ (e.g.\ 100)
+    \item Set $\kappa_{\mathrm{target}}$ (e.g.\ 100)
     \item Pick $k_1 < \dots < k_K$ with $V_K \geq \tau_K$
     \item Split runs evenly over the $K$~ratios
     \item Check exact $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ before~training
+    \item Train, then fit the law on this design
   \end{itemize}
 \end{frame}
 
