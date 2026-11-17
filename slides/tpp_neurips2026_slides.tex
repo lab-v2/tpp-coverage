@@ -60,9 +60,11 @@
   \begin{itemize}\setlength{\itemsep}{14pt}
     \item Common practice: fixed tokens per parameter $k = \dfrac{D}{N}$
     \item Chinchilla rule: $k \approx 20$~[1]
-    \item Plug in $D = kN$: both scale terms become powers of $N$ alone
+    \item Plug in $D = kN$; for $\alpha \approx \beta$ the two scale terms merge
   \end{itemize}
-  \[ \hat{L}(N, kN) = E + \underbrace{A}_{\text{const}} \cdot \dfrac{1}{N^{\alpha}} + \underbrace{\dfrac{B}{k^{\beta}}}_{\text{const}} \cdot \dfrac{1}{N^{\beta}} \]
+  \[ \hat{L}(N, kN) = E + \dfrac{A}{N^{\alpha}} + \dfrac{B}{k^{\beta} N^{\beta}}
+     \;\overset{\alpha \approx \beta}{\approx}\; E + \underbrace{\Bigl(A + \dfrac{B}{k^{\alpha}}\Bigr)}_{\psi} \dfrac{1}{N^{\alpha}} \]
+  Only $\psi$ is fitted well; $A$ and $B$ separately are not\par
   \slidecite{[1] Hoffmann et al., NeurIPS 2022.}
 \end{frame}
 
