@@ -55,10 +55,24 @@
     \item Plug in $D = kN$: \quad $L = E + A N^{-\alpha} + B k^{-\beta} N^{-\beta}$
     \item Jacobian columns of $A$, $B$:\quad
       $\partial L/\partial A = N^{-\alpha}$,\ \ $\partial L/\partial B = k^{-\beta} N^{-\beta}$
+    \item Fitted exponents are often close: Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$~[1];
+      Kaplan $0.076$, $0.095$~[2]
     \item Small gap $\varepsilon = |\alpha - \beta|$: the two columns are nearly parallel
-    \item So $\kappa_{A,B} = \Theta(\varepsilon^{-2})$; CI on $A$ is $\Omega(\varepsilon^{-1})\times$ CI on $\psi = A + Bk^{-\alpha}$
   \end{itemize}
-  \slidecite{[1] Hoffmann et al., NeurIPS 2022.}
+  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.}
+\end{frame}
+
+\begin{frame}{Why the condition number blows up: proof sketch}
+  \begin{itemize}\setlength{\itemsep}{7pt}
+    \item Columns $u_i = N_i^{-\alpha}$, $v_i = k^{-\beta} N_i^{-\beta}$; expand $N^{-\beta} = N^{-\alpha} e^{(\alpha-\beta)\ln N}$:
+      \[ v_i = k^{-\beta}\, u_i \bigl(1 + (\alpha - \beta)\ln N_i + O(\varepsilon^2)\bigr) \]
+    \item Gram matrix $G = J^\top J$ of $(A, B)$: $\operatorname{tr} G = \Theta(1)$,
+      \ $\det G = \|u\|^2\|v\|^2 - (u^\top v)^2 = \Theta(\varepsilon^2)$
+      (the spread of $\ln N_i$ sets the constant)
+    \item Hence $\kappa_{A,B} = \lambda_{\max}/\lambda_{\min} \approx (\operatorname{tr} G)^2/\det G = \Theta(\varepsilon^{-2})$
+    \item CI width on $A$ scales as $\sqrt{(G^{-1})_{AA}} = \sqrt{\|v\|^2/\det G} = \Omega(\varepsilon^{-1})$,
+      while $\psi = A + Bk^{-\alpha}$ stays tight
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{Theory: when several ratios fix the degeneracy}
