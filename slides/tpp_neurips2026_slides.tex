@@ -57,6 +57,15 @@
   \slidecite{[1] Hoffmann et al., NeurIPS 2022.}
 \end{frame}
 
+\begin{frame}{Where the Jacobian comes from}
+  \begin{itemize}\setlength{\itemsep}{10pt}
+    \item Fit by least squares over runs $i$: \ $\min_\theta \sum_i \bigl(L_i - L(N_i, D_i; \theta)\bigr)^2$, \ $\theta = (E, A, B, \alpha, \beta)$
+    \item Jacobian $J_{ij} = \dfrac{\partial L(N_i, D_i; \theta)}{\partial \theta_j}$: one row per run, one column per parameter
+    \item Gauss-Newton uses $G = J^\top J$: its conditioning sets how stable the fit is
+    \item CIs come from $G^{-1}$: a near-singular $G$ means wide CIs
+  \end{itemize}
+\end{frame}
+
 \begin{frame}{The two scale columns nearly coincide}
   \begin{itemize}\setlength{\itemsep}{10pt}
     \item Jacobian columns of $A$, $B$:\quad
@@ -79,15 +88,6 @@
     \item CI on $A$ against the CI on the identified combination $\psi = A + \dfrac{B}{k^{\alpha}}$:
   \end{itemize}
   {\Large\boldmath \[ \dfrac{\mathrm{CI}(A)}{\mathrm{CI}(\psi)} = \Omega\!\left(\dfrac{1}{\varepsilon}\right) \]}
-\end{frame}
-
-\begin{frame}{Where the Jacobian comes from}
-  \begin{itemize}\setlength{\itemsep}{10pt}
-    \item Fit by least squares over runs $i$: \ $\min_\theta \sum_i \bigl(L_i - L(N_i, D_i; \theta)\bigr)^2$, \ $\theta = (E, A, B, \alpha, \beta)$
-    \item Jacobian $J_{ij} = \dfrac{\partial L(N_i, D_i; \theta)}{\partial \theta_j}$: one row per run, one column per parameter
-    \item Gauss-Newton uses $G = J^\top J$: its conditioning sets how stable the fit is
-    \item CIs come from $G^{-1}$: a near-singular $G$ means wide CIs
-  \end{itemize}
 \end{frame}
 
 \begin{frame}{Proof sketch: the columns are nearly parallel}
