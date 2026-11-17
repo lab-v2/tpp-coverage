@@ -44,7 +44,7 @@
     \item Also: Hestness~[5], Henighan~[6], broken laws~[7]
     \item Chinchilla law~[1]: irreducible loss $E$, model term, data term
   \end{itemize}
-  \[ L(N, D) = E + \underbrace{\dfrac{A}{N^{\alpha}}}_{\text{model}} + \underbrace{\dfrac{B}{D^{\beta}}}_{\text{data}} \]
+  \[ \hat{L}(N, D) = E + \underbrace{\dfrac{A}{N^{\alpha}}}_{\text{model}} + \underbrace{\dfrac{B}{D^{\beta}}}_{\text{data}} \]
   \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., JMLR 2025.\quad [5] Hestness et al., arXiv 2017.\quad [6] Henighan et al., arXiv 2020.\quad [7] Caballero et al., ICLR 2023.}
 \end{frame}
 
@@ -52,17 +52,17 @@
   \begin{itemize}\setlength{\itemsep}{14pt}
     \item Common practice: fixed tokens per parameter $k = \dfrac{D}{N}$
     \item Chinchilla rule: $k \approx 20$~[1]
-    \item Plug in $D = kN$: \quad $L = E + \dfrac{A}{N^{\alpha}} + \dfrac{B}{k^{\beta} N^{\beta}}$
+    \item Plug in $D = kN$: \quad $\hat{L} = E + \dfrac{A}{N^{\alpha}} + \dfrac{B}{k^{\beta} N^{\beta}}$
   \end{itemize}
   \slidecite{[1] Hoffmann et al., NeurIPS 2022.}
 \end{frame}
 
 \begin{frame}{Least-squares fit and its Jacobian}
-  Fitted law $\hat{L}$: a least-squares minimizer over the parameters $\theta = (E, A, B, \alpha, \beta)$,
-  with $L_i$ the measured loss of run $i$\par
-  \[ \hat{L} \in \operatorname*{arg\,min}_{L(\cdot\,;\,\theta)} \; \sum_i \bigl(L_i - L(N_i, D_i; \theta)\bigr)^2 \]
+  Measured loss of run $i$: $L_i$; predicted loss: $\hat{L}(N, D; \theta)$, parameters $\theta = (E, A, B, \alpha, \beta)$.
+  The fitted law is a least-squares minimizer:\par
+  \[ \hat{L}(\cdot\,;\hat{\theta}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\theta)} \; \sum_i \bigl(L_i - \hat{L}(N_i, D_i; \theta)\bigr)^2 \]
   \begin{itemize}\setlength{\itemsep}{8pt}
-    \item Jacobian $J_{ij} = \dfrac{\partial L(N_i, D_i; \theta)}{\partial \theta_j}$: rows are runs, columns parameters
+    \item Jacobian $J_{ij} = \dfrac{\partial \hat{L}(N_i, D_i; \theta)}{\partial \theta_j}$: rows are runs, columns parameters
     \item Gauss-Newton: $G = J^\top J$; its conditioning sets fit stability
     \item CIs from $G^{-1}$: near-singular $G$, wide CIs
   \end{itemize}
@@ -71,7 +71,7 @@
 \begin{frame}{Scale columns of the Jacobian}
   \begin{itemize}\setlength{\itemsep}{10pt}
     \item Jacobian columns of $A$, $B$:\quad
-      $\dfrac{\partial L}{\partial A} = \dfrac{1}{N^{\alpha}}$,\ \ $\dfrac{\partial L}{\partial B} = \dfrac{1}{k^{\beta} N^{\beta}}$
+      $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N^{\alpha}}$,\ \ $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N^{\beta}}$
     \item Fitted exponents are often close: Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$~[1];
       Kaplan $0.076$, $0.095$~[2]
     \item Small gap $\varepsilon = |\alpha - \beta|$: the two columns are nearly parallel
@@ -90,7 +90,7 @@
 
 \begin{frame}{Proof sketch: near-parallel columns}
   \begin{itemize}\setlength{\itemsep}{10pt}
-    \item Jacobian row of run $i$: $\dfrac{\partial L}{\partial A} = \dfrac{1}{N_i^{\alpha}}$, \ $\dfrac{\partial L}{\partial B} = \dfrac{1}{k^{\beta} N_i^{\beta}}$
+    \item Jacobian row of run $i$: $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N_i^{\alpha}}$, \ $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N_i^{\beta}}$
     \item Small gap: $\dfrac{1}{N_i^{\beta}} = \dfrac{N_i^{\alpha - \beta}}{N_i^{\alpha}} \approx \dfrac{1 + (\alpha - \beta)\ln N_i}{N_i^{\alpha}}$, so
       \[ \dfrac{1}{k^{\beta} N_i^{\beta}} \approx \dfrac{1}{k^{\beta}} \cdot \dfrac{1}{N_i^{\alpha}} \;+\; \underbrace{\dfrac{(\alpha - \beta) \ln N_i}{k^{\beta} N_i^{\alpha}}}_{\text{small, } O(\varepsilon)} \]
       The $B$ column is $\dfrac{1}{k^{\beta}}$ times the $A$ column, plus an $O(\varepsilon)$ term
