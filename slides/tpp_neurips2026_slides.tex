@@ -143,25 +143,21 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Results: train versus holdout}
+\begin{frame}{Results: holdout win rates}
   \centering
-  \begin{tabular}{@{}llcc@{}}
+  {\Large
+  \begin{tabular}{@{}lcc@{}}
     \toprule
-    Split & Design & $R^2$ & RMSE \\
+    Precision & NC wins & CO wins \\
     \midrule
-    Train & CO & $\mathbf{0.985}$ & $\mathbf{0.174}$ \\
-          & NC & $0.953$ & $0.202$ \\
-    \midrule
-    Holdout & CO & $0.837$ & $0.237$ \\
-            & NC & $\mathbf{0.932}$ & $\mathbf{0.156}$ \\
+    FP32 & $\mathbf{97.3\%}$ & $2.7\%$ \\
+    BF16 & $\mathbf{98.7\%}$ & $1.3\%$ \\
     \bottomrule
-  \end{tabular}\par\medskip
-  {\scriptsize Means over 30 optimizer seeds, 4 laws, 5 corpora; best per split in bold}
+  \end{tabular}}\par\bigskip
   \raggedright
-  \begin{itemize}\setlength{\itemsep}{6pt}
-    \item CO fits the training runs better, NC extrapolates better
-    \item NC wins $97.3\%$ of holdout comparisons ($98.7\%$ in BF16)
-    \item 1,900 models (5M-77M); 4 laws: Chinchilla, Kaplan, Droppo-Elibol, repeated-data
+  \begin{itemize}\setlength{\itemsep}{8pt}
+    \item Each comparison: same law, corpus and seed, scored on holdout
+    \item 1,900 models (5M-77M), 4 laws, 5 corpora
   \end{itemize}
 \end{frame}
 
