@@ -117,34 +117,16 @@
   {\Large\boldmath \[ \dfrac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega\!\left(\dfrac{1}{\varepsilon}\right) \]}
 \end{frame}
 
-\begin{frame}{Proof sketch: near-parallel columns}
-  \begin{itemize}\setlength{\itemsep}{10pt}
-    \item Jacobian row of run $i$ (up to sign): $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N_i^{\alpha}}$, \ $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N_i^{\beta}}$
-    \item Small gap: $\dfrac{1}{N_i^{\beta}} = \dfrac{N_i^{\alpha - \beta}}{N_i^{\alpha}} \approx \dfrac{1 + (\alpha - \beta)\ln N_i}{N_i^{\alpha}}$, so
-      \[ \dfrac{1}{k^{\beta} N_i^{\beta}} \approx \dfrac{1}{k^{\beta}} \cdot \dfrac{1}{N_i^{\alpha}} \;+\; \underbrace{\dfrac{(\alpha - \beta) \ln N_i}{k^{\beta} N_i^{\alpha}}}_{\text{small, } O(\varepsilon)} \]
-      The $B$ column is $\dfrac{1}{k^{\beta}}$ times the $A$ column, plus an $O(\varepsilon)$ term
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Proof sketch: condition number and CI}
-  \begin{itemize}\setlength{\itemsep}{14pt}
-    \item Scale block $G_{A,B}$: $\operatorname{tr} G_{A,B} = \Theta(1)$, \ $\det G_{A,B} = \Theta(\varepsilon^2)$
-    \item Hence $\kappa_{A,B} = \dfrac{\lambda_{\max}}{\lambda_{\min}} \approx \dfrac{(\operatorname{tr} G_{A,B})^2}{\det G_{A,B}} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right)$
-    \item CI width on $A$: $\sqrt{(G_{A,B}^{-1})_{AA}} = \sqrt{\dfrac{(G_{A,B})_{BB}}{\det G_{A,B}}} = \Omega\!\left(\dfrac{1}{\varepsilon}\right)$
-    \item The combination $\psi = A + \dfrac{B}{k^{\alpha}}$ stays tight
-  \end{itemize}
-\end{frame}
-
 \begin{frame}{TPP-diversity threshold}
-  $K$ rays with ratios $k_1 < \dots < k_K$, target condition number $\kappa_{\mathrm{target}}$,
-  effective exponent $\beta_{\mathrm{eff}}$ ($= \beta$ for Chinchilla).
-  To leading order, $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever\par
-  {\small\[
-    \underbrace{\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}
-      - \Bigl(\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{\beta_{\mathrm{eff}}}}\Bigr)^{2}}_{V_K}
-    \;\geq\;
-    \underbrace{\dfrac{\bigl(K + \sum_{\ell} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}}}_{\tau_K},
-  \]}
+  $K$ rays with ratios $k_1 < \dots < k_K$, target condition number $\kappa_{\mathrm{target}}$,\\
+  effective exponent $\beta_{\mathrm{eff}}$ ($= \beta$ for Chinchilla).\par\medskip
+  To leading order, $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever:\par
+  {\Large\boldmath \[ V_K \;\geq\; \tau_K \]}
+  Spread of the ratios, and the threshold it must reach:\par
+  {\boldmath \[ V_K = \dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}
+      - \Bigl(\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{\beta_{\mathrm{eff}}}}\Bigr)^{2},
+    \qquad
+    \tau_K = \dfrac{\bigl(K + \sum_{\ell} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}} \]}
 \end{frame}
 
 \begin{frame}{TPP-diversity threshold: exact form and use}
