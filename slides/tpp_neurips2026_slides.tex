@@ -75,27 +75,27 @@
   \begin{itemize}\setlength{\itemsep}{6pt}
     \item Measured loss of run $i = 1, \dots, m$: $L_i$
     \item Predicted loss: $\hat{L}(N, D; \boldsymbol{\theta})$, \ $\boldsymbol{\theta} \in \mathbb{R}^{p}$; Chinchilla: $\boldsymbol{\theta} = (E, A, B, \alpha, \beta)$, $p = 5$
-    \item Residuals: $r_i = L_i - \hat{L}(N_i, D_i; \boldsymbol{\theta})$, stacked in the vector $\mathbf{r}$
-    \item Cost: $S(\boldsymbol{\theta}) = \dfrac{1}{2} \sum_{i=1}^{m} r_i^2$; the fitted law minimizes it:
+    \item Residuals: $r_i(\boldsymbol{\theta}) = L_i - \hat{L}(N_i, D_i; \boldsymbol{\theta})$, stacked in $\mathbf{r}(\boldsymbol{\theta})$
+    \item Cost: $S(\boldsymbol{\theta}) = \dfrac{1}{2} \sum_{i=1}^{m} r_i(\boldsymbol{\theta})^2$; the fitted law minimizes it:
       \[ \hat{L}(\cdot\,;\hat{\boldsymbol{\theta}}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\boldsymbol{\theta})} \; S(\boldsymbol{\theta}) \]
-    \item Jacobian $J \in \mathbb{R}^{m \times p}$: \ $J_{ij} = \dfrac{\partial r_i}{\partial \theta_j}$, one row per run, one column per parameter
+    \item Jacobian $J(\boldsymbol{\theta}) \in \mathbb{R}^{m \times p}$: \ $J_{ij}(\boldsymbol{\theta}) = \dfrac{\partial r_i(\boldsymbol{\theta})}{\partial \theta_j}$, a row per run, a column per parameter
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Gauss-Newton}
   \begin{itemize}\setlength{\itemsep}{10pt}
-    \item Gram matrix of the Jacobian columns: $G = J^\top J$
-    \item Hessian of the cost $S$ (slide 5): \ $H = G + \sum_{i=1}^{m} r_i \nabla^2 r_i$
-    \item Gauss-Newton drops the second term: $H \approx G$
-    \item Gauss-Newton step: solve $G\,\Delta\boldsymbol{\theta} = -J^\top \mathbf{r}$
-    \item Ill-conditioned $G$: small noise in $L_i$ moves $\hat{\boldsymbol{\theta}}$ far
+    \item Gram matrix of the Jacobian columns: $G(\boldsymbol{\theta}) = J(\boldsymbol{\theta})^\top J(\boldsymbol{\theta})$
+    \item Hessian of the cost $S$ (slide 5): \ $H(\boldsymbol{\theta}) = G(\boldsymbol{\theta}) + \sum_{i=1}^{m} r_i(\boldsymbol{\theta}) \nabla^2 r_i(\boldsymbol{\theta})$
+    \item Gauss-Newton drops the second term: $H(\boldsymbol{\theta}) \approx G(\boldsymbol{\theta})$
+    \item Gauss-Newton step: solve $G(\boldsymbol{\theta})\,\Delta\boldsymbol{\theta} = -J(\boldsymbol{\theta})^\top \mathbf{r}(\boldsymbol{\theta})$
+    \item Ill-conditioned $G(\boldsymbol{\theta})$: small noise in $L_i$ moves $\hat{\boldsymbol{\theta}}$ far
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Conditioning of the scale pair}
   \begin{itemize}\setlength{\itemsep}{14pt}
-    \item Gram block $G_{A,B}$: the $A$, $B$ rows and columns of $G$
-    \item $\kappa_{A,B} = \dfrac{\lambda_{\max}(G_{A,B})}{\lambda_{\min}(G_{A,B})}$, its condition number
+    \item Gram block $G_{A,B}(\boldsymbol{\theta})$: the $A$, $B$ rows and columns of $G(\boldsymbol{\theta})$
+    \item $\kappa_{A,B} = \dfrac{\lambda_{\max}(G_{A,B}(\boldsymbol{\theta}))}{\lambda_{\min}(G_{A,B}(\boldsymbol{\theta}))}$, its condition number
     \item Large $\kappa_{A,B}$: wide confidence intervals on $A$ and $B$
     \item A \emph{sloppy} model~[12]: $A$ and $B$ can trade off with little change in the fit
   \end{itemize}
