@@ -72,10 +72,10 @@
 \begin{frame}{Least-squares fit and its Jacobian}
   \begin{itemize}\setlength{\itemsep}{6pt}
     \item Measured loss of run $i = 1, \dots, m$: $L_i$
-    \item Predicted loss: $\hat{L}(N, D; \theta)$, \ $\theta \in \mathbb{R}^{p}$; Chinchilla: $\theta = (E, A, B, \alpha, \beta)$, $p = 5$
-    \item Residuals: $r_i = L_i - \hat{L}(N_i, D_i; \theta)$, stacked in the vector $\mathbf{r}$
-    \item Cost: $S(\theta) = \dfrac{1}{2} \sum_{i=1}^{m} r_i^2$; the fitted law minimizes it:
-      \[ \hat{L}(\cdot\,;\hat{\theta}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\theta)} \; S(\theta) \]
+    \item Predicted loss: $\hat{L}(N, D; \boldsymbol{\theta})$, \ $\boldsymbol{\theta} \in \mathbb{R}^{p}$; Chinchilla: $\boldsymbol{\theta} = (E, A, B, \alpha, \beta)$, $p = 5$
+    \item Residuals: $r_i = L_i - \hat{L}(N_i, D_i; \boldsymbol{\theta})$, stacked in the vector $\mathbf{r}$
+    \item Cost: $S(\boldsymbol{\theta}) = \dfrac{1}{2} \sum_{i=1}^{m} r_i^2$; the fitted law minimizes it:
+      \[ \hat{L}(\cdot\,;\hat{\boldsymbol{\theta}}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\boldsymbol{\theta})} \; S(\boldsymbol{\theta}) \]
     \item Jacobian $J \in \mathbb{R}^{m \times p}$: \ $J_{ij} = \dfrac{\partial r_i}{\partial \theta_j}$, one row per run, one column per parameter
   \end{itemize}
 \end{frame}
@@ -85,8 +85,8 @@
     \item Gram matrix of the Jacobian columns: $G = J^\top J$
     \item Hessian of the cost $S$ (slide 5): \ $H = G + \sum_{i=1}^{m} r_i \nabla^2 r_i$
     \item Gauss-Newton drops the second term: $H \approx G$
-    \item Gauss-Newton step: solve $G\,\Delta\theta = -J^\top \mathbf{r}$
-    \item Ill-conditioned $G$: small noise in $L_i$ moves $\hat{\theta}$ far
+    \item Gauss-Newton step: solve $G\,\Delta\boldsymbol{\theta} = -J^\top \mathbf{r}$
+    \item Ill-conditioned $G$: small noise in $L_i$ moves $\hat{\boldsymbol{\theta}}$ far
   \end{itemize}
 \end{frame}
 
