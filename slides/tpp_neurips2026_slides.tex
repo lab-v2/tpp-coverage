@@ -85,8 +85,9 @@
   \begin{itemize}\setlength{\itemsep}{14pt}
     \item Gauss-Newton step: solve $(J^\top J)\,\Delta\theta = -J^\top r$
     \item Ill-conditioned $J^\top J$: small noise in $L_i$ moves $\hat{\theta}$ far
-    \item Scale block $G_{A,B} = (J^\top J)_{A,B}$, \ $\kappa_{A,B} = \kappa(G_{A,B})$
-    \item CIs from $(J^\top J)^{-1}$: near-singular, wide CIs
+    \item $G_{A,B}$: the $A$, $B$ rows and columns of $J^\top J$
+    \item $\kappa_{A,B} = \dfrac{\lambda_{\max}(G_{A,B})}{\lambda_{\min}(G_{A,B})}$, its condition number
+    \item Large $\kappa_{A,B}$: wide confidence intervals on $A$ and $B$
   \end{itemize}
 \end{frame}
 
