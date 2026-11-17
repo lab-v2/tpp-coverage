@@ -130,27 +130,27 @@
 \end{frame}
 
 \begin{frame}{Designs compared: CO and NC}
-  \begin{itemize}\setlength{\itemsep}{14pt}
+  \begin{itemize}\setlength{\itemsep}{16pt}
     \item CO (collinear): every run on a fixed-TPP ray $D = kN$
-    \item Full fan: CO on all 12 training ratios
     \item NC (non-collinear): runs spread over the $(N, D)$ plane
-    \item Budget-matched: CO and NC with the same number of runs
-    \item The threshold is checkable before~training
+    \item Fair comparison: same models and recipe, comparable run counts
+    \item Below-threshold rows: exactly the same number of runs
+    \item Both scored on the same held-out runs
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Results: win rates}
+\begin{frame}{Results: holdout win rates}
   \centering
   \begin{tabular}{@{}lr@{}}
     \toprule
     Comparison (NC vs.\ CO) & NC wins \\
     \midrule
-    Full fan, FP32 & $97.3\%$ \\
-    Full fan, BF16 & $98.7\%$ \\
+    12 TPP ratios, FP32 & $97.3\%$ \\
+    12 TPP ratios, BF16 & $98.7\%$ \\
     \midrule
-    Budget-matched, Chinchilla [5] & $68.5\%$ \\
-    Budget-matched, Droppo-Elibol [7] & $57.4\%$ \\
-    Budget-matched, Kaplan [6] & $80.6\%$ \\
+    Below threshold, Chinchilla [5] & $68.5\%$ \\
+    Below threshold, Droppo-Elibol [7] & $57.4\%$ \\
+    Below threshold, Kaplan [6] & $80.6\%$ \\
     \bottomrule
   \end{tabular}
 
@@ -159,7 +159,6 @@
   \begin{itemize}\setlength{\itemsep}{6pt}
     \item 1,900 models (5M-77M), 5 corpora
     \item 4 laws: the 3 above, repeated-data~[8]
-    \item Budget-matched CO designs: below the~threshold
   \end{itemize}
   \slidecite{[5] Hoffmann et al., NeurIPS 2022.\quad [6] Kaplan et al., arXiv 2020.\quad [7] Droppo and Elibol, Interspeech 2021.\quad [8] Muennighoff et al., JMLR 2025.}
 \end{frame}
