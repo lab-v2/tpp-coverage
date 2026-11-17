@@ -71,19 +71,19 @@
 
 \begin{frame}{Least-squares fit and its Jacobian}
   \begin{itemize}\setlength{\itemsep}{6pt}
-    \item Measured loss of run $i$: $L_i$
-    \item Predicted loss: $\hat{L}(N, D; \theta)$, \ $\theta = (E, A, B, \alpha, \beta)$
+    \item Measured loss of run $i = 1, \dots, m$: $L_i$
+    \item Predicted loss: $\hat{L}(N, D; \theta)$, \ $\theta = (E, A, B, \alpha, \beta) \in \mathbb{R}^{p}$, $p = 5$
     \item Residuals: $r_i = L_i - \hat{L}(N_i, D_i; \theta)$, stacked in the vector $\mathbf{r}$
-    \item Cost: $S(\theta) = \dfrac{1}{2} \sum_i r_i^2$; the fitted law minimizes it:
+    \item Cost: $S(\theta) = \dfrac{1}{2} \sum_{i=1}^{m} r_i^2$; the fitted law minimizes it:
       \[ \hat{L}(\cdot\,;\hat{\theta}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\theta)} \; S(\theta) \]
-    \item Jacobian: $J_{ij} = \dfrac{\partial r_i}{\partial \theta_j}$, rows are runs, columns parameters
+    \item Jacobian $J \in \mathbb{R}^{m \times p}$: \ $J_{ij} = \dfrac{\partial r_i}{\partial \theta_j}$, one row per run, one column per parameter
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Gauss-Newton}
   \begin{itemize}\setlength{\itemsep}{10pt}
     \item Gram matrix of the Jacobian columns: $G = J^\top J$
-    \item Hessian of the cost $S$ (slide 5): \ $H = G + \sum_i r_i \nabla^2 r_i$
+    \item Hessian of the cost $S$ (slide 5): \ $H = G + \sum_{i=1}^{m} r_i \nabla^2 r_i$
     \item Gauss-Newton drops the second term: $H \approx G$
     \item Gauss-Newton step: solve $G\,\Delta\theta = -J^\top \mathbf{r}$
     \item Ill-conditioned $G$: small noise in $L_i$ moves $\hat{\theta}$ far
@@ -126,7 +126,7 @@
   {\boldmath \[ V_K = \dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}
       - \Bigl(\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{\beta_{\mathrm{eff}}}}\Bigr)^{2},
     \qquad
-    \tau_K = \dfrac{\bigl(K + \sum_{\ell} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}} \]}
+    \tau_K = \dfrac{\bigl(K + \sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}} \]}
 \end{frame}
 
 \begin{frame}{TPP-diversity threshold: exact form and use}
