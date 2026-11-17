@@ -16,3 +16,6 @@ build/qr_project_page.pdf:
 clean:
 	rm -rf build
 .PHONY: clean
+
+check: tpp_neurips2026_slides.pdf
+	uv run --no-project python -I $$HOME/claude-code-skills/skills/document-writing/bin/pdf_widows.py --balance $<
