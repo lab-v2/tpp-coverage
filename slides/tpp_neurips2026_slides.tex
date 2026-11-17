@@ -39,7 +39,7 @@
   \begin{itemize}\setlength{\itemsep}{14pt}
     \item Frontier LLM runs cost months and up to billions of dollars
     \item Choosing parameters $N$ and tokens $D$ before training pays off
-    \item Scaling laws fit small pilot runs, then extrapolate the loss~[1,~2]
+    \item Scaling laws fit small pilot runs, then extrapolate the loss: Chinchilla~[1], Kaplan~[2]
     \item Many labs fix the ratio $k = D/N$, the tokens per parameter (TPP)
     \item Chinchilla rule: $k \approx 20$~[1]
   \end{itemize}
@@ -97,7 +97,7 @@
 
       \vspace{6pt}
       \begin{itemize}
-        \item 1,900 models (5M-77M), 5 corpora, 4 laws~[1-4]
+        \item 1,900 models (5M-77M), 5 corpora, 4 laws: the 3 above and repeated-data~[4]
         \item Budget-matched: CO subsets below~threshold
         \item Wide CO bars: sloppy $(A, B)$~[5], $\kappa_{A,B} = \Theta(\varepsilon^{-2})$; NC bars~tight
       \end{itemize}
