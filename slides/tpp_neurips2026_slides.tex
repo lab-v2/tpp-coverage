@@ -141,28 +141,26 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Results: holdout win rates}
+\begin{frame}{Results: train versus holdout}
   \centering
-  \begin{tabular}{@{}lr@{}}
+  \begin{tabular}{@{}llcc@{}}
     \toprule
-    Comparison (NC vs.\ CO) & NC wins \\
+    Split & Design & $R^2$ & RMSE \\
     \midrule
-    12 TPP ratios, FP32 & $97.3\%$ \\
-    12 TPP ratios, BF16 & $98.7\%$ \\
+    Train & CO & $\mathbf{0.985}$ & $\mathbf{0.174}$ \\
+          & NC & $0.953$ & $0.202$ \\
     \midrule
-    Below threshold, Chinchilla [5] & $68.5\%$ \\
-    Below threshold, Droppo-Elibol [7] & $57.4\%$ \\
-    Below threshold, Kaplan [6] & $80.6\%$ \\
+    Holdout & CO & $0.837$ & $0.237$ \\
+            & NC & $\mathbf{0.932}$ & $\mathbf{0.156}$ \\
     \bottomrule
-  \end{tabular}
-
-  \vspace{10pt}
+  \end{tabular}\par\medskip
+  {\scriptsize Means over 30 optimizer seeds, 4 laws, 5 corpora; best per split in bold}
   \raggedright
   \begin{itemize}\setlength{\itemsep}{6pt}
-    \item 1,900 models (5M-77M), 5 corpora
-    \item 4 laws: the 3 above, repeated-data~[8]
+    \item CO fits the training runs better, NC extrapolates better
+    \item NC wins $97.3\%$ of holdout comparisons ($98.7\%$ in BF16)
+    \item 1,900 models (5M-77M); 4 laws: Chinchilla, Kaplan, Droppo-Elibol, repeated-data
   \end{itemize}
-  \slidecite{[5] Hoffmann et al., NeurIPS 2022.\quad [6] Kaplan et al., arXiv 2020.\quad [7] Droppo and Elibol, Interspeech 2021.\quad [8] Muennighoff et al., JMLR 2025.}
 \end{frame}
 
 \begin{frame}{Results: confidence intervals}
