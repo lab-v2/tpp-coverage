@@ -65,14 +65,14 @@
   \end{itemize}
   \[ \hat{L}(N, kN) = E + \dfrac{A}{N^{\alpha}} + \dfrac{B}{k^{\beta} N^{\beta}}
      \;\overset{\alpha \approx \beta}{\approx}\; E + \underbrace{\Bigl(A + \dfrac{B}{k^{\alpha}}\Bigr)}_{\psi} \dfrac{1}{N^{\alpha}} \]
-  Only $\psi$ is fitted well; $A$ and $B$ separately are not\par
+  One ray pins down $\psi$, not $A$ and $B$ separately\par
   \slidecite{[5] Hoffmann et al., NeurIPS 2022.}
 \end{frame}
 
 \begin{frame}{Least-squares fit and its Jacobian}
   \begin{itemize}\setlength{\itemsep}{6pt}
     \item Measured loss of run $i = 1, \dots, m$: $L_i$
-    \item Predicted loss: $\hat{L}(N, D; \theta)$, \ $\theta = (E, A, B, \alpha, \beta) \in \mathbb{R}^{p}$, $p = 5$
+    \item Predicted loss: $\hat{L}(N, D; \theta)$, \ $\theta \in \mathbb{R}^{p}$; Chinchilla: $\theta = (E, A, B, \alpha, \beta)$, $p = 5$
     \item Residuals: $r_i = L_i - \hat{L}(N_i, D_i; \theta)$, stacked in the vector $\mathbf{r}$
     \item Cost: $S(\theta) = \dfrac{1}{2} \sum_{i=1}^{m} r_i^2$; the fitted law minimizes it:
       \[ \hat{L}(\cdot\,;\hat{\theta}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\theta)} \; S(\theta) \]
@@ -101,16 +101,16 @@
 \begin{frame}{Scale columns of the Jacobian}
   \begin{itemize}\setlength{\itemsep}{10pt}
     \item Jacobian columns of $A$, $B$ (up to sign):\quad
-      $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N^{\alpha}}$,\ \ $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N^{\beta}}$
+      $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N_i^{\alpha}}$,\ \ $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N_i^{\beta}}$
     \item Fitted exponents are often close:\\
-      Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$~[5]; Kaplan $0.076$, $0.095$~[6]
+      Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$~[5]; Kaplan $\alpha_N \approx 0.076$, $\alpha_D \approx 0.095$~[6]
     \item Small gap $\varepsilon = |\alpha - \beta|$: the two columns are nearly parallel
   \end{itemize}
   \slidecite{[5] Hoffmann et al., NeurIPS 2022.\quad [6] Kaplan et al., arXiv 2020.}
 \end{frame}
 
 \begin{frame}{Main result}
-  One ray $D = kN$, exponent gap $\varepsilon = |\alpha - \beta|$, all four laws:\par\medskip
+  One ray $D = kN$, exponent gap $\varepsilon = |\alpha - \beta|$, all four laws (slide 3):\par\medskip
   Condition number of the scale pair:\par
   {\Large\boldmath \[ \kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right) \]}
   CI on $A$ against the CI on the identified combination $\psi = A + \dfrac{B}{k^{\alpha}}$:\par
@@ -156,10 +156,10 @@
   \vspace{10pt}
   \raggedright
   \begin{itemize}\setlength{\itemsep}{6pt}
-    \item CO: collinear, few rays; NC: non-collinear, spread TPP
+    \item CO: runs on rays (full fan: all 12); NC: spread over $(N, D)$
     \item 1,900 models (5M-77M), 5 corpora
     \item 4 laws: the 3 above, repeated-data~[8]
-    \item Budget-matched: CO subsets below~threshold
+    \item Budget-matched: same run count, CO below~threshold
   \end{itemize}
   \slidecite{[5] Hoffmann et al., NeurIPS 2022.\quad [6] Kaplan et al., arXiv 2020.\quad [7] Droppo and Elibol, Interspeech 2021.\quad [8] Muennighoff et al., JMLR 2025.}
 \end{frame}
@@ -176,7 +176,7 @@
     \begin{column}{0.56\textwidth}
       \centering
       \includegraphics[width=0.72\linewidth]{01_convergence_Red_Pajama_Kaplan_First.pdf}\\
-      {\scriptsize Holdout $R^2$ vs.\ coverage, Kaplan [6] on~RedPajama}
+      {\scriptsize Holdout $R^2$ vs.\ share of TPP levels used,\\ Kaplan [6] on~RedPajama}
     \end{column}
   \end{columns}
   \slidecite{[6] Kaplan et al., arXiv 2020.\quad [12] Transtrum et al., PRL 2010.}
