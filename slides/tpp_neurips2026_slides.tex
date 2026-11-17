@@ -74,15 +74,16 @@
   Fitted law, a least-squares minimizer:\par
   \[ \hat{L}(\cdot\,;\hat{\theta}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\theta)} \; \sum_i \bigl(L_i - \hat{L}(N_i, D_i; \theta)\bigr)^2 \]
   \begin{itemize}\setlength{\itemsep}{8pt}
-    \item Jacobian $J_{ij} = \dfrac{\partial \hat{L}(N_i, D_i; \theta)}{\partial \theta_j}$: rows are runs, columns parameters
-    \item Gauss-Newton: $G = J^\top J$; its conditioning sets fit stability
-    \item CIs from $G^{-1}$: near-singular $G$, wide CIs
+    \item Residuals $r_i = L_i - \hat{L}(N_i, D_i; \theta)$; Jacobian $J_{ij} = \dfrac{\partial r_i}{\partial \theta_j}$
+    \item Gauss-Newton: $J^\top J$; its conditioning sets fit stability
+    \item Scale block $G_{A,B} = (J^\top J)_{A,B}$, \ $\kappa_{A,B} = \kappa(G_{A,B})$
+    \item CIs from $(J^\top J)^{-1}$: near-singular, wide CIs
   \end{itemize}
 \end{frame}
 
 \begin{frame}{Scale columns of the Jacobian}
   \begin{itemize}\setlength{\itemsep}{10pt}
-    \item Jacobian columns of $A$, $B$:\quad
+    \item Jacobian columns of $A$, $B$ (up to sign):\quad
       $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N^{\alpha}}$,\ \ $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N^{\beta}}$
     \item Fitted exponents are often close: Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$~[1];
       Kaplan $0.076$, $0.095$~[2]
@@ -97,12 +98,12 @@
   Condition number of the scale pair:\par
   {\Large\boldmath \[ \kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right) \]}
   CI on $A$ against the CI on the identified combination $\psi = A + \dfrac{B}{k^{\alpha}}$:\par
-  {\Large\boldmath \[ \dfrac{\mathrm{CI}(A)}{\mathrm{CI}(\psi)} = \Omega\!\left(\dfrac{1}{\varepsilon}\right) \]}
+  {\Large\boldmath \[ \dfrac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega\!\left(\dfrac{1}{\varepsilon}\right) \]}
 \end{frame}
 
 \begin{frame}{Proof sketch: near-parallel columns}
   \begin{itemize}\setlength{\itemsep}{10pt}
-    \item Jacobian row of run $i$: $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N_i^{\alpha}}$, \ $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N_i^{\beta}}$
+    \item Jacobian row of run $i$ (up to sign): $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N_i^{\alpha}}$, \ $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N_i^{\beta}}$
     \item Small gap: $\dfrac{1}{N_i^{\beta}} = \dfrac{N_i^{\alpha - \beta}}{N_i^{\alpha}} \approx \dfrac{1 + (\alpha - \beta)\ln N_i}{N_i^{\alpha}}$, so
       \[ \dfrac{1}{k^{\beta} N_i^{\beta}} \approx \dfrac{1}{k^{\beta}} \cdot \dfrac{1}{N_i^{\alpha}} \;+\; \underbrace{\dfrac{(\alpha - \beta) \ln N_i}{k^{\beta} N_i^{\alpha}}}_{\text{small, } O(\varepsilon)} \]
       The $B$ column is $\dfrac{1}{k^{\beta}}$ times the $A$ column, plus an $O(\varepsilon)$ term
@@ -111,9 +112,10 @@
 
 \begin{frame}{Proof sketch: condition number and CI}
   \begin{itemize}\setlength{\itemsep}{14pt}
-    \item Gram matrix $G = J^\top J$ of $(A, B)$: $\operatorname{tr} G = \Theta(1)$, \ $\det G = \Theta(\varepsilon^2)$
-    \item Hence $\kappa_{A,B} = \dfrac{\lambda_{\max}}{\lambda_{\min}} \approx \dfrac{(\operatorname{tr} G)^2}{\det G} = \Theta(\varepsilon^{-2})$
-    \item CI width on $A$: $\sqrt{(G^{-1})_{AA}} = \sqrt{\dfrac{G_{BB}}{\det G}} = \Omega(\varepsilon^{-1})$, while $\psi = A + \dfrac{B}{k^{\alpha}}$ stays tight
+    \item Scale block $G_{A,B}$: $\operatorname{tr} G_{A,B} = \Theta(1)$, \ $\det G_{A,B} = \Theta(\varepsilon^2)$
+    \item Hence $\kappa_{A,B} = \dfrac{\lambda_{\max}}{\lambda_{\min}} \approx \dfrac{(\operatorname{tr} G_{A,B})^2}{\det G_{A,B}} = \Theta(\varepsilon^{-2})$
+    \item CI width on $A$: $\sqrt{(G_{A,B}^{-1})_{AA}} = \sqrt{\dfrac{(G_{A,B})_{BB}}{\det G_{A,B}}} = \Omega(\varepsilon^{-1})$
+    \item The combination $\psi = A + \dfrac{B}{k^{\alpha}}$ stays tight
   \end{itemize}
 \end{frame}
 
