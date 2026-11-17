@@ -187,8 +187,8 @@
     \begin{column}{0.62\textwidth}
       \begin{itemize}
         \item Fit on designs that span TPP~ratios
-        \item Recipe: pick $k_1$, then $k_2$ with $V_2 \geq \tau_2$
-        \item Train both ends, split runs~evenly
+        \item Recipe: pick $k_1 < \dots < k_K$ with $V_K \geq \tau_K$
+        \item Split runs evenly over the $K$~ratios
         \item Check exact $\kappa_{A,B}$ before~training
         \item Code, data, checkpoints:~public
       \end{itemize}
