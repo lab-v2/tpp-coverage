@@ -47,12 +47,18 @@
 \end{frame}
 
 \begin{frame}{A fixed ratio makes the fit degenerate}
-  \begin{itemize}\setlength{\itemsep}{6pt}
+  \begin{itemize}\setlength{\itemsep}{10pt}
     \item Chinchilla law~[1]: irreducible loss $E$, model term, data term
   \end{itemize}
   \[ L(N, D) = E + \underbrace{\dfrac{A}{N^{\alpha}}}_{\text{model}} + \underbrace{\dfrac{B}{D^{\beta}}}_{\text{data}} \]
   \begin{itemize}\setlength{\itemsep}{6pt}
     \item Plug in $D = kN$: \quad $L = E + \dfrac{A}{N^{\alpha}} + \dfrac{B}{k^{\beta} N^{\beta}}$
+  \end{itemize}
+  \slidecite{[1] Hoffmann et al., NeurIPS 2022.}
+\end{frame}
+
+\begin{frame}{The two scale columns nearly coincide}
+  \begin{itemize}\setlength{\itemsep}{10pt}
     \item Jacobian columns of $A$, $B$:\quad
       $\dfrac{\partial L}{\partial A} = \dfrac{1}{N^{\alpha}}$,\ \ $\dfrac{\partial L}{\partial B} = \dfrac{1}{k^{\beta} N^{\beta}}$
     \item Fitted exponents are often close: Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$~[1];
@@ -79,13 +85,17 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}[t]{Why the condition number blows up: proof sketch}
-  \small
-  \begin{itemize}\setlength{\itemsep}{2pt}
+\begin{frame}{Proof sketch: the columns are nearly parallel}
+  \begin{itemize}\setlength{\itemsep}{10pt}
     \item Jacobian row of run $i$: $\dfrac{\partial L}{\partial A} = \dfrac{1}{N_i^{\alpha}}$, \ $\dfrac{\partial L}{\partial B} = \dfrac{1}{k^{\beta} N_i^{\beta}}$
     \item Small gap: $\dfrac{1}{N_i^{\beta}} = \dfrac{N_i^{\alpha - \beta}}{N_i^{\alpha}} \approx \dfrac{1 + (\alpha - \beta)\ln N_i}{N_i^{\alpha}}$, so
       \[ \dfrac{1}{k^{\beta} N_i^{\beta}} \approx \dfrac{1}{k^{\beta}} \cdot \dfrac{1}{N_i^{\alpha}} \;+\; \underbrace{\dfrac{(\alpha - \beta) \ln N_i}{k^{\beta} N_i^{\alpha}}}_{\text{small, } O(\varepsilon)} \]
       The $B$ column is $\dfrac{1}{k^{\beta}}$ times the $A$ column, plus an $O(\varepsilon)$ term
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Proof sketch: condition number and CI}
+  \begin{itemize}\setlength{\itemsep}{14pt}
     \item Gram matrix $G = J^\top J$ of $(A, B)$: $\operatorname{tr} G = \Theta(1)$, \ $\det G = \Theta(\varepsilon^2)$
     \item Hence $\kappa_{A,B} = \dfrac{\lambda_{\max}}{\lambda_{\min}} \approx \dfrac{(\operatorname{tr} G)^2}{\det G} = \Theta(\varepsilon^{-2})$
     \item CI width on $A$: $\sqrt{(G^{-1})_{AA}} = \sqrt{\dfrac{G_{BB}}{\det G}} = \Omega(\varepsilon^{-1})$, while $\psi = A + \dfrac{B}{k^{\alpha}}$ stays tight
@@ -110,36 +120,45 @@
 \end{frame}
 
 \begin{frame}{Results: non-collinear designs extrapolate}
-  \begin{columns}[T]
-    \begin{column}{0.51\textwidth}
-      \small
-      \begin{tabular}{@{}lr@{}}
-        \toprule
-        Comparison (NC vs.\ CO) & NC wins \\
-        \midrule
-        Full fan, FP32 (1,460 of 1,500) & $97.3\%$ \\
-        Full fan, BF16 (296 of 300) & $98.7\%$ \\
-        \midrule
-        Budget-matched, Chinchilla [1] & $68.5\%$ \\
-        Budget-matched, Droppo-Elibol [3] & $57.4\%$ \\
-        Budget-matched, Kaplan [2] & $80.6\%$ \\
-        \bottomrule
-      \end{tabular}
+  \centering
+  \begin{tabular}{@{}lr@{}}
+    \toprule
+    Comparison (NC vs.\ CO) & NC wins \\
+    \midrule
+    Full fan, FP32 (1,460 of 1,500) & $97.3\%$ \\
+    Full fan, BF16 (296 of 300) & $98.7\%$ \\
+    \midrule
+    Budget-matched, Chinchilla [1] & $68.5\%$ \\
+    Budget-matched, Droppo-Elibol [3] & $57.4\%$ \\
+    Budget-matched, Kaplan [2] & $80.6\%$ \\
+    \bottomrule
+  \end{tabular}
 
-      \vspace{6pt}
-      \begin{itemize}
-        \item 1,900 models (5M-77M), 5 corpora, 4 laws: the 3 above and repeated-data~[4]
-        \item Budget-matched: CO subsets below~threshold
-        \item Wide CO bars: sloppy $(A, B)$~[8], $\kappa_{A,B} = \Theta(\varepsilon^{-2})$; NC bars~tight
+  \vspace{10pt}
+  \raggedright
+  \begin{itemize}\setlength{\itemsep}{6pt}
+    \item 1,900 models (5M-77M), 5 corpora, 4 laws: the 3 above and repeated-data~[4]
+    \item Budget-matched: CO subsets below~threshold
+  \end{itemize}
+  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., JMLR 2025.}
+\end{frame}
+
+\begin{frame}{Results: confidence intervals match the theory}
+  \begin{columns}[c]
+    \begin{column}{0.40\textwidth}
+      \begin{itemize}\setlength{\itemsep}{10pt}
+        \item 30 seeds: mean and 5th-95th percentile bars
+        \item Wide CO bars: sloppy $(A, B)$~[8], $\kappa_{A,B} = \Theta(\varepsilon^{-2})$
+        \item NC bars tight
       \end{itemize}
     \end{column}
-    \begin{column}{0.45\textwidth}
+    \begin{column}{0.56\textwidth}
       \centering
-      \includegraphics[width=0.85\linewidth]{01_convergence_Red_Pajama_Kaplan_First.pdf}\\
-      {\scriptsize Holdout $R^2$ vs.\ coverage, Kaplan [2] on~RedPajama\\ 30 seeds: mean and 5th-95th percentile~bars}
+      \includegraphics[width=0.72\linewidth]{01_convergence_Red_Pajama_Kaplan_First.pdf}\\
+      {\scriptsize Holdout $R^2$ vs.\ coverage, Kaplan [2] on~RedPajama}
     \end{column}
   \end{columns}
-  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., Scaling data-constrained language models, JMLR 2025.\quad [8] Transtrum et al., PRL 2010.}
+  \slidecite{[2] Kaplan et al., arXiv 2020.\quad [8] Transtrum et al., PRL 2010.}
 \end{frame}
 
 \begin{frame}{Takeaway and design recipe}
