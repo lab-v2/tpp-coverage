@@ -64,16 +64,14 @@
 
 \begin{frame}{Why the condition number blows up: proof sketch}
   \begin{itemize}\setlength{\itemsep}{7pt}
-    \item Columns: $u_i = N_i^{-\alpha}$ and $v_i = k^{-\beta} N_i^{-\beta}$
-    \item Small gap: $N^{-\beta} = N^{-\alpha} \cdot N^{\alpha - \beta} \approx N^{-\alpha}\bigl(1 + (\alpha - \beta)\ln N\bigr)$, so
-      \[ v_i \approx k^{-\beta} u_i \;+\; \underbrace{k^{-\beta}(\alpha - \beta)\, u_i \ln N_i}_{\text{small, } O(\varepsilon)} \]
-      $v$ is a multiple of $u$ plus an $O(\varepsilon)$ correction
-    \item Gram matrix $G = J^\top J$ of $(A, B)$: $\operatorname{tr} G = \Theta(1)$,
-      \ $\det G = \|u\|^2\|v\|^2 - (u^\top v)^2 = \Theta(\varepsilon^2)$
-      (the spread of $\ln N_i$ sets the constant)
+    \item Jacobian row of run $i$: $\partial L/\partial A = N_i^{-\alpha}$, \ $\partial L/\partial B = k^{-\beta} N_i^{-\beta}$
+    \item Small gap: $N_i^{-\beta} = N_i^{-\alpha} \cdot N_i^{\alpha - \beta} \approx N_i^{-\alpha}\bigl(1 + (\alpha - \beta)\ln N_i\bigr)$, so
+      \[ k^{-\beta} N_i^{-\beta} \approx k^{-\beta} N_i^{-\alpha} \;+\; \underbrace{k^{-\beta}(\alpha - \beta)\, N_i^{-\alpha} \ln N_i}_{\text{small, } O(\varepsilon)} \]
+      The $B$ column is $k^{-\beta}$ times the $A$ column, plus an $O(\varepsilon)$ term
+    \item Gram matrix $G = J^\top J$ of $(A, B)$: $\operatorname{tr} G = \Theta(1)$, \ $\det G = \Theta(\varepsilon^2)$
+      (set by the spread of $\ln N_i$)
     \item Hence $\kappa_{A,B} = \lambda_{\max}/\lambda_{\min} \approx (\operatorname{tr} G)^2/\det G = \Theta(\varepsilon^{-2})$
-    \item CI width on $A$ scales as $\sqrt{(G^{-1})_{AA}} = \sqrt{\|v\|^2/\det G} = \Omega(\varepsilon^{-1})$,
-      while $\psi = A + Bk^{-\alpha}$ stays tight
+    \item CI width on $A$: $\sqrt{(G^{-1})_{AA}} = \sqrt{G_{BB}/\det G} = \Omega(\varepsilon^{-1})$, while $\psi = A + Bk^{-\alpha}$ stays tight
   \end{itemize}
 \end{frame}
 
