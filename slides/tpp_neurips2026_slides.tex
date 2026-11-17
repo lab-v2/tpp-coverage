@@ -39,11 +39,11 @@
   \begin{itemize}\setlength{\itemsep}{14pt}
     \item Frontier LLM runs cost months and up to billions of dollars
     \item Choosing parameters $N$ and tokens $D$ before training pays off
-    \item Scaling laws fit small pilot runs, then extrapolate the loss: Chinchilla~[1], Kaplan~[2], Droppo-Elibol~[3], repeated-data~[4]
+    \item Scaling laws fit small pilot runs, then extrapolate the loss: Chinchilla~[1], Kaplan~[2], Droppo-Elibol~[3], repeated-data~[4]; also Hestness~[5], Henighan~[6], broken laws~[7]
     \item Many labs fix the ratio $k = D/N$, the tokens per parameter (TPP)
     \item Chinchilla rule: $k \approx 20$~[1]
   \end{itemize}
-  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., JMLR 2025.}
+  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., JMLR 2025.\quad [5] Hestness et al., arXiv 2017.\quad [6] Henighan et al., arXiv 2020.\quad [7] Caballero et al., ICLR 2023.}
 \end{frame}
 
 \begin{frame}{A fixed ratio makes the fit degenerate}
@@ -113,7 +113,7 @@
       \begin{itemize}
         \item 1,900 models (5M-77M), 5 corpora, 4 laws: the 3 above and repeated-data~[4]
         \item Budget-matched: CO subsets below~threshold
-        \item Wide CO bars: sloppy $(A, B)$~[5], $\kappa_{A,B} = \Theta(\varepsilon^{-2})$; NC bars~tight
+        \item Wide CO bars: sloppy $(A, B)$~[8], $\kappa_{A,B} = \Theta(\varepsilon^{-2})$; NC bars~tight
       \end{itemize}
     \end{column}
     \begin{column}{0.45\textwidth}
@@ -122,7 +122,7 @@
       {\scriptsize Holdout $R^2$ vs.\ coverage, Kaplan [2] on~RedPajama\\ 30 seeds: mean and 5th-95th percentile~bars}
     \end{column}
   \end{columns}
-  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., Scaling data-constrained language models, JMLR 2025.\quad [5] Transtrum et al., PRL 2010.}
+  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., Scaling data-constrained language models, JMLR 2025.\quad [8] Transtrum et al., PRL 2010.}
 \end{frame}
 
 \begin{frame}{Takeaway and design recipe}
