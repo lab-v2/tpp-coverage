@@ -76,8 +76,15 @@
   Fitted law, a least-squares minimizer:\par
   \[ \hat{L}(\cdot\,;\hat{\theta}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\theta)} \; \sum_i \bigl(L_i - \hat{L}(N_i, D_i; \theta)\bigr)^2 \]
   \begin{itemize}\setlength{\itemsep}{8pt}
-    \item Residuals $r_i = L_i - \hat{L}(N_i, D_i; \theta)$; Jacobian $J_{ij} = \dfrac{\partial r_i}{\partial \theta_j}$
-    \item Gauss-Newton: $J^\top J$; its conditioning sets fit stability
+    \item Residuals: $r_i = L_i - \hat{L}(N_i, D_i; \theta)$
+    \item Jacobian: $J_{ij} = \dfrac{\partial r_i}{\partial \theta_j}$, rows are runs, columns parameters
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Gauss-Newton and conditioning}
+  \begin{itemize}\setlength{\itemsep}{14pt}
+    \item Gauss-Newton step: solve $(J^\top J)\,\Delta\theta = -J^\top r$
+    \item Ill-conditioned $J^\top J$: small noise in $L_i$ moves $\hat{\theta}$ far
     \item Scale block $G_{A,B} = (J^\top J)_{A,B}$, \ $\kappa_{A,B} = \kappa(G_{A,B})$
     \item CIs from $(J^\top J)^{-1}$: near-singular, wide CIs
   \end{itemize}
