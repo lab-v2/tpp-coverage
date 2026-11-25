@@ -1,3 +1,4 @@
+<!-- vague-words-allowed: robust (owner, 2026-11-24: the paper title) -->
 <h1 align="center">Tokens-per-Parameter Coverage Is Critical for<br/>Robust LLM Scaling Law Extrapolation</h1>
 
 <p align="center">
