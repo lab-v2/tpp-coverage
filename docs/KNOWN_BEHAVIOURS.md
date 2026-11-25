@@ -133,7 +133,7 @@ on, and `download_and_extract.py --results-only` downloads the released ones.
   `--clear-cache` prints the old fits. The quick start re-renders the released fits.
 - **Leaves alone:** a rerun on unchanged tables, which gives the same output either way.
 - **What to do:** pass `--clear-cache` whenever the inputs change. A full refit reproduces the
-  released results bit for bit (about 20 minutes on 50 cores).
+  released results bit for bit (about 4 minutes on 480 threads; `tests/tpp_analysis/test_paper_numbers.py` checks it).
 
 ## Scale pairs left at a start draw
 

@@ -57,10 +57,13 @@ package = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["--strict-markers", "-ra", "-n", "auto"]  # one worker per hardware thread
+# -n auto: one worker per hardware thread. -m "not paper": the paper refit takes every thread
+# itself, so it runs alone, `pytest -n 0 -m paper` (a later -m replaces this one).
+addopts = ["--strict-markers", "-ra", "-n", "auto", "-m", "not paper"]
 markers = [
     "network: downloads public data from HuggingFace (cached after the first run)",
     "slow: large-scale analysis checks over the full grid or a process pool",
+    "paper: the from-scratch refit of the paper's numbers; it takes every thread, so it runs alone (-n 0)",
 ]
 
 [tool.ruff]
