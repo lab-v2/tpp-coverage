@@ -3,8 +3,12 @@
 [README](../README.md) · [Downloading](DOWNLOADING.md) · [Training](TRAINING.md) · [Figures](VISUALIZATIONS.md)
 
 Everything here runs on CPU. Inputs are the loss tables in `extracted_losses/`
-(see [DOWNLOADING](DOWNLOADING.md)); outputs are written at the repository root. Set
-`--n-workers` to your core count.
+(see [DOWNLOADING](DOWNLOADING.md)); outputs are written at the repository root.
+`run_analysis.py` fits one (law, design or coverage step, seed) per task, about 6,000 tasks in all,
+on a pool as wide as the CPU affinity mask (`--n-workers` overrides it), with one BLAS thread per
+worker. The refit takes about 4 minutes on 480 threads, against 63 minutes for the earlier
+per-combo version, and reproduces the released results:
+`tests/tpp_analysis/test_paper_numbers.py` checks it.
 
 ## Paper item to command
 

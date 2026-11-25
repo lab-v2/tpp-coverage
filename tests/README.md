@@ -7,7 +7,7 @@ component of the same name; `conftest.py` holds the shared paths and helpers.
 
 | Folder | Tests |
 |---|---|
-| `tpp_analysis/` | `src/tpp_analysis/`: law recovery on synthetic data, the Skaling law, the job generator against the released runs, the anonymous download |
+| `tpp_analysis/` | `src/tpp_analysis/`: law recovery on synthetic data, the Skaling law, the job generator against the released runs, the anonymous download, and the paper's main analysis refit from scratch against the released results |
 | `training_models/` | `src/training_models/`: the trainer's loss masking, gradient accumulation, optimizers and schedules |
 | `large_scale/` | `large_scale/` and `src/tpp_large_scale/`: correctness, determinism, the pipeline |
 | `camera_ready/` | `camera_ready/`: both analyses rerun against their committed outputs |
@@ -24,3 +24,5 @@ scan on every pull request and every push to `main`. A pull request may merge on
 member approved its latest commit (the `pr-authorization` check).
 
 Tests marked `network` download public data from HuggingFace; `slow` ones run the full grid.
+The `paper` test refits the paper's main analysis on every thread, so the default run leaves it out
+and it runs alone: `uv run pytest -n 0 -m paper` (CI runs both).
