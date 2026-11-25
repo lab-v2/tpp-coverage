@@ -26,113 +26,203 @@
 \begin{document}
 
 \begin{frame}[plain]
-  \titlepage
-  \vspace{-6pt}
   \centering
-  \href{https://neurips.cc/}{\includegraphics[height=0.6cm]{neurips.pdf}}\hspace{0.5cm}%
-  \href{https://www.syracuse.edu/}{\includegraphics[height=0.6cm]{syracuse_university.pdf}}\hspace{0.5cm}%
-  \href{https://instituteai.syracuse.edu/}{\includegraphics[height=0.6cm]{syracuse_ai_institute.pdf}}\hspace{0.5cm}%
+  \href{https://neurips.cc/}{\includegraphics[height=0.9cm]{neurips.pdf}}\par\vspace{10pt}
+  {\usebeamercolor[fg]{title}\usebeamerfont{title}\inserttitle\par}\vspace{12pt}
+  {\usebeamerfont{author}\insertauthor\par}\vspace{6pt}
+  {\usebeamerfont{institute}\insertinstitute\par}\vspace{10pt}
+  {\usebeamerfont{date}\insertdate\par}\vspace{12pt}
+  \href{https://www.syracuse.edu/}{\includegraphics[height=0.6cm]{syracuse_university.pdf}}\hspace{0.6cm}%
+  \href{https://instituteai.syracuse.edu/}{\includegraphics[height=0.6cm]{syracuse_ai_institute.pdf}}\hspace{0.6cm}%
   \href{https://leibniz.syracuse.edu/}{\includegraphics[height=0.6cm]{../images/leibniz_lab.png}}
 \end{frame}
 
-\begin{frame}{Motivation and collinear designs}
+\begin{frame}{Motivation}
+  \begin{itemize}\setlength{\itemsep}{12pt}
+    \item Frontier training cost: $2.4\times$ per year, over \$1B by 2027~[1]
+    \item Choosing parameters $N$ and tokens $D$ before training pays off
+    \item Scaling laws: fit small runs, extrapolate the loss
+    \item Also scaled: learning rate~[2], batch size~[2,~3]
+    \item Weight decay~[3], data mixture~[4], precision~[5]
+  \end{itemize}
+  \slidecite{[1] Cottier et al., The rising costs of training frontier AI models, arXiv 2024.\quad [2] Li et al., Step Law, arXiv 2025.\quad [3] Bergsma et al., Power Lines, NeurIPS 2025.\quad [4] Shukor et al., Optimal data mixtures, NeurIPS 2025.\quad [5] Kumar et al., Scaling laws for precision, ICLR 2025.}
+\end{frame}
+
+\begin{frame}{Scaling laws}
+  \begin{itemize}\setlength{\itemsep}{12pt}
+    \item Laws: Chinchilla~[6], Kaplan~[7], Droppo-Elibol~[8], repeated-data~[9]
+    \item Also: Hestness~[10], Henighan~[11], broken laws~[12]
+    \item Chinchilla law~[6]: loss floor $E$, scale coefficients $A, B$, exponents $\alpha, \beta$
+  \end{itemize}
+  \[ \hat{L}(N, D) = E + \underbrace{\dfrac{A}{N^{\alpha}}}_{\text{model}} + \underbrace{\dfrac{B}{D^{\beta}}}_{\text{data}} \]
+  \slidecite{[6] Hoffmann et al., NeurIPS 2022.\quad [7] Kaplan et al., arXiv 2020.\quad [8] Droppo and Elibol, Interspeech 2021.\quad [9] Muennighoff et al., JMLR 2025.\quad [10] Hestness et al., arXiv 2017.\quad [11] Henighan et al., arXiv 2020.\quad [12] Caballero et al., ICLR 2023.}
+\end{frame}
+
+\begin{frame}{Fixed tokens-per-parameter ratio}
+  \begin{itemize}\setlength{\itemsep}{14pt}
+    \item Common practice: fixed tokens per parameter $k = \dfrac{D}{N}$
+    \item Each fixed $k$ is a ray $D = kN$ in the $(N, D)$ plane
+    \item Chinchilla rule: $k \approx 20$~[6]
+    \item Plug in $D = kN$; for $\alpha \approx \beta$ the two scale terms merge
+  \end{itemize}
+  \[ \hat{L}(N, kN) = E + \dfrac{A}{N^{\alpha}} + \dfrac{B}{k^{\beta} N^{\beta}}
+     \;\overset{\alpha \approx \beta}{\approx}\; E + \underbrace{\Bigl(A + \dfrac{B}{k^{\alpha}}\Bigr)}_{\psi} \dfrac{1}{N^{\alpha}} \]
+  The fit pins down $\psi$, not $A$ and $B$ separately\par
+  \slidecite{[6] Hoffmann et al., NeurIPS 2022.}
+\end{frame}
+
+\begin{frame}{Least-squares fit and its Jacobian}
+  \begin{itemize}\setlength{\itemsep}{6pt}
+    \item Measured loss of run $i = 1, \dots, m$: $L_i$
+    \item Predicted loss: $\hat{L}(N, D; \boldsymbol{\theta})$, \ $\boldsymbol{\theta} \in \mathbb{R}^{p}$; Chinchilla: $\boldsymbol{\theta} = (E, A, B, \alpha, \beta)$, $p = 5$
+    \item Residuals: $r_i(\boldsymbol{\theta}) = L_i - \hat{L}(N_i, D_i; \boldsymbol{\theta})$, stacked in $\mathbf{r}(\boldsymbol{\theta})$
+    \item Cost: $S(\boldsymbol{\theta}) = \dfrac{1}{2} \sum_{i=1}^{m} r_i(\boldsymbol{\theta})^2$; the fitted law minimizes it:
+      \[ \hat{L}(\cdot\,;\hat{\boldsymbol{\theta}}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\boldsymbol{\theta})} \; S(\boldsymbol{\theta}) \]
+    \item Jacobian $J(\boldsymbol{\theta}) \in \mathbb{R}^{m \times p}$: \ $J_{ij}(\boldsymbol{\theta}) = \dfrac{\partial r_i(\boldsymbol{\theta})}{\partial \theta_j}$, a row per run, a column per parameter
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Gauss-Newton}
+  \begin{itemize}\setlength{\itemsep}{10pt}
+    \item Gram matrix of the Jacobian columns: $G(\boldsymbol{\theta}) = J(\boldsymbol{\theta})^\top J(\boldsymbol{\theta})$
+    \item Hessian of the cost $S$ (slide 5): \ $H(\boldsymbol{\theta}) = G(\boldsymbol{\theta}) + \sum_{i=1}^{m} r_i(\boldsymbol{\theta}) \nabla^2 r_i(\boldsymbol{\theta})$
+    \item Gauss-Newton drops the second term: $H(\boldsymbol{\theta}) \approx G(\boldsymbol{\theta})$
+    \item Gauss-Newton step~[13]: solve $G(\boldsymbol{\theta})\,\Delta\boldsymbol{\theta} = -J(\boldsymbol{\theta})^\top \mathbf{r}(\boldsymbol{\theta})$
+    \item Ill-conditioned $G(\boldsymbol{\theta})$: small noise in $L_i$ moves $\hat{\boldsymbol{\theta}}$ far
+  \end{itemize}
+  \slidecite{[13] Nocedal and Wright, Numerical Optimization, Springer 2006.}
+\end{frame}
+
+\begin{frame}{Conditioning of the scale pair}
+  \begin{itemize}\setlength{\itemsep}{14pt}
+    \item Gram block $G_{A,B}(\boldsymbol{\theta})$: the $A$, $B$ rows and columns of $G(\boldsymbol{\theta})$
+    \item $\kappa_{A,B} = \dfrac{\lambda_{\max}(G_{A,B}(\boldsymbol{\theta}))}{\lambda_{\min}(G_{A,B}(\boldsymbol{\theta}))}$, its condition number
+    \item $\kappa_{A,B}$ measures how much noise in $L_i$ is amplified in $\hat{A}$, $\hat{B}$
+    \item Large $\kappa_{A,B}$: wide confidence intervals on $A$ and $B$
+    \item A \emph{sloppy} model~[14]: $A$ and $B$ can trade off with little change in the fit
+  \end{itemize}
+  \slidecite{[14] Transtrum et al., PRL 2010.}
+\end{frame}
+
+\begin{frame}{Scale columns of the Jacobian}
+  \begin{itemize}\setlength{\itemsep}{10pt}
+    \item Jacobian columns of $A$, $B$ (up to sign):\quad
+      $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N_i^{\alpha}}$,\ \ $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N_i^{\beta}}$
+    \item Fitted exponents are often close:\\
+      Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$~[6]; Kaplan $\alpha_N \approx 0.076$, $\alpha_D \approx 0.095$~[7]
+    \item Small gap $\varepsilon = |\alpha - \beta|$: the two columns are nearly parallel
+  \end{itemize}
+  \slidecite{[6] Hoffmann et al., NeurIPS 2022.\quad [7] Kaplan et al., arXiv 2020.}
+\end{frame}
+
+\begin{frame}{Main result}
+  Exponent gap $\varepsilon = |\alpha - \beta|$, all four laws (slide 3):\par\medskip
+  Condition number of the scale pair:\par
+  {\Large\boldmath \[ \kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right) \]}
+  CI on $A$ against the CI on the identified combination $\psi = A + \dfrac{B}{k^{\alpha}}$:\par
+  {\Large\boldmath \[ \dfrac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega\!\left(\dfrac{1}{\varepsilon}\right) \]}
+\end{frame}
+
+\begin{frame}{TPP-diversity threshold}
+  $K$ rays with ratios $k_1 < \dots < k_K$, target condition number $\kappa_{\mathrm{target}}$,\\
+  effective exponent $\beta_{\mathrm{eff}}$ ($= \beta$ for Chinchilla).\par\medskip
+  To leading order, $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever:\par
+  {\Large\boldmath \[ V_K \;\geq\; \tau_K \]}
+  Spread of the ratios, and the threshold it must reach:\par
+  {\boldmath \[ V_K = \dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}
+      - \Bigl(\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{\beta_{\mathrm{eff}}}}\Bigr)^{2},
+    \qquad
+    \tau_K = \dfrac{\bigl(K + \sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}} \]}
+\end{frame}
+
+\begin{frame}{Designs compared: CO and NC}
+  \begin{itemize}\setlength{\itemsep}{16pt}
+    \item CO (collinear): every run on a fixed-TPP ray $D = kN$
+    \item NC (non-collinear): runs spread over the $(N, D)$ plane
+    \item Same models, recipe and comparable run counts
+    \item Both scored on the same held-out runs
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Results: holdout win rates}
+  \centering
+  {\Large
+  \begin{tabular}{@{}lcc@{}}
+    \toprule
+    Precision & NC wins & CO wins \\
+    \midrule
+    FP32 & $\mathbf{97.3\%}$ & $2.7\%$ \\
+    BF16 & $\mathbf{98.7\%}$ & $1.3\%$ \\
+    \bottomrule
+  \end{tabular}}\par\bigskip
+  \raggedright
+  \begin{itemize}\setlength{\itemsep}{8pt}
+    \item Each comparison: same law, corpus and seed, scored on holdout
+    \item 1,900 models (5M-77M), 4 laws, 5 corpora
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Results: confidence intervals}
   \begin{columns}[c]
-    \begin{column}{0.44\textwidth}
-      \begin{itemize}\setlength{\itemsep}{12pt}
-        \item LLM runs cost millions: scaling laws [1,~2] pick $N$,~$D$
-        \item Chinchilla rule: $k = D/N \approx 20$~[1], one~ray
-        \item On a ray [1]:\\[3pt]
-          $L = A N^{-\alpha} + B k^{-\beta} N^{-\beta} + E$
-        \item Only $\varepsilon = |\alpha - \beta|$ separates $A$,~$B$
+    \begin{column}{0.40\textwidth}
+      \begin{itemize}\setlength{\itemsep}{10pt}
+        \item 30 seeds: mean and 5th-95th percentile bars
+        \item Wide CO bars: sloppy $(A, B)$~[14], $\kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right)$
+        \item NC bars tight
       \end{itemize}
     \end{column}
-    \begin{column}{0.54\textwidth}
+    \begin{column}{0.56\textwidth}
       \centering
-      \begin{tikzpicture}[scale=0.66]
-        \foreach \x/\lab in {0/Collinear (CO), 6.2/Non-collinear (NC)} {
-          \draw[-{Stealth}] (\x,0) -- (\x+4.4,0) node[below left] {\scriptsize $\log N$};
-          \draw[-{Stealth}] (\x,0) -- (\x,4.4) node[above] {\scriptsize $\log D$};
-          \node at (\x+2.2,-1.2) {\footnotesize \lab};
-        }
-        \foreach \i in {0,...,5} {
-          \fill[blue!70] (0.4+0.6*\i, 0.6+0.6*\i) circle (5pt);
-        }
-        \foreach \i/\j in {0.5/1.2, 1.1/3.4, 1.6/0.7, 2.2/2.4, 2.7/3.9, 3.2/1.5, 3.7/3.0, 0.8/2.2, 2.0/0.4, 3.5/0.9} {
-          \fill[red!75] (6.2+\i, \j) circle (5pt);
-        }
-      \end{tikzpicture}
+      \includegraphics[width=0.72\linewidth]{01_convergence_Red_Pajama_Kaplan_First.pdf}\\
+      {\scriptsize Holdout $R^2$ vs.\ share of TPP levels used,\\ Kaplan [7] on~RedPajama~[15]}
     \end{column}
   \end{columns}
-  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.}
+  \slidecite{[7] Kaplan et al., arXiv 2020.\quad [14] Transtrum et al., PRL 2010.\quad [15] Weber et al., RedPajama, NeurIPS 2024.}
 \end{frame}
 
-\begin{frame}{Theory: when the scale pair is identified}
-  \begin{itemize}
-    \item One ray: $\kappa_{A,B} = \Theta(\varepsilon^{-2})$; CI on $A$ is $\Omega(\varepsilon^{-1})\times$ CI on $\psi = A + Bk^{-\alpha}$
-    \item $K$ rays: $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ (leading order) whenever
-  \end{itemize}
-  {\small\[
-    \underbrace{\frac{1}{K}\sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
-      - \Bigl(\frac{1}{K}\sum_{\ell=1}^{K} k_\ell^{-\beta_{\mathrm{eff}}}\Bigr)^{2}}_{V_K}
-    \;\geq\;
-    \underbrace{\frac{\bigl(K + \sum_{\ell} k_\ell^{-2\beta_{\mathrm{eff}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}}}_{\tau_K},
-  \]}
-  \begin{itemize}
-    \item Exact: $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ iff $V_K \geq \tau_K/(1 + 1/\kappa_{\mathrm{target}})^2$
-    \item One ray never passes; two pass once $k_2/k_1 \geq R_{\min}(k_1)$
-    \item Checkable before~training
+\begin{frame}{Design recipe}
+  \begin{itemize}\setlength{\itemsep}{12pt}
+    \item Set $\kappa_{\mathrm{target}}$ (e.g.\ 100)
+    \item Pick $k_1 < \dots < k_K$ with $V_K \geq \tau_K$
+    \item Split runs evenly over the $K$~ratios
+    \item Check exact $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ before~training
+    \item Train, then fit the law on this design
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Results: non-collinear designs extrapolate}
-  \begin{columns}[T]
-    \begin{column}{0.51\textwidth}
-      \small
-      \begin{tabular}{@{}lr@{}}
-        \toprule
-        Comparison (NC vs.\ CO) & NC wins \\
-        \midrule
-        Full fan, FP32 (1,460 of 1,500) & $97.3\%$ \\
-        Full fan, BF16 (296 of 300) & $98.7\%$ \\
-        \midrule
-        Budget-matched, Chinchilla [1] & $68.5\%$ \\
-        Budget-matched, Droppo-Elibol [3] & $57.4\%$ \\
-        Budget-matched, Kaplan [2] & $80.6\%$ \\
-        \bottomrule
-      \end{tabular}
-
-      \vspace{6pt}
-      \begin{itemize}
-        \item 1,900 models (5M-77M), 5 corpora, 4 laws~[1-4]
-        \item Budget-matched: CO subsets below~threshold
-        \item Wide CO bars: sloppy $(A, B)$~[5], $\kappa_{A,B} = \Theta(\varepsilon^{-2})$; NC bars~tight
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.45\textwidth}
-      \centering
-      \includegraphics[width=0.85\linewidth]{01_convergence_Red_Pajama_Kaplan_First.pdf}\\
-      {\scriptsize Holdout $R^2$ vs.\ coverage, Kaplan [2] on~RedPajama\\ 30 seeds: mean and 5th-95th percentile~bars}
-    \end{column}
-  \end{columns}
-  \slidecite{[1] Hoffmann et al., NeurIPS 2022.\quad [2] Kaplan et al., arXiv 2020.\quad [3] Droppo and Elibol, Interspeech 2021.\quad [4] Muennighoff et al., Scaling data-constrained language models, JMLR 2025.\quad [5] Transtrum et al., PRL 2010.}
+\begin{frame}{Project page}
+  \centering
+  Code, data and checkpoints are public\par\bigskip
+  \includegraphics[width=0.38\textwidth]{qr_project_page.pdf}\par\bigskip
+  {\Large \href{https://lab-v2.github.io/tpp-coverage/}{\texttt{lab-v2.github.io/tpp-coverage}}}
 \end{frame}
 
-\begin{frame}{Takeaway and design recipe}
+
+\begin{frame}{References}
+  \scriptsize
   \begin{columns}[T]
-    \begin{column}{0.62\textwidth}
-      \begin{itemize}
-        \item Fit on designs that span TPP~ratios
-        \item Recipe: pick $k_1$, read $R_{\min}(k_1)$, train both ends, split runs~evenly
-        \item Check exact $\kappa_{A,B}$ before~training
-        \item Code, data, checkpoints:~public
-      \end{itemize}
-      \vspace{2pt}
-      \centering
-      \href{https://lab-v2.github.io/tpp-coverage/}{\texttt{lab-v2.github.io/tpp-coverage}}
+    \begin{column}{0.49\textwidth}
+      \begin{enumerate}\setlength{\itemsep}{2pt}
+        \item[{[1]}] B.~Cottier et al. The rising costs of training frontier AI models. arXiv:2405.21015, 2024.
+        \item[{[2]}] H.~Li et al. Predictable Scale: Part I, Step Law. arXiv:2503.04715, 2025.
+        \item[{[3]}] S.~Bergsma et al. Power Lines: scaling laws for weight decay and batch size in LLM pre-training. NeurIPS 2025.
+        \item[{[4]}] M.~Shukor et al. Scaling laws for optimal data mixtures. NeurIPS 2025.
+        \item[{[5]}] T.~Kumar et al. Scaling laws for precision. ICLR 2025.
+        \item[{[6]}] J.~Hoffmann et al. An empirical analysis of compute-optimal large language model training. NeurIPS 2022.
+        \item[{[7]}] J.~Kaplan et al. Scaling laws for neural language models. arXiv:2001.08361, 2020.
+        \item[{[8]}] J.~Droppo and O.~Elibol. Scaling laws for acoustic models. Interspeech 2021.
+      \end{enumerate}
     \end{column}
-    \begin{column}{0.34\textwidth}
-      \centering
-      \includegraphics[width=0.9\linewidth]{qr_project_page.pdf}
+    \begin{column}{0.49\textwidth}
+      \begin{enumerate}\setlength{\itemsep}{2pt}
+        \item[{[9]}] N.~Muennighoff et al. Scaling data-constrained language models. JMLR 26(53), 2025.
+        \item[{[10]}] J.~Hestness et al. Deep learning scaling is predictable, empirically. arXiv:1712.00409, 2017.
+        \item[{[11]}] T.~Henighan et al. Scaling laws for autoregressive generative modeling. arXiv:2010.14701, 2020.
+        \item[{[12]}] E.~Caballero et al. Broken neural scaling laws. ICLR 2023.
+        \item[{[13]}] J.~Nocedal and S.~J.~Wright. Numerical Optimization. Springer, 2006.
+        \item[{[14]}] M.~K.~Transtrum, B.~B.~Machta and J.~P.~Sethna. Why are nonlinear fits to data so challenging? PRL 104, 2010.
+        \item[{[15]}] M.~Weber et al. RedPajama: an open dataset for training large language models. NeurIPS 2024.
+      \end{enumerate}
     \end{column}
   \end{columns}
 \end{frame}
