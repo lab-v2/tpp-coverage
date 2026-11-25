@@ -38,6 +38,8 @@ MASTERS = {"full_coverage_results/full_coverage_all_seeds.parquet": ["dataset", 
 
 @pytest.fixture(scope="module")
 def refit(tmp_path_factory):
+    if os.environ.get("PYTEST_XDIST_WORKER"):
+        pytest.fail("the paper refit takes every thread: run it alone, `pytest -n 0 -m paper`")
     """(released dir, refit dir): the released results, and a from-scratch refit of them."""
     root = tmp_path_factory.mktemp("paper")
     released = root / "released"

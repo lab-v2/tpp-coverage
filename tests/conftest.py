@@ -72,3 +72,16 @@ def tree_text(path: Path) -> str | None:
     if path.suffix == ".gz" or b"\0" in data[:4096]:
         return None
     return data.decode("utf-8", errors="replace")
+
+
+def pytest_collection_modifyitems(config, items):
+    """Run the `paper` refit only when it is asked for by name (`-m paper`), never inside a broader
+    selection such as `-m slow`: it takes every thread, and under xdist each worker that received one
+    of its tests would start its own host-wide pool (load 4,000 on 480 threads, 2026-11-25)."""
+    if "paper" in (config.option.markexpr or "").replace("not paper", ""):
+        return
+    keep = [i for i in items if i.get_closest_marker("paper") is None]
+    if len(keep) < len(items):
+        config.hook.pytest_deselected(items=[i for i in items if i not in keep])
+        items[:] = keep
+
