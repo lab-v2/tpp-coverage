@@ -15,4 +15,12 @@ component of the same name; `conftest.py` holds the shared paths and helpers.
 | `ci/` | `.github/`: the workflows and the merge rule |
 | `repository/` | The whole tree: README, links, entry points, vocabulary, privacy |
 
+The suite checks law recovery on synthetic data, every entry point's `--help`, that the
+released tables are reproduced, and the camera-ready analyses. It also checks the README's
+links, images, diagram and citation, and that no private host or path is in the tree.
+
+CI runs the suite, the hooks of `.pre-commit-config.yaml`, `ruff check .` and the privacy
+scan on every pull request and every push to `main`. A pull request may merge only when its author is a lab-v2 member, or when a
+member approved its latest commit (the `pr-authorization` check).
+
 Tests marked `network` download public data from HuggingFace; `slow` ones run the full grid.

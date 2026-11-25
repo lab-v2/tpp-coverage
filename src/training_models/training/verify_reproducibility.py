@@ -216,7 +216,7 @@ def fetch_reference(reproduced_path: str,
     repo_dir = _filename_to_repo_dir(reproduced_path)
     print(f"  HF directory: {repo_dir}/")
 
-    # Strip local-only prefixes (REPRO_, SMOKE_TEST_) before stem matching  - 
+    # Strip local-only prefixes (REPRO_, SMOKE_TEST_) before stem matching  -
     # the matcher uses identity tokens not stems, but cleaning the target
     # filename gives nicer error messages on miss.
     clean_fn = re.sub(r'^(REPRO_TEST_|REPRO_|SMOKE_TEST_)', '', fn)

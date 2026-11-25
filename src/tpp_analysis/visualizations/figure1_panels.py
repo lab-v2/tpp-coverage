@@ -2,16 +2,16 @@
 # coding: utf-8
 
 # # Individual Panel Figures: Surface · Convergence · IsoFLOP
-# 
-# Produces **separate** image files for each panel, suitable for Overleaf.  
+#
+# Produces **separate** image files for each panel, suitable for Overleaf.
 # Font sizes, tick sizes, and panel dimensions are pinned to the **surface-plot baseline**
 # (`axis_label=25`, `tick_label=16`, `legend=20`, panel ≈ 9 × 9).
-# 
+#
 # **Inputs required (same as the viz notebook):**
 # 1. `pipeline_results.pkl` - fitted params for surface + isoflop
 # 2. `*_incremental.parquet` - R² convergence curves
 # 3. CSV epoch-results files - for `load_and_prepare` (holdout scatter)
-# 
+#
 
 # In[ ]:
 
@@ -215,10 +215,10 @@ print(f'\nPreparedData: {list(prepared_data.keys())}')
 
 # ---
 # ## 3 · Shared Sizing Constants
-# 
+#
 # Everything inherits from the surface-plot baseline so the panels
 # look uniform at any scale-down.
-# 
+#
 
 # In[ ]:
 
@@ -270,7 +270,7 @@ print('Tick + legend + errorbar styling helpers imported.')
 
 # ---
 # ## 8 · Pick Your Combo & Build Individual Panels
-# 
+#
 
 # In[ ]:
 
@@ -670,7 +670,6 @@ print('Done.')
 
 # ---
 # ## 11 · Batch: Top-N Individual Panels
-# 
+#
 # Optionally loop over the ranking table and generate individual panel figures for each top candidate.
-# 
-
+#

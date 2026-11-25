@@ -460,7 +460,7 @@ def convert_expression_to_latex(expression: str) -> tuple[str, str, int, int, in
         "div": lambda a, b: sp.Mul(a, sp.Pow(b, -1)),
     }
 
-    
+
     latex_original_raw = _gplearn_expression_to_latex(expr=expression)
     sympy_expr = sp.sympify(expression, locals=namespace)
     has_invalid, error_latex = _check_for_invalid_terms(

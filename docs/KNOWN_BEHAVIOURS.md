@@ -139,8 +139,8 @@ on, and `download_and_extract.py --results-only` downloads the released ones.
 
 `_fit_generic` runs L-BFGS-B on the parameters in native units, where the bounds of a scale
 coefficient span eleven or twelve orders of magnitude (Kaplan's and Droppo-Elibol's N_c and D_c
-in [1e3, 1e14], Chinchilla's A and B in [1e-2, 1e10]). In 183 of the 900 Kaplan fits and 510 of
-the 900 Droppo-Elibol fits of `full_coverage_all_seeds.parquet`, and in 1 Kaplan and 14
+in [1e3, 1e14], Chinchilla's A and B in [1e-2, 1e10]). In 20% of the Kaplan fits (183 of 900) and 57% of
+the Droppo-Elibol fits (510 of 900) of `full_coverage_all_seeds.parquet`, and in 1 Kaplan and 14
 Droppo-Elibol fits of the 180 BF16 fits of each law, the optimizer left the scale pair within a
 relative 1e-6 of one of its 100 start draws and moved only the other parameters. Chinchilla's A
 and B move: only 3 of its 900 fits match a start draw exactly.
