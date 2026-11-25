@@ -6,6 +6,25 @@ Everything here runs on CPU. Inputs are the loss tables in `extracted_losses/`
 (see [DOWNLOADING](DOWNLOADING.md)); outputs are written at the repository root. Set
 `--n-workers` to your core count.
 
+## Paper item to command
+
+Paths are under `src/tpp_analysis/` unless noted.
+
+| Paper item | Command |
+|---|---|
+| Main win-rate table (97.3%) and R2/RMSE summary | `run_analysis.py full_coverage` |
+| Appendix metrics, fitted parameters, win rate by holdout split | `generate_appendix_tables.py full_coverage_results/` |
+| BF16 replication (98.7%) | `run_special_analysis.py`, then `generate_appendix_tables.py special_results/ --special` |
+| BigTPP preliminary (63.3%) | `run_prelim_bigtpp.py` |
+| Regime-A subset table | `dispatch_seeds.sh 0 21`, `subset_analysis/aggregate_seed_runs.py`, `subset_analysis/per_law_winrate_ci.py --mode first` |
+| Figure 1 and appendix three-panel figures | `run_analysis.py seed_variance`, then `visualizations/run_appendix_figures.sh` |
+| Architecture table, n-layers figure | `utility/audit_architectures.py`, then `utility/plot_nlayers_distribution.py --mode runs` |
+| n-gram KL table | `ngram_analysis/run_all_ngrams.sh` (needs the tokenized corpora) |
+| Published-design classification (24 designs) | `camera_ready/grid_classification/classify.py` |
+| Public-checkpoint reanalysis | [`camera_ready/public_checkpoints/`](../camera_ready/public_checkpoints/README.md) |
+
+The theorems and the severity, eigenvalue and R_min tables are analytic; no script computes them.
+
 ## Main fits: full coverage and seed variance
 
 Four laws x five corpora x three epoch modes (first, second, final epoch), each fitted with 30

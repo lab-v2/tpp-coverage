@@ -1,3 +1,4 @@
+<!-- vague-words-allowed: robust (owner, 2026-11-24: the paper title) -->
 <h1 align="center">Tokens-per-Parameter Coverage Is Critical for<br/>Robust LLM Scaling Law Extrapolation</h1>
 
 <p align="center">
@@ -23,7 +24,6 @@ Joshua Shay Kricheli*, Alexander Lawrence Reid*, Soumajyoti Sarkar, Venkata Gand
 - [Quick start](#quick-start)
 - [Repository structure](#repository-structure)
 - [Full pipeline](#full-pipeline)
-- [Paper item to command](#paper-item-to-command)
 - [Known behaviours](#known-behaviours)
 - [Testing](#testing)
 - [Citing](#citing)
@@ -115,86 +115,26 @@ Every folder below has one job; a linked folder has its own README.
 | `src/tpp_analysis/` | The paper's analysis: corpora, job generation, loss extraction, law fits, tables and figures |
 | `src/training_models/` | Llama-style models and the distributed trainer |
 | `src/tpp_large_scale/` | The analysis package of `large_scale/` |
-| [`camera_ready/`](camera_ready/README.md) | The two analyses added for the camera-ready version |
-| [`camera_ready/grid_classification/`](camera_ready/grid_classification/README.md) | The paper's criterion applied to 24 published scaling-law designs |
-| [`camera_ready/public_checkpoints/`](camera_ready/public_checkpoints/README.md) | The reanalysis of ten public training-loss releases |
+| [`camera_ready/`](camera_ready/README.md) | The two analyses added for the camera-ready version: 24 published designs classified, ten public releases reanalysed |
 | [`large_scale/`](large_scale/README.md) | The paper's analysis rerun on an independent grid of 461 C4 runs up to 354M parameters |
 | [`cluster/`](cluster/README.md) | A larger Wikipedia stratum (to 380.6M parameters) trained on the paper's protocol |
-| [`cluster/queue/`](cluster/queue/README.md) | The SLURM task queue that trained it |
-| [`cluster/wiki300m/`](cluster/wiki300m/README.md) | Its task generator and the queue of trained cells |
-| [`cluster/audit/`](cluster/audit/README.md) | Its re-analyses and their result tables |
 | [`docs/`](docs/README.md) | Step-by-step guides: downloading, training, analysis, figures, n-gram KL, and the known behaviours |
 | [`slides/`](slides/README.md) | The five-minute NeurIPS 2026 talk (Beamer source and PDF) |
 | [`website/`](website/README.md) | The project page at [lab-v2.github.io/tpp-coverage](https://lab-v2.github.io/tpp-coverage/) |
 | [`tests/`](tests/README.md) | The pytest suite, one folder per component |
-| `.github/` | CI on the project's own runners: tests, `ruff check .`, the privacy scan and the merge rule |
+| `.github/` | CI on the project's own runners: tests, pre-commit hooks, `ruff check .`, the privacy scan and the merge rule |
 | `images/` | The logos shown in this README |
-
-The experiment folders (`camera_ready/*`, `large_scale/`, `cluster/`) share one layout: a
-README saying what the folder holds and how to run it, the scripts, and the committed outputs
-in a `results` folder (the grid classification keeps its `results.csv` beside its scripts,
-where its pre-registered protocol names it). Their tests sit in `tests/<folder>/`.
 
 # Full pipeline
 
-| Step | Command | Guide |
-|---|---|---|
-| 1. Download and tokenize the corpora | `src/tpp_analysis/dataset_downloaders/download_{wiki,cosmopedia,redpj,peso,c4}.py` | [TRAINING](docs/TRAINING.md#1-corpora) |
-| 2. Write the jobs of the trained grid | `src/tpp_analysis/generate_jobs/generate_jobs.py --dataset <name>` | [TRAINING](docs/TRAINING.md#2-the-trained-grid) |
-| 3. Train (4 GPUs per run) | `src/training_models/training/dist_trainer_main.py` under `torchrun` | [TRAINING](docs/TRAINING.md#3-training-one-run) |
-| 4. Extract per-epoch losses | `src/tpp_analysis/get_results/get_results.py from_local <metrics dir>` | [DOWNLOADING](docs/DOWNLOADING.md) |
-| 5. Fit the laws, write the tables | `run_analysis.py`, `run_special_analysis.py`, `run_prelim_bigtpp.py`, `generate_appendix_tables.py` | [ANALYSIS](docs/ANALYSIS.md) |
-| 6. Figures | `run_appendix_figures.sh`, notebooks in `visualizations/` | [VISUALIZATIONS](docs/VISUALIZATIONS.md) |
-
-Steps 1-3 need GPUs (about 3,600 GPU-hours in total). Step 4 can start from the released
-metrics: `download_and_extract.py` without `--results-only` fetches them (~0.5 GB).
-
-# Paper item to command
-
-Paths are under `src/tpp_analysis/` unless noted.
-
-| Paper item | Command |
-|---|---|
-| Main win-rate table (97.3%) and R2/RMSE summary | `run_analysis.py full_coverage` |
-| Appendix metrics, fitted parameters, win rate by holdout split | `generate_appendix_tables.py full_coverage_results/` |
-| BF16 replication (98.7%) | `run_special_analysis.py`, then `generate_appendix_tables.py special_results/ --special` |
-| BigTPP preliminary (63.3%) | `run_prelim_bigtpp.py` |
-| Regime-A subset table | `dispatch_seeds.sh 0 21`, `subset_analysis/aggregate_seed_runs.py`, `subset_analysis/per_law_winrate_ci.py --mode first` |
-| Figure 1 and appendix three-panel figures | `run_analysis.py seed_variance`, then `visualizations/run_appendix_figures.sh` |
-| Architecture table, n-layers figure | `utility/audit_architectures.py`, then `utility/plot_nlayers_distribution.py --mode runs` |
-| n-gram KL table | `ngram_analysis/run_all_ngrams.sh` (needs the tokenized corpora) |
-| Published-design classification (24 designs) | `camera_ready/grid_classification/classify.py` |
-| Public-checkpoint reanalysis | [`camera_ready/public_checkpoints/`](camera_ready/public_checkpoints/README.md) |
-
-The theorems and the severity, eigenvalue and R_min tables are analytic; no script computes them.
+Download, train, extract, fit, tabulate and plot, step by step, with each step's command and
+guide, and every table and figure of the paper mapped to its command: [Full pipeline](docs/README.md#full-pipeline).
 
 # Known behaviours
 
-Each of these changes a reproduced number when it is missed. What each one changes, what it
-leaves alone and what to do: [Known behaviours](docs/KNOWN_BEHAVIOURS.md).
-
-- **Padding was scored.** The released losses include padded positions, so they sit below the
-  loss on real tokens; the win rates and conditioning comparisons are unaffected. The trainer
-  now masks padding; `--score-padding` reproduces a released run.
-- **BF16 is a full cast.** `--use-bf16` calls `model.bfloat16()`, so weights, gradients and
-  AdamW states are all BF16; only the logits are cast to FP32 for the loss.
-- **Four GPUs per run.** The GPU count sets the global batch and the step count the
-  learning-rate schedule follows, so another count trains a different model.
-- **One training seed.** Every run of the paper uses seed 42; the analysis seeds are fitting
-  restarts and subset draws, so the intervals measure fitting variance.
-- **Two releases are incomplete.** C4 has 99% of its runs (321 of 324, three NC holdout runs
-  missing) and the BF16 replication 93% (302 of 324); a retrain matches the paper only
-  without the missing runs.
-- **Sizes are targets.** `--model-size` trains the shape its search finds: up to 8.8% larger
-  for the paper's targets and 13% for a 150M target. The analysis uses the realized count.
-- **Run names set the role.** A run whose name lacks `NxD_GRID`, `COLINEAR` and `HOLDOUT` is
-  analysed as NC training.
-- **Fits are cached by name.** `run_analysis.py` re-renders stored fits; pass `--clear-cache`
-  after changing the loss tables.
-- **Scale pairs can sit at a start draw.** In 183 of 900 Kaplan and 510 of 900 Droppo-Elibol
-  fits the optimizer left (N_c, D_c) at a start draw, so do not reuse those pairs as estimates.
-- **Bitwise on one driver.** A CUDA driver update moved the training loss by O(1e-3); compare
-  a retrained run with `--atol 1e-2`.
+Ten behaviours change a reproduced number when they are missed: padding, BF16, the GPU count,
+the seed, the incomplete releases, model sizes, run names, cached fits, start draws and drivers.
+Each is in [Known behaviours](docs/KNOWN_BEHAVIOURS.md), with what it changes and what to do.
 
 # Testing
 
@@ -202,13 +142,7 @@ leaves alone and what to do: [Known behaviours](docs/KNOWN_BEHAVIOURS.md).
 uv run pytest -n auto
 ```
 
-The suite checks law recovery on synthetic data, every entry point's `--help`, that the
-released tables are reproduced, the camera-ready analyses, the README's links, images,
-diagram and citation, and that no private host or path is in the tree.
-
-CI runs the suite, `ruff check .` and the privacy scan on every pull request and every push
-to `main`. A pull request may merge only when its author is a lab-v2 member, or when a
-member approved its latest commit (the `pr-authorization` check).
+What the suite checks, and what CI runs on every pull request: [Tests](tests/README.md).
 
 # Citing
 
