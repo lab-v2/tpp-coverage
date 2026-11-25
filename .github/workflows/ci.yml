@@ -63,6 +63,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: pre-commit hooks (whitespace, file ends, YAML/TOML, large files, keys, shellcheck)
+        # ruff and pytest have their own steps and job.
+        run: SKIP=ruff,pytest uvx pre-commit run --all-files --show-diff-on-failure
       - name: ruff check
         run: uv run --locked --only-group dev ruff check --output-format=github .
 

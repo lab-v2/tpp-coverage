@@ -49,7 +49,7 @@ notebooks = [
 dev = [
     "pytest>=8.0",
     "pytest-xdist>=3.6",
-    "ruff>=0.6",
+    "ruff==0.17.2",  # exact: a minor bump changes the default rules
 ]
 
 [tool.uv]
@@ -57,7 +57,7 @@ package = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["--strict-markers", "-ra"]
+addopts = ["--strict-markers", "-ra", "-n", "auto"]  # one worker per hardware thread
 markers = [
     "network: downloads public data from HuggingFace (cached after the first run)",
     "slow: large-scale analysis checks over the full grid or a process pool",
