@@ -26,3 +26,7 @@ member approved its latest commit (the `pr-authorization` check).
 Tests marked `network` download public data from HuggingFace; `slow` ones run the full grid.
 The `paper` test refits the paper's main analysis on every thread, so the default run leaves it out
 and it runs alone: `uv run pytest -n 0 -m paper` (CI runs both).
+
+`uv run python tests/measure_coverage.py <out-dir>` measures line and branch coverage of the
+suite and the paper gate together, following pool workers and subprocesses, and writes
+`coverage-<sha>-with-gate.json` stamped with the commit (a clean tree only; about 8 minutes).
