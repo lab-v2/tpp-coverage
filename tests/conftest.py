@@ -84,4 +84,3 @@ def pytest_collection_modifyitems(config, items):
     if len(keep) < len(items):
         config.hook.pytest_deselected(items=[i for i in items if i not in keep])
         items[:] = keep
-
