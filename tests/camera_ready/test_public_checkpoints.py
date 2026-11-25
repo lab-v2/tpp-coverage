@@ -7,7 +7,6 @@ camera_ready/public_checkpoints/results/.
 
 from __future__ import annotations
 
-import os
 import shutil
 import sys
 
@@ -15,7 +14,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from conftest import A2, assert_same_rows, run
+from conftest import A2, assert_same_rows, pool_width, run
 
 pytestmark = pytest.mark.network
 RESULTS = A2 / "results"
@@ -42,7 +41,7 @@ def test_fits_reproduce_committed_rows(work):
     path, env = work
     run(["python", A2 / "analysis.py", "--runs", "runs_expanded.csv", "--corpus", "E",
          "--cells", *SMALL_CELLS, "--screening", "screening_small.csv",
-         "--out", "results_small.csv", "--workers", str(min(32, os.cpu_count() or 1))],
+         "--out", "results_small.csv", "--workers", str(pool_width(32))],
         cwd=A2, env=env)
     fresh = pd.read_csv(path / "results_small.csv")
     committed = pd.read_csv(RESULTS / "results_E.csv")
@@ -67,7 +66,7 @@ def test_seed_enumeration_reproduces_committed_rows(work):
     path, env = work
     run(["python", A2 / "enumerate_seeds.py", "--corpus", "E", "--runs", "runs_expanded.csv",
          "--seeds", "8", "--cells", *SMALL_CELLS, "--out", "seeds_small.csv",
-         "--workers", str(min(32, os.cpu_count() or 1))], cwd=A2, env=env)
+         "--workers", str(pool_width(32))], cwd=A2, env=env)
     fresh = pd.read_csv(path / "seeds_small.csv")
     committed = pd.read_csv(RESULTS / "results_E_seeds512_seeds0-7.csv.gz")
     assert_same_rows(fresh, committed[committed["cell"].isin(SMALL_CELLS)],
