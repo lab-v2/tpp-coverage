@@ -17,6 +17,11 @@ A2 = REPO / "camera_ready" / "public_checkpoints"
 # Generated or environment directories that no tree scan reads.
 SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache", "work"}
 
+# One BLAS/OpenMP thread per process: xdist already runs a worker per thread, and the scripts the
+# tests start run pools of their own, so library thread pools only oversubscribe the host.
+for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+    os.environ.setdefault(_var, "1")
+
 for p in (ANALYSIS, SRC):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))

@@ -24,3 +24,5 @@ scan on every pull request and every push to `main`. A pull request may merge on
 member approved its latest commit (the `pr-authorization` check).
 
 Tests marked `network` download public data from HuggingFace; `slow` ones run the full grid.
+The `paper` test refits the paper's main analysis on every thread, so the default run leaves it out
+and it runs alone: `uv run pytest -n 0 -m paper` (CI runs both).

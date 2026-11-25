@@ -11,7 +11,9 @@ HuggingFace:
 - the main tables and CSVs are byte-identical;
 - the appendix tables hold the same lines (their dataset blocks follow the master file's order).
 
-About 6 minutes on 480 threads; it uses every thread of the affinity mask.
+It uses every thread of the affinity mask (about 4 minutes on 480 free threads), so it runs
+alone: `pytest -n 0 -m paper`. Inside an xdist worker it would start a 480-process pool
+in each of 480 workers.
 """
 
 from __future__ import annotations
@@ -24,7 +26,7 @@ import pytest
 
 from conftest import ANALYSIS, run
 
-pytestmark = [pytest.mark.network, pytest.mark.slow]
+pytestmark = [pytest.mark.network, pytest.mark.slow, pytest.mark.paper]
 
 TABLES = ["summary_table.csv", "table_summary_full.tex", "table_winrate.tex",
           "table_winrate_by_holdout_split_appendix.tex", "winrate_by_holdout_split_appendix.csv",

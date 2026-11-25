@@ -43,6 +43,8 @@ jobs:
       - name: Full test suite, in parallel
         # -q --no-header: the header would print the worker count of this machine.
         run: uv run --locked pytest -n auto -q --no-header
+      - name: The paper's numbers, refit from scratch (alone; it takes every thread)
+        run: uv run --locked pytest -n 0 -q --no-header -m paper
 
   ruff:
     name: ruff
