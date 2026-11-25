@@ -21,14 +21,20 @@ Prerequisites:
 import os
 import sys
 
+# One BLAS/OpenMP thread per worker: the pool already covers every thread, and each fit is a small
+# least-squares problem, so library thread pools only oversubscribe the host. Set before numpy loads.
+for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+    os.environ.setdefault(_var, "1")
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import time
 import argparse
+import functools
 import numpy as np
 import pandas as pd
 from sklearn.metrics import r2_score, mean_squared_error
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor
 
 # ============================================================
 # Config
@@ -490,6 +496,196 @@ def _run_seed_variance_combo(args):
 
 
 # ============================================================
+# Fine-grained units: one fit per task
+#
+# A (dataset, law, mode) combo holds 60 fits (full coverage: 2 designs x 30 seeds) or about
+# 540 (seed variance: steps x seeds), so the 50 and 45 combos left most of a 480-thread host
+# idle (82 of 480 threads busy, 2026-11-25). A unit is one fit; the driver puts the rows back
+# in the combo's own order, so every output is the same as the per-combo workers above write.
+# Seed variance fits once per (step, seed) and scores the three holdouts on that fit: the
+# per-combo worker repeated the identical fit for each holdout.
+# ============================================================
+
+@functools.lru_cache(maxsize=None)
+def _unit_data(csv_path, dataset_name):
+    """The prepared dataset, loaded once per worker process."""
+    from scaling_laws.data import load_and_prepare
+    return load_and_prepare(csv_path, dataset_name)
+
+
+def _fc_unit(task):
+    """One full-coverage fit: (dataset, law, mode, design, seed) -> its row, or None.
+
+    The body is the per-combo worker's for one design and one seed, unchanged.
+    """
+    (dataset_name, csv_path, law_name, mode, design_label, seed_idx,
+     n_restarts, base_seed) = task
+    from scaling_laws.data import prepare_arrays, prepare_epoch_expanded
+
+    data = _unit_data(csv_path, dataset_name)
+    train_runs = {"CO": data.colinear_train, "NC": data.noncolinear_train}[design_label]
+    holdout_lists = [("unified", data.unified_holdout), ("colinear", data.colinear_holdout),
+                     ("noncolinear", data.noncolinear_holdout)]
+    actual_seed = base_seed + seed_idx
+    row = {"dataset": dataset_name, "law": law_name, "mode": mode,
+           "design": design_label, "seed": seed_idx}
+
+    if law_name == "Parametric-Epoch":
+        from scaling_laws.laws import parametric_epoch_loss, fit_parametric_epoch
+        try:
+            N_arr, UD_arr, R_arr, _ep, L_arr = prepare_epoch_expanded(train_runs)
+        except Exception:
+            return None
+        if len(N_arr) < 4:
+            return None
+        holdout_arrays = {}
+        for hname, hlist in holdout_lists:
+            try:
+                hN, hUD, hR, _hep, hL = prepare_epoch_expanded(hlist)
+                if len(hL) >= 2:
+                    holdout_arrays[hname] = (hN, hUD, hR, hL)
+            except Exception:
+                pass
+        try:
+            params_dict, loss, success = fit_parametric_epoch(
+                N_arr, UD_arr, R_arr, L_arr, n_restarts=n_restarts, seed=actual_seed)
+            if params_dict is None:
+                return None
+        except Exception:
+            return None
+        pe = [params_dict[k] for k in ("A", "alpha", "B", "beta", "E", "R_star_D", "R_star_N")]
+        try:
+            pred_tr = parametric_epoch_loss(N_arr, UD_arr, R_arr, *pe)
+            row["r2_train"] = float(r2_score(L_arr, pred_tr))
+            row["rmse_train"] = float(np.sqrt(mean_squared_error(L_arr, pred_tr)))
+        except Exception:
+            pass
+        for hname, (hN, hUD, hR, hL) in holdout_arrays.items():
+            try:
+                pred_h = parametric_epoch_loss(hN, hUD, hR, *pe)
+                row[f"r2_{hname}"] = float(r2_score(hL, pred_h))
+                row[f"rmse_{hname}"] = float(np.sqrt(mean_squared_error(hL, pred_h)))
+            except Exception:
+                pass
+        for pname in LAW_PARAM_NAMES["Parametric-Epoch"]:
+            row[f"param_{pname}"] = float(params_dict[pname])
+        return row
+
+    fit_fn, loss_fn = _get_seed_fitters()[law_name]
+    param_names = LAW_PARAM_NAMES.get(law_name, [])
+    try:
+        N_arr, D_arr, L_arr = prepare_arrays(train_runs, mode=mode)
+    except Exception:
+        return None
+    if len(N_arr) < 4:
+        return None
+    holdout_arrays = {}
+    for hname, hlist in holdout_lists:
+        try:
+            hN, hD, hL = prepare_arrays(hlist, mode=mode)
+            if len(hL) >= 2:
+                holdout_arrays[hname] = (hN, hD, hL)
+        except Exception:
+            pass
+    try:
+        params, sse, success = fit_fn(N_arr, D_arr, L_arr, n_restarts=n_restarts, seed=actual_seed)
+        if params is None:
+            return None
+    except Exception:
+        return None
+    try:
+        pred_tr = loss_fn(N_arr, D_arr, *params)
+        row["r2_train"] = float(r2_score(L_arr, pred_tr))
+        row["rmse_train"] = float(np.sqrt(mean_squared_error(L_arr, pred_tr)))
+    except Exception:
+        pass
+    for hname, (hN, hD, hL) in holdout_arrays.items():
+        try:
+            pred_h = loss_fn(hN, hD, *params)
+            row[f"r2_{hname}"] = float(r2_score(hL, pred_h))
+            row[f"rmse_{hname}"] = float(np.sqrt(mean_squared_error(hL, pred_h)))
+        except Exception:
+            pass
+    for pi, pval in enumerate(params):
+        row[f"param_{pi}"] = float(pval)
+    for pi, pval in enumerate(params):
+        if pi < len(param_names):
+            row[f"param_{param_names[pi]}"] = float(pval)
+    return row
+
+
+def _sv_steps(csv_path, dataset_name, mode):
+    """The seed-variance coverage steps of one combo: [(design, step_idx, n_steps, step_data)]."""
+    from incremental_coverage.coverage import build_colinear_steps, build_noncolinear_steps
+    data = _unit_data(csv_path, dataset_name)
+    co_steps = build_colinear_steps(data.colinear_train, mode=mode)
+    nc_steps = build_noncolinear_steps(data.noncolinear_train)
+    out = []
+    for design_label, steps in [("Colinear", co_steps), ("Non-Colinear", nc_steps)]:
+        for step_idx, step in enumerate(steps):
+            step_data = step if isinstance(step, list) else step.get("data", step.get("runs", []))
+            out.append((design_label, step_idx, len(steps), step_data))
+    return out
+
+
+def _sv_unit(task):
+    """One seed-variance fit: (combo, design, step, seed) -> {holdout: R^2} (absent = skipped).
+
+    The per-combo worker fits the same (step, seed) once per holdout; the fit is deterministic
+    in its seed, so one fit scored on each holdout gives the same numbers.
+    """
+    (dataset_name, csv_path, law_name, mode, step_pos, seed_idx, n_restarts, base_seed) = task
+    from scaling_laws.data import prepare_arrays
+
+    data = _unit_data(csv_path, dataset_name)
+    _design, _idx, _n, step_data = _sv_steps(csv_path, dataset_name, mode)[step_pos]
+    fit_fn, loss_fn = _get_seed_fitters()[law_name]
+    try:
+        N_arr, D_arr, L_arr = prepare_arrays(step_data, mode=mode)
+    except Exception:
+        return {}
+    if len(N_arr) < 4:
+        return {}
+    try:
+        params, sse, success = fit_fn(N_arr, D_arr, L_arr, n_restarts=n_restarts,
+                                      seed=base_seed + seed_idx)
+        if params is None:
+            return {}
+    except Exception:
+        return {}
+    r2s = {}
+    for holdout_name, holdout_runs in [("unified", data.unified_holdout),
+                                       ("colinear", data.colinear_holdout),
+                                       ("noncolinear", data.noncolinear_holdout)]:
+        try:
+            hN, hD, hL = prepare_arrays(holdout_runs, mode=mode)
+        except Exception:
+            continue
+        if len(hN) < 2:
+            continue
+        try:
+            h_pred = loss_fn(hN, hD, *params)
+            ss_res = np.sum((hL - h_pred)**2)
+            ss_tot = np.sum((hL - hL.mean())**2)
+            r2 = float(1 - ss_res / ss_tot) if ss_tot > 0 else None
+            if r2 is not None:
+                r2s[holdout_name] = r2
+        except Exception:
+            continue
+    return r2s
+
+
+def _sv_n_steps(args):
+    """(combo index, number of steps) - run in the pool, so step building is parallel too."""
+    i, (dataset_name, csv_path, law_name, mode) = args
+    try:
+        return i, len(_sv_steps(csv_path, dataset_name, mode))
+    except Exception as e:
+        print(f"  [FAIL] {dataset_name}_{law_name}_{mode}: step build error: {e}")
+        return i, 0
+
+
+# ============================================================
 # Stats helper
 # ============================================================
 
@@ -868,14 +1064,29 @@ def run_full_coverage(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
     t0 = time.time()
 
     all_rows = []
+    todo = []
+    for c in combos:
+        tag = f"{c[0]}_{c[2]}_{c[3]}"
+        cache_path = os.path.join(output_dir, f"fullcov_{tag}.parquet")
+        if os.path.exists(cache_path):
+            all_rows.extend(_run_full_coverage_combo(c))  # reads the cache
+        else:
+            todo.append(c)
+    units = [(c[0], c[1], c[2], c[3], design, seed, n_restarts, base_seed)
+             for c in todo for design in ("CO", "NC") for seed in range(n_seeds)]
+    print(f"Fitting {len(units)} units ({len(todo)} uncached combos x 2 designs x {n_seeds} seeds)")
     with ProcessPoolExecutor(max_workers=n_workers) as pool:
-        futures = {pool.submit(_run_full_coverage_combo, c): c for c in combos}
-        for future in as_completed(futures):
-            try:
-                all_rows.extend(future.result())
-            except Exception as e:
-                combo = futures[future]
-                print(f"  [ERROR] {combo[0]}_{combo[2]}_{combo[3]}: {e}")
+        rows = list(pool.map(_fc_unit, units, chunksize=1))
+    for i, c in enumerate(todo):
+        tag = f"{c[0]}_{c[2]}_{c[3]}"
+        combo_rows = [r for r in rows[i * 2 * n_seeds:(i + 1) * 2 * n_seeds] if r is not None]
+        if combo_rows:
+            pd.DataFrame(combo_rows).to_parquet(
+                os.path.join(output_dir, f"fullcov_{tag}.parquet"), index=False)
+            print(f"  [done] {tag}: {len(combo_rows)} rows")
+        else:
+            print(f"  [empty] {tag}: no results")
+        all_rows.extend(combo_rows)
 
     print(f"\nCompleted in {(time.time()-t0)/60:.1f} minutes")
 
@@ -912,14 +1123,49 @@ def run_seed_variance(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
     t0 = time.time()
 
     all_rows = []
+    todo = []
+    for c in combos:
+        tag = f"{c[0]}_{c[2]}_{c[3]}"
+        if os.path.exists(os.path.join(output_dir, f"seed_variance_{tag}.parquet")):
+            all_rows.extend(_run_seed_variance_combo(c))  # reads the cache
+        else:
+            todo.append(c)
     with ProcessPoolExecutor(max_workers=n_workers) as pool:
-        futures = {pool.submit(_run_seed_variance_combo, c): c for c in combos}
-        for future in as_completed(futures):
-            try:
-                all_rows.extend(future.result())
-            except Exception as e:
-                combo = futures[future]
-                print(f"  [ERROR] {combo[0]}_{combo[2]}_{combo[3]}: {e}")
+        n_steps = dict(pool.map(_sv_n_steps, [(i, (c[0], c[1], c[2], c[3])) for i, c in enumerate(todo)]))
+        units = [(c[0], c[1], c[2], c[3], pos, seed, n_restarts, base_seed)
+                 for i, c in enumerate(todo) for pos in range(n_steps[i]) for seed in range(n_seeds)]
+        print(f"Fitting {len(units)} units ({len(todo)} uncached combos x steps x {n_seeds} seeds)")
+        results = iter(pool.map(_sv_unit, units, chunksize=1))
+        for i, c in enumerate(todo):
+            tag = f"{c[0]}_{c[2]}_{c[3]}"
+            steps = _sv_steps(c[1], c[0], c[3]) if n_steps[i] else []
+            combo_rows = []
+            for design_label, step_idx, n_total_steps, _data in steps:
+                per_seed = [next(results) for _ in range(n_seeds)]
+                for holdout_name in ("unified", "colinear", "noncolinear"):
+                    seed_r2s = [r[holdout_name] for r in per_seed if holdout_name in r]
+                    if seed_r2s:
+                        arr = np.array(seed_r2s)
+                        combo_rows.append({
+                            "design": design_label,
+                            "step": step_idx + 1,
+                            "coverage_frac": (step_idx + 1) / n_total_steps,
+                            "holdout_split": holdout_name,
+                            "r2_mean": float(arr.mean()),
+                            "r2_std": float(arr.std()),
+                            "r2_p5": float(np.percentile(arr, 5)),
+                            "r2_p95": float(np.percentile(arr, 95)),
+                            "r2_min": float(arr.min()),
+                            "r2_max": float(arr.max()),
+                            "n_seeds_ok": len(seed_r2s),
+                        })
+            if combo_rows:
+                pd.DataFrame(combo_rows).to_parquet(
+                    os.path.join(output_dir, f"seed_variance_{tag}.parquet"), index=False)
+                print(f"  [done] {tag}: {len(combo_rows)} rows")
+            else:
+                print(f"  [empty] {tag}: no results")
+            all_rows.extend(combo_rows)
 
     print(f"\nCompleted in {(time.time()-t0)/60:.1f} minutes")
 
@@ -949,7 +1195,8 @@ def main():
     )
     parser.add_argument("mode", choices=["full_coverage", "seed_variance", "all"])
     parser.add_argument("--data-dir", required=True)
-    parser.add_argument("--n-workers", type=int, default=os.cpu_count())
+    # The affinity mask, not os.cpu_count(): 480 threads are usable on a host that reports 512.
+    parser.add_argument("--n-workers", type=int, default=len(os.sched_getaffinity(0)))
     parser.add_argument("--n-seeds", type=int, default=DEFAULT_N_SEEDS)
     parser.add_argument("--n-restarts", type=int, default=DEFAULT_N_RESTARTS)
     parser.add_argument("--base-seed", type=int, default=DEFAULT_BASE_SEED)
