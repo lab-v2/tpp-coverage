@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from conftest import A2, assert_same_rows, run
+from conftest import A2, assert_same_rows, pool_width, run
 
 sys.path.insert(0, str(A2))
 from paths import WORK  # noqa: E402
@@ -37,7 +37,6 @@ FULL_X = WORK / "results_X_seeds512.csv.gz"
 KAPPAS = (100, 10_000, 100_000, 1_000_000)
 SHARED = {("CO=A,NC=A", 100), ("CO=B,NC=B", 10_000), ("CO=B,NC=B", 100_000),
           ("CO=B,NC=B", 1_000_000)}  # both designs in one regime; the 826-pair cell is set aside
-WORKERS = str(min(16, os.cpu_count() or 1))
 RTOL_ENDS = 1e-4  # percentile interpolation before or after 10 ** x (vk_ratio_seeds.py)
 
 
@@ -252,7 +251,7 @@ def _run(script: str, tmp_path, *args: str) -> None:
 
 
 def test_vk_ratio_boot_on_slice(tmp_path, slice_frame):
-    _run("vk_ratio_boot.py", tmp_path, "--n-boot", "200", "--workers", WORKERS,
+    _run("vk_ratio_boot.py", tmp_path, "--n-boot", "200", "--workers", str(pool_width(16)),
          "--out", tmp_path / "a.csv", "--windows-out", tmp_path / "w.csv")
     out = pd.read_csv(tmp_path / "a.csv")
     fin = slice_frame[np.isfinite(slice_frame["delta"])]
@@ -290,7 +289,7 @@ def _regime_letters(m: pd.Series, kappa: int) -> np.ndarray:
 
 
 def test_co_only_regime_on_slice(tmp_path, slice_frame):
-    _run("co_only_regime.py", tmp_path, "--skip-x", "--workers", WORKERS,
+    _run("co_only_regime.py", tmp_path, "--skip-x", "--workers", str(pool_width(16)),
          "--out", tmp_path / "c.csv")
     out = pd.read_csv(tmp_path / "c.csv").set_index(["kappa", "co_regime"])
     d = slice_frame
@@ -312,9 +311,9 @@ def test_co_only_regime_on_slice(tmp_path, slice_frame):
 
 
 def test_regime_by_band_on_slice(tmp_path, slice_frame):
-    _run("regime_by_band_ci.py", tmp_path, "--skip-x", "--workers", WORKERS,
+    _run("regime_by_band_ci.py", tmp_path, "--skip-x", "--workers", str(pool_width(16)),
          "--out", tmp_path / "b.csv")
-    _run("co_only_regime.py", tmp_path, "--skip-x", "--workers", WORKERS,
+    _run("co_only_regime.py", tmp_path, "--skip-x", "--workers", str(pool_width(16)),
          "--out", tmp_path / "c.csv")
     out = pd.read_csv(tmp_path / "b.csv")
     d = slice_frame
@@ -340,9 +339,9 @@ def test_regime_by_band_on_slice(tmp_path, slice_frame):
 
 def test_vk_ratio_seeds_on_slice(tmp_path):
     """The released streams give back the two scripts' intervals; the pooled row pools seeds."""
-    _run("vk_ratio_seeds.py", tmp_path, "--seeds", "2", "--n-boot", "200", "--workers", WORKERS,
+    _run("vk_ratio_seeds.py", tmp_path, "--seeds", "2", "--n-boot", "200", "--workers", str(pool_width(16)),
          "--out", tmp_path / "s.csv")
-    _run("vk_ratio_boot.py", tmp_path, "--n-boot", "200", "--workers", WORKERS,
+    _run("vk_ratio_boot.py", tmp_path, "--n-boot", "200", "--workers", str(pool_width(16)),
          "--out", tmp_path / "a.csv", "--windows-out", tmp_path / "w.csv")
     _run("ratio_of_medians_boot.py", tmp_path, "--n-boot", "200", "--out", tmp_path / "r.csv")
     s = pd.read_csv(tmp_path / "s.csv")
@@ -379,7 +378,7 @@ def test_cluster_medians_resample_whole_windows():
 
 
 def test_regime_cells_on_slice(tmp_path, slice_frame):
-    _run("regime_cells.py", tmp_path, "--skip-x", "--replicates", "1", "--workers", WORKERS,
+    _run("regime_cells.py", tmp_path, "--skip-x", "--replicates", "1", "--workers", str(pool_width(16)),
          "--out", tmp_path / "c.csv")
     out = pd.read_csv(tmp_path / "c.csv")
     out["kappa"] = out["kappa"].astype(int)
@@ -468,7 +467,7 @@ def test_full_vk_ratio_seeds_reproduces(tmp_path):
 def test_full_regime_cells_reproduce(tmp_path):
     """Replicate 0 of every cell; the other nine replicates only test verdict stability."""
     run(["python", SCRIPTS / "regime_cells.py", "--results", FULL_E, "--results-x", FULL_X,
-         "--replicates", "1", "--out", tmp_path / "c.csv", "--workers", str(os.cpu_count() or 1)],
+         "--replicates", "1", "--out", tmp_path / "c.csv", "--workers", str(pool_width())],
         cwd=A2, timeout=3600)
     cols = ["family", "corpus", "kappa", "cell", "band", "key", "n_pairs", "n_windows", "win",
             "median", "lo", "hi", "excludes0"]

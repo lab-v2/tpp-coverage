@@ -29,6 +29,29 @@ for p in (ANALYSIS, SRC):
         sys.path.insert(0, str(p))
 
 
+def pool_width(cap: int | None = None) -> int:
+    """Processes a test's own pool may start: the threads of the affinity mask that are free now.
+
+    Under xdist up to one worker per thread runs at once, so a fixed width (`os.cpu_count()`, or
+    `min(32, ...)`) inside each of them oversubscribes the host. The free share is the mask minus
+    the host's busy threads over a 0.2 s sample of /proc/stat (the same reading as core-meter's
+    pool fixture), at least 1 and at most `cap`. The scripts these tests run give the same rows at
+    any width (each test compares them with committed tables), so the width only sets speed.
+    """
+    def busy_total() -> tuple[int, int]:
+        with open("/proc/stat") as fh:
+            f = [int(x) for x in fh.readline().split()[1:]]
+        return sum(f[:8]) - f[3] - f[4], sum(f[:8])
+
+    n = len(os.sched_getaffinity(0))
+    b0, t0 = busy_total()
+    time.sleep(0.2)
+    b1, t1 = busy_total()
+    busy = (b1 - b0) / max(1, t1 - t0) * (os.cpu_count() or n)
+    free = max(1, int(n - busy))
+    return free if cap is None else max(1, min(cap, free))
+
+
 def run(args: list[str], cwd: Path = REPO, env: dict | None = None,
         timeout: int = 1800) -> subprocess.CompletedProcess:
     """Run a command with this environment's interpreter; fail the test on a non-zero exit.
