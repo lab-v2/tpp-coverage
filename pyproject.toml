@@ -47,7 +47,9 @@ notebooks = [
 
 [dependency-groups]
 dev = [
+    "coverage>=7.10",
     "pytest>=8.0",
+    "pytest-cov>=6",
     "pytest-xdist>=3.6",
     "ruff==0.17.2",  # exact: a minor bump changes the default rules
 ]
@@ -76,3 +78,12 @@ extend-exclude = ["*.ipynb"]
 select = ["E4", "E7", "E9", "F"]
 # E701/E702: the code uses compact one-line statements in places; not reformatted.
 ignore = ["E402", "E701", "E702", "E731", "E741"]
+
+[tool.coverage.run]
+# What the code-quality pass counts as tested: the suite and the paper gate together, following
+# pool workers and the scripts the tests run in subprocesses (`tests/measure_coverage.py`).
+branch = true
+parallel = true
+concurrency = ["multiprocessing", "thread"]
+patch = ["subprocess"]
+source = ["src", "camera_ready", "cluster", "large_scale"]
