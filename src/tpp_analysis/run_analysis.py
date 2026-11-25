@@ -18,7 +18,9 @@ Prerequisites:
     CSVs must be in --data-dir (one per dataset, from get_results.py).
 """
 
+import faulthandler
 import os
+import signal
 import sys
 
 # One BLAS/OpenMP thread per worker: the pool already covers every thread, and each fit is a small
@@ -1189,6 +1191,9 @@ def run_seed_variance(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
 
 
 def main():
+    # `kill -USR1` prints every thread's stack, in the driver and in each forked pool worker
+    # (the handler is inherited); the test harness sends it before killing a run that hangs.
+    faulthandler.register(signal.SIGUSR1, all_threads=True)
     parser = argparse.ArgumentParser(
         description="Parallelized scaling law analysis",
         formatter_class=argparse.RawDescriptionHelpFormatter,

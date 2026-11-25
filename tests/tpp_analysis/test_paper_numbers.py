@@ -50,7 +50,7 @@ def refit(tmp_path_factory):
     workers = str(len(os.sched_getaffinity(0)))
     for mode, sub in (("full_coverage", "full_coverage_results"), ("seed_variance", "seed_variance_results")):
         run(["python", ANALYSIS / "run_analysis.py", mode, "--data-dir", losses, "-o", out / sub,
-             "--n-workers", workers], timeout=3600)
+             "--n-workers", workers], timeout=900)  # each takes 1-4 min
     run(["python", ANALYSIS / "generate_appendix_tables.py", out / "full_coverage_results"])
     yield released, out
     shutil.rmtree(root, ignore_errors=True)
