@@ -1,7 +1,7 @@
 """Characterization of `run_prelim_bigtpp.py`: the BigTPP Chinchilla fits and their win-rate table.
 
 The table is built from the released BigTPP fits (`prelim_bigtpp_results/prelim_bigtpp.parquet`)
-and checked against the base commit's output and the released table; the script also runs end to
+and checked against the base commit's output and the released table (they are identical); the script also runs end to
 end on the released BigTPP loss table (2 seeds of 1 restart). Expected values are frozen in
 `frozen/` (see `tests/characterize.py`).
 """
@@ -27,10 +27,8 @@ def test_table(tmp_path):
     prelim = released("prelim_bigtpp_results/*") / "prelim_bigtpp_results"
     rp.build_winrate_table(pd.read_parquet(prelim / "prelim_bigtpp.parquet"), str(tmp_path))
     written = {name: (tmp_path / name).read_text() for name in TABLES}
-    released_tables = {name: (prelim / name).read_text() for name in TABLES}
-    check_frozen(
-        FROZEN / "run_prelim_bigtpp_table.json", {"written": written, "released": released_tables}
-    )
+    assert written == {name: (prelim / name).read_text() for name in TABLES}
+    check_frozen(FROZEN / "run_prelim_bigtpp_table.json", written)
 
 
 def test_script(tmp_path):
