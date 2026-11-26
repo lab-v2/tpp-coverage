@@ -26,6 +26,7 @@ mkdir -p slurm_logs
 sbatch --partition=<partition> --account=<account> cluster/queue/run_queue.sbatch
 JOBID=<job id> SBATCH_ARGS="--partition=<partition> --account=<account>" \
     setsid nohup bash cluster/queue/watchdog.sh >> "$QUEUE_DIR/logs/watchdog.log" 2>&1 < /dev/null &
+echo $! > "$QUEUE_DIR/logs/watchdog.pid"   # kill -0 "$(cat "$QUEUE_DIR/logs/watchdog.pid")" asks whether it lives
 python cluster/queue/monitor.py --watch 60
 ```
 

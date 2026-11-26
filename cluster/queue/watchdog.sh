@@ -18,6 +18,7 @@
 #
 #   JOBID=<job id> SBATCH_ARGS="--partition=<p> --account=<a>" \
 #       setsid nohup bash cluster/queue/watchdog.sh >> "$QUEUE_DIR/logs/watchdog.log" 2>&1 < /dev/null &
+#   echo $! > "$QUEUE_DIR/logs/watchdog.pid"     # so `kill -0 "$(cat ...)"` can ask whether it lives
 #
 # A second job sharing the queue is watched too when JOBID2 (and SBATCH_ARGS2) are set; it is
 # resubmitted while more than four cells remain.
