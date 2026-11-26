@@ -1,27 +1,20 @@
 """Scaling-law fitting, delegated to the companion paper's own implementation.
 
-The law functional forms, parameter bounds, initial-guess samplers and the
-multi-start optimiser are all the paper's (:mod:`tpp_large_scale.upstream`).
-This module adds only what the paper's API does not expose:
+The law forms, bounds, samplers and multi-start optimiser are the paper's
+(:mod:`tpp_large_scale.upstream`). This module adds what that API does not expose:
+a typed :class:`LawFit` result, per-law exponent-gap extraction, a seed argument
+(upstream hard-codes ``seed=42``), and an opt-out of the differential-evolution
+stage for resampling loops that run thousands of fits.
 
-* a typed :class:`LawFit` result instead of a bare ``(params, sse, success)`` tuple,
-* per-law exponent-gap extraction,
-* a seed-parameterised entry point (upstream's ``fit_chinchilla`` and friends
-  hard-code ``seed=42``), and
-* an opt-out of the differential-evolution stage for the resampling loops, which
-  run thousands of fits and cannot afford a global search each time.
-
-Bounds and samplers are transcribed verbatim from upstream ``laws.fit_*``, where
-they are function locals and therefore unreachable by import.
-:func:`verify_upstream_parity` asserts at runtime that this transcription still
-reproduces the upstream fitters bit for bit.
+Bounds and samplers are copied verbatim from upstream ``laws.fit_*``, where they
+are function locals; :func:`verify_upstream_parity` asserts at runtime that the
+copy still reproduces the upstream fitters bit for bit.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -71,8 +64,8 @@ class LawSpec:
     gap_indices: tuple[int, int]
     beta_index: int
     min_points: int
-    gap_divisor_index: Optional[int] = None
-    upstream_fitter: Optional[Callable[..., tuple]] = None
+    gap_divisor_index: int | None = None
+    upstream_fitter: Callable[..., tuple[np.ndarray | None, float, bool]] | None = None
 
     def exponent_gap(self, params: Sequence[float]) -> float:
         """|alpha - beta| for this law's parameterisation."""
@@ -243,7 +236,7 @@ class LawFitter:
         law: LawSpec,
         arrays: FitArrays,
         seed: int = FIT_SEED_BASE,
-    ) -> Optional[LawFit]:
+    ) -> LawFit | None:
         """Fit ``law`` to ``arrays``. Returns ``None`` if no restart converged.
 
         Raises:
@@ -295,7 +288,7 @@ class LawFitter:
         arrays: FitArrays,
         bounds: Bounds,
         seed: int,
-    ) -> tuple[Optional[np.ndarray], float]:
+    ) -> tuple[np.ndarray | None, float]:
         """Upstream ``_fit_generic`` without its differential-evolution stage.
 
         Kept deliberately identical to upstream's multi-start phase so that
@@ -316,7 +309,7 @@ class LawFitter:
                 return FAILED_OBJECTIVE
 
         rng = np.random.RandomState(seed)
-        best_params: Optional[np.ndarray] = None
+        best_params: np.ndarray | None = None
         best_loss = np.inf
         for _ in range(self._restarts):
             x0 = law.sampler(rng, arrays.loss)
@@ -335,10 +328,9 @@ class LawFitter:
 def verify_upstream_parity(arrays: FitArrays, tolerance: float = 0.0) -> dict[str, float]:
     """Assert this module's fits reproduce the paper's fitters exactly.
 
-    Calls upstream ``laws.fit_*`` and this module's :class:`LawFitter` on the
-    same data with the same seed and restart count, and compares the resulting
-    sum of squared errors. Any drift means the transcribed bounds or samplers
-    have diverged from upstream.
+    Fits the same data with upstream ``laws.fit_*`` and :class:`LawFitter` (same
+    seed and restarts) and compares the SSEs; any drift means the copied bounds
+    or samplers have diverged from upstream.
 
     Returns:
         Per-law absolute SSE difference.
