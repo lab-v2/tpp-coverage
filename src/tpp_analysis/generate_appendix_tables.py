@@ -101,13 +101,13 @@ RUN_CONFIG = {
 # ════════════════════════════════════════════════════════════════════════
 
 
-def _fmt(val, prec=4):
+def _fmt(val: float | None, prec: int = 4) -> str:
     if val is None or (isinstance(val, float) and np.isnan(val)):
         return "---"
     return f"{val:.{prec}f}"
 
 
-def _fmt_sci(val):
+def _fmt_sci(val: float | None) -> str:
     """Format large/small numbers in LaTeX scientific notation."""
     if val is None or np.isnan(val):
         return "---"
@@ -121,7 +121,7 @@ def _fmt_sci(val):
     return f"${val:.4f}$"
 
 
-def _win(val, prec=4):
+def _win(val: float | None, prec: int = 4) -> str:
     return f"\\win{{{_fmt(val, prec)}}}"
 
 
@@ -130,7 +130,7 @@ def _win(val, prec=4):
 # ════════════════════════════════════════════════════════════════════════
 
 
-def _fmt_ci(val, std, ci, prec=4):
+def _fmt_ci(val: float | None, std: float, ci: float, prec: int = 4) -> str:
     """Format a value with tiny σ/CI annotation."""
     if val is None or (isinstance(val, float) and np.isnan(val)):
         return "---"
@@ -139,7 +139,14 @@ def _fmt_ci(val, std, ci, prec=4):
     return base + ann
 
 
-def build_metric_table(df, dataset, split_key, split_header, split_caption, n_seeds_label=30):
+def build_metric_table(
+    df: pd.DataFrame,
+    dataset: str,
+    split_key: str,
+    split_header: str,
+    split_caption: str,
+    n_seeds_label: int | str = 30,
+) -> str | None:
     """
     Build one LaTeX table for a (dataset, holdout_split) pair.
 
@@ -344,7 +351,9 @@ LAW_TABLE_CONFIG = {
 }
 
 
-def build_param_table_per_law(df, law_name, dataset_order, label_suffix="", seed=0):
+def build_param_table_per_law(
+    df: pd.DataFrame, law_name: str, dataset_order: list[str], label_suffix: str = "", seed: int = 0
+) -> str | None:
     """
     Build a fitted-parameters table for one law across all datasets.
     Matches the paper's Appendix F format (Tables 41-44). Per-split holdout R² columns
@@ -456,7 +465,7 @@ def build_param_table_per_law(df, law_name, dataset_order, label_suffix="", seed
 # ════════════════════════════════════════════════════════════════════════
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate appendix tables from full_coverage parquet"
     )
