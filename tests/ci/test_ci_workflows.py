@@ -89,7 +89,7 @@ def test_ci_runs_the_full_suite_in_parallel_ruff_and_the_privacy_scan() -> None:
     assert re.search(r"uv run .*pytest -n auto", runs["tests"])
     assert "tests/" not in runs["tests"].split("pytest", 1)[1]  # the whole suite, no subset
     # The paper gate refits alone in its own job, beside the suite rather than after it.
-    assert re.search(r"uv run .*pytest -n 0 .*-m paper$", runs["paper"])
+    assert re.search(r"nice -n \d+ uv run .*pytest -n 0 .*-m paper$", runs["paper"])
     assert "-m paper" not in runs["tests"]
     assert not {"needs"} & (
         ALL["ci.yml"]["jobs"]["paper"].keys() | ALL["ci.yml"]["jobs"]["tests"].keys()
