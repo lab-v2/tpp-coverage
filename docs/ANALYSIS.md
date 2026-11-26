@@ -4,10 +4,13 @@
 
 Everything here runs on CPU. Inputs are the loss tables in `extracted_losses/`
 (see [DOWNLOADING](DOWNLOADING.md)); outputs are written at the repository root.
-`run_analysis.py` fits one (law, design or coverage step, seed) per task, about 6,000 tasks in all,
-on a pool as wide as the CPU affinity mask (`--n-workers` overrides it), with one BLAS thread per
-worker. The refit takes about 4 minutes on 480 threads, against 63 minutes for the earlier
-per-combo version, and reproduces the released results:
+`run_analysis.py` fits one (law, design or coverage step, seed) per task, 27,300 tasks in all
+(3,000 full-coverage, 24,300 seed-variance), on a pool as wide as the CPU affinity mask
+(`--n-workers` overrides it), with one BLAS thread per worker. The pool takes the slowest fits
+first (a Parametric-Epoch fit costs about 16 Kaplan fits), and `all` runs both analyses in one
+pool, so no thread idles at the tail of one analysis. The refit takes about 3 minutes on 480
+threads (78,800 CPU-seconds), against 63 minutes for the earlier per-combo version, and reproduces
+the released results:
 `tests/tpp_analysis/test_paper_numbers.py` checks it.
 
 ## Paper item to command

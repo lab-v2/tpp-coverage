@@ -1,7 +1,7 @@
 """The paper's main analysis, refit from scratch, reproduces the released results.
 
-The regression gate for any change to the analysis code: `run_analysis.py full_coverage` and
-`seed_variance` refit every law on the released loss tables (30 seeds, 100 restarts), and
+The regression gate for any change to the analysis code: `run_analysis.py all` (full coverage
+and seed variance in one pool) refits every law on the released loss tables (30 seeds, 100 restarts), and
 `generate_appendix_tables.py` writes the appendix tables. Against the released outputs on
 HuggingFace:
 
@@ -11,7 +11,7 @@ HuggingFace:
 - the main tables and CSVs are byte-identical;
 - the appendix tables hold the same lines (their dataset blocks follow the master file's order).
 
-It uses every thread of the affinity mask (about 4 minutes on 480 free threads), so it runs
+It uses every thread of the affinity mask (about 3 minutes on 480 free threads), so it runs
 alone: `pytest -n 0 -m paper`. Inside an xdist worker it would start a 480-process pool
 in each of 480 workers.
 """
@@ -62,6 +62,11 @@ def refit(tmp_path_factory):
             "python",
             ANALYSIS / "download_and_extract.py",
             "--results-only",
+            # The three directories the gate reads (78 MB), not the 3.8 GB of all six.
+            "--results-dirs",
+            "extracted_losses",
+            "full_coverage_results",
+            "seed_variance_results",
             "--repo-dir",
             root / "hf",
             "--results-dest",
@@ -71,24 +76,23 @@ def refit(tmp_path_factory):
     losses = released / "extracted_losses"
     out = root / "refit"
     workers = str(len(os.sched_getaffinity(0)))
-    for mode, sub in (
-        ("full_coverage", "full_coverage_results"),
-        ("seed_variance", "seed_variance_results"),
-    ):
-        run(
-            [
-                "python",
-                ANALYSIS / "run_analysis.py",
-                mode,
-                "--data-dir",
-                losses,
-                "-o",
-                out / sub,
-                "--n-workers",
-                workers,
-            ],
-            timeout=900,
-        )  # each takes 1-4 min
+    # `all`: both analyses in one pool, longest fits first, so no thread idles at a phase's tail.
+    run(
+        [
+            "python",
+            ANALYSIS / "run_analysis.py",
+            "all",
+            "--data-dir",
+            losses,
+            "-o",
+            out / "full_coverage_results",
+            "--sv-output-dir",
+            out / "seed_variance_results",
+            "--n-workers",
+            workers,
+        ],
+        timeout=900,
+    )
     run(["python", ANALYSIS / "generate_appendix_tables.py", out / "full_coverage_results"])
     yield released, out
     shutil.rmtree(root, ignore_errors=True)

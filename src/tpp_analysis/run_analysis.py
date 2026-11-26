@@ -2,10 +2,9 @@
 """
 Parallelized full-coverage CI and seed-variance analysis.
 
-Distributes (dataset × law × mode) combos across worker processes.
-Each worker is independent - loads data, fits, saves its own parquet.
-Main process aggregates into summary tables AND LaTeX tables matching
-the paper's tab:summary_full and tab:winrate format.
+Fits one (law, design or coverage step, seed) per pool task, the slowest first; `all` runs
+both analyses in one pool. The main process writes each combo's parquet, the master files,
+and the summary and LaTeX tables matching the paper's tab:summary_full and tab:winrate.
 
 Prerequisites: the scaling_laws/ and incremental_coverage/ packages must be importable,
 and the CSVs must be in --data-dir (one per dataset, from get_results.py).
@@ -41,7 +40,7 @@ import functools
 import numpy as np
 import pandas as pd
 from sklearn.metrics import r2_score, mean_squared_error
-from concurrent.futures import ProcessPoolExecutor
+import multiprocessing
 
 if TYPE_CHECKING:
     from scaling_laws.data import PreparedData
@@ -1086,9 +1085,38 @@ def build_holdout_split_winrate(
 # ============================================================
 
 
-def run_full_coverage(
+# Mean seconds of one unit (one law fit with its restarts) by law, measured on the paper's grid:
+# the pool takes units longest first, so the 7-parameter Parametric-Epoch fits (about 16x a
+# Kaplan fit) start at once instead of trailing after every other unit has finished.
+UNIT_COST = {"Parametric-Epoch": 45.0, "Droppo-Elibol": 7.0, "Chinchilla": 6.0, "Kaplan": 2.8}
+
+
+def _unit(task: tuple[str, tuple]) -> object:
+    """One pool task: ("fc", full-coverage unit) or ("sv", seed-variance unit)."""
+    kind, unit = task
+    return _fc_unit(unit) if kind == "fc" else _sv_unit(unit)
+
+
+def _pool_map(pool: multiprocessing.pool.Pool, tasks: list[tuple[str, tuple]]) -> list[object]:
+    """Every task's result, in the order of `tasks`; the pool takes them longest first.
+
+    multiprocessing.Pool, not concurrent.futures: on Python 3.10, ProcessPoolExecutor.map
+    submits every task up front and can deadlock in submit() once its wake-up pipe fills
+    (CPython gh-105829, fixed only in 3.12); the refit's 27,300 tasks hung that way. Each
+    task is deterministic in its own arguments, so the order they run in leaves every result
+    unchanged.
+    """
+    order = sorted(range(len(tasks)), key=lambda i: -UNIT_COST.get(tasks[i][1][2], 1.0))
+    out: list[object] = [None] * len(tasks)
+    for i, r in zip(order, pool.imap(_unit, [tasks[i] for i in order], chunksize=1)):
+        out[i] = r
+    return out
+
+
+def _fc_plan(
     data_dir: str, output_dir: str, n_workers: int, n_seeds: int, n_restarts: int, base_seed: int
-) -> None:
+) -> tuple[list[tuple[str, tuple]], Callable[[list[object]], None]]:
+    """The full-coverage tasks still to fit, and the step that writes their outputs."""
     print(f"\n{'=' * 60}\nFULL COVERAGE ANALYSIS")
     print(f"  Workers: {n_workers}  Seeds: {n_seeds}  Restarts: {n_restarts}")
     print(f"  Laws: {LAWS}\n{'=' * 60}\n")
@@ -1120,41 +1148,50 @@ def run_full_coverage(
         else:
             todo.append(c)
     units = [
-        (c[0], c[1], c[2], c[3], design, seed, n_restarts, base_seed)
+        ("fc", (c[0], c[1], c[2], c[3], design, seed, n_restarts, base_seed))
         for c in todo
         for design in ("CO", "NC")
         for seed in range(n_seeds)
     ]
     print(f"Fitting {len(units)} units ({len(todo)} uncached combos x 2 designs x {n_seeds} seeds)")
-    with ProcessPoolExecutor(max_workers=n_workers) as pool:
-        rows = list(pool.map(_fc_unit, units, chunksize=1))
-    for i, c in enumerate(todo):
-        tag = f"{c[0]}_{c[2]}_{c[3]}"
-        combo_rows = [r for r in rows[i * 2 * n_seeds : (i + 1) * 2 * n_seeds] if r is not None]
-        if combo_rows:
-            pd.DataFrame(combo_rows).to_parquet(
-                os.path.join(output_dir, f"fullcov_{tag}.parquet"), index=False
-            )
-            print(f"  [done] {tag}: {len(combo_rows)} rows")
+
+    def finish(rows: list[object]) -> None:
+        for i, c in enumerate(todo):
+            tag = f"{c[0]}_{c[2]}_{c[3]}"
+            combo_rows = [r for r in rows[i * 2 * n_seeds : (i + 1) * 2 * n_seeds] if r is not None]
+            if combo_rows:
+                pd.DataFrame(combo_rows).to_parquet(
+                    os.path.join(output_dir, f"fullcov_{tag}.parquet"), index=False
+                )
+                print(f"  [done] {tag}: {len(combo_rows)} rows")
+            else:
+                print(f"  [empty] {tag}: no results")
+            all_rows.extend(combo_rows)
+
+        print(f"\nFull coverage completed in {(time.time() - t0) / 60:.1f} minutes")
+
+        if all_rows:
+            df = pd.DataFrame(all_rows)
+            master_path = os.path.join(output_dir, "full_coverage_all_seeds.parquet")
+            df.to_parquet(master_path, index=False)
+            print(f"Master file: {master_path} ({len(df)} rows)")
+            build_paper_tables(df, output_dir)
         else:
-            print(f"  [empty] {tag}: no results")
-        all_rows.extend(combo_rows)
+            print("No results!")
 
-    print(f"\nCompleted in {(time.time() - t0) / 60:.1f} minutes")
-
-    if all_rows:
-        df = pd.DataFrame(all_rows)
-        master_path = os.path.join(output_dir, "full_coverage_all_seeds.parquet")
-        df.to_parquet(master_path, index=False)
-        print(f"Master file: {master_path} ({len(df)} rows)")
-        build_paper_tables(df, output_dir)
-    else:
-        print("No results!")
+    return units, finish
 
 
-def run_seed_variance(
-    data_dir: str, output_dir: str, n_workers: int, n_seeds: int, n_restarts: int, base_seed: int
-) -> None:
+def _sv_plan(
+    pool: multiprocessing.pool.Pool,
+    data_dir: str,
+    output_dir: str,
+    n_workers: int,
+    n_seeds: int,
+    n_restarts: int,
+    base_seed: int,
+) -> tuple[list[tuple[str, tuple]], Callable[[list[object]], None]]:
+    """The seed-variance tasks still to fit, and the step that writes their outputs."""
     print(f"\n{'=' * 60}\nSEED VARIANCE ANALYSIS")
     print(f"  Workers: {n_workers}  Seeds: {n_seeds}  Restarts: {n_restarts}\n{'=' * 60}\n")
 
@@ -1185,18 +1222,19 @@ def run_seed_variance(
             all_rows.extend(_run_seed_variance_combo(c))  # reads the cache
         else:
             todo.append(c)
-    with ProcessPoolExecutor(max_workers=n_workers) as pool:
-        n_steps = dict(
-            pool.map(_sv_n_steps, [(i, (c[0], c[1], c[2], c[3])) for i, c in enumerate(todo)])
-        )
-        units = [
-            (c[0], c[1], c[2], c[3], pos, seed, n_restarts, base_seed)
-            for i, c in enumerate(todo)
-            for pos in range(n_steps[i])
-            for seed in range(n_seeds)
-        ]
-        print(f"Fitting {len(units)} units ({len(todo)} uncached combos x steps x {n_seeds} seeds)")
-        results = iter(pool.map(_sv_unit, units, chunksize=1))
+    n_steps = dict(
+        pool.map(_sv_n_steps, [(i, (c[0], c[1], c[2], c[3])) for i, c in enumerate(todo)])
+    )
+    units = [
+        ("sv", (c[0], c[1], c[2], c[3], pos, seed, n_restarts, base_seed))
+        for i, c in enumerate(todo)
+        for pos in range(n_steps[i])
+        for seed in range(n_seeds)
+    ]
+    print(f"Fitting {len(units)} units ({len(todo)} uncached combos x steps x {n_seeds} seeds)")
+
+    def finish(fits: list[object]) -> None:
+        results = iter(fits)
         for i, c in enumerate(todo):
             tag = f"{c[0]}_{c[2]}_{c[3]}"
             steps = _sv_steps(c[1], c[0], c[3]) if n_steps[i] else []
@@ -1231,27 +1269,68 @@ def run_seed_variance(
                 print(f"  [empty] {tag}: no results")
             all_rows.extend(combo_rows)
 
-    print(f"\nCompleted in {(time.time() - t0) / 60:.1f} minutes")
+        print(f"\nSeed variance completed in {(time.time() - t0) / 60:.1f} minutes")
 
-    if all_rows:
-        df = pd.DataFrame(all_rows)
-        master_path = os.path.join(output_dir, "seed_variance_all.parquet")
-        df.to_parquet(master_path, index=False)
-        print(f"Master file: {master_path} ({len(df)} rows)")
+        if all_rows:
+            df = pd.DataFrame(all_rows)
+            master_path = os.path.join(output_dir, "seed_variance_all.parquet")
+            df.to_parquet(master_path, index=False)
+            print(f"Master file: {master_path} ({len(df)} rows)")
 
-        uni = df[df["holdout_split"] == "unified"]
-        full = uni[uni["coverage_frac"] == 1.0]
-        if not full.empty:
-            print("\nSeed variance summary (unified, full coverage):")
-            for design in ["Colinear", "Non-Colinear"]:
-                dsub = full[full["design"] == design]
-                if not dsub.empty:
-                    print(
-                        f"  {design}: mean σ(R²) = {dsub['r2_std'].mean():.4f}, "
-                        f"max σ(R²) = {dsub['r2_std'].max():.4f}"
-                    )
-    else:
-        print("No results!")
+            uni = df[df["holdout_split"] == "unified"]
+            full = uni[uni["coverage_frac"] == 1.0]
+            if not full.empty:
+                print("\nSeed variance summary (unified, full coverage):")
+                for design in ["Colinear", "Non-Colinear"]:
+                    dsub = full[full["design"] == design]
+                    if not dsub.empty:
+                        print(
+                            f"  {design}: mean σ(R²) = {dsub['r2_std'].mean():.4f}, "
+                            f"max σ(R²) = {dsub['r2_std'].max():.4f}"
+                        )
+        else:
+            print("No results!")
+
+    return units, finish
+
+
+def run_analyses(
+    data_dir: str,
+    fc_dir: str | None,
+    sv_dir: str | None,
+    n_workers: int,
+    n_seeds: int,
+    n_restarts: int,
+    base_seed: int,
+) -> None:
+    """Full coverage into `fc_dir` and seed variance into `sv_dir` (either None: skipped).
+
+    Both analyses share one pool, so its threads stay busy to the end instead of idling through
+    the slowest full-coverage fits before seed variance starts.
+    """
+    args = (n_workers, n_seeds, n_restarts, base_seed)
+    with multiprocessing.get_context("fork").Pool(n_workers) as pool:
+        plans = []
+        if fc_dir is not None:
+            plans.append(_fc_plan(data_dir, fc_dir, *args))
+        if sv_dir is not None:
+            plans.append(_sv_plan(pool, data_dir, sv_dir, *args))
+        results = _pool_map(pool, [u for units, _ in plans for u in units])
+    for units, finish in plans:
+        finish(results[: len(units)])
+        results = results[len(units) :]
+
+
+def run_full_coverage(
+    data_dir: str, output_dir: str, n_workers: int, n_seeds: int, n_restarts: int, base_seed: int
+) -> None:
+    run_analyses(data_dir, output_dir, None, n_workers, n_seeds, n_restarts, base_seed)
+
+
+def run_seed_variance(
+    data_dir: str, output_dir: str, n_workers: int, n_seeds: int, n_restarts: int, base_seed: int
+) -> None:
+    run_analyses(data_dir, None, output_dir, n_workers, n_seeds, n_restarts, base_seed)
 
 
 def main() -> None:
@@ -1270,6 +1349,8 @@ def main() -> None:
     parser.add_argument("--n-restarts", type=int, default=DEFAULT_N_RESTARTS)
     parser.add_argument("--base-seed", type=int, default=DEFAULT_BASE_SEED)
     parser.add_argument("-o", "--output-dir", default=None)
+    # `all` fits both analyses in one pool; this sends its seed-variance files elsewhere than -o.
+    parser.add_argument("--sv-output-dir", default=None)
     parser.add_argument("--clear-cache", action="store_true")
     args = parser.parse_args()
 
@@ -1285,19 +1366,16 @@ def main() -> None:
         if removed:
             print(f"  Cleared {removed} cached parquet file(s) from {out_dir}/")
 
+    fc_dir = sv_dir = None
     if args.mode in ("full_coverage", "all"):
-        out = args.output_dir or "full_coverage_results"
-        _maybe_clear(out)
-        run_full_coverage(
-            args.data_dir, out, args.n_workers, args.n_seeds, args.n_restarts, args.base_seed
-        )
-
+        fc_dir = args.output_dir or "full_coverage_results"
+        _maybe_clear(fc_dir)
     if args.mode in ("seed_variance", "all"):
-        out = args.output_dir or "seed_variance_results"
-        _maybe_clear(out)
-        run_seed_variance(
-            args.data_dir, out, args.n_workers, args.n_seeds, args.n_restarts, args.base_seed
-        )
+        sv_dir = args.sv_output_dir or args.output_dir or "seed_variance_results"
+        _maybe_clear(sv_dir)
+    run_analyses(
+        args.data_dir, fc_dir, sv_dir, args.n_workers, args.n_seeds, args.n_restarts, args.base_seed
+    )
 
 
 if __name__ == "__main__":

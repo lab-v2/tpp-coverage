@@ -110,6 +110,10 @@ def test_seed_enumeration_reproduces_committed_rows(work: tuple[Path, dict[str, 
             "runs_expanded.csv",
             "--seeds",
             "8",
+            # One seed per task, not eight: each seed's rows depend only on its own seed, and
+            # eight times the tasks spread the fits over the pool instead of a few long blocks.
+            "--block",
+            "1",
             "--cells",
             *SMALL_CELLS,
             "--out",

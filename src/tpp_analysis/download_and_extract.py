@@ -151,12 +151,13 @@ def download(
     print("  Done.\n")
 
 
-def download_results(dest_root: str = ".") -> None:
+def download_results(dest_root: str = ".", dirs: list[str] | None = None) -> None:
     """Download pre-computed analysis result directories from HF and place
     them at dest_root/<dirname>/, matching the project's expected layout.
 
     Each of RESULTS_DIRS lands at dest_root/<dirname>/, so notebooks and
-    fitting scripts find them where they expect.
+    fitting scripts find them where they expect. `dirs` limits it to some of them (the paper
+    refit needs three, 78 MB, of the 3.8 GB the six hold).
     """
     from huggingface_hub import snapshot_download
     import shutil
@@ -171,7 +172,8 @@ def download_results(dest_root: str = ".") -> None:
     staging = os.path.join(dest_root, ".hf_results_staging")
     os.makedirs(staging, exist_ok=True)
 
-    patterns = ["README.md"] + [f"{d}/**" for d in RESULTS_DIRS]
+    dirs = RESULTS_DIRS if dirs is None else dirs
+    patterns = ["README.md"] + [f"{d}/**" for d in dirs]
 
     snapshot_download(
         repo_id=REPO_ID,
@@ -182,7 +184,7 @@ def download_results(dest_root: str = ".") -> None:
 
     promoted = []
     skipped = []
-    for d in RESULTS_DIRS:
+    for d in dirs:
         src = os.path.join(staging, d)
         dst = os.path.join(dest_root, d)
         if not os.path.isdir(src):
@@ -329,6 +331,14 @@ Examples:
         "numbers.",
     )
     parser.add_argument(
+        "--results-dirs",
+        nargs="+",
+        choices=RESULTS_DIRS,
+        default=None,
+        help="With --include-results / --results-only: fetch only these result "
+        "directories (default: all of them)",
+    )
+    parser.add_argument(
         "--results-dest",
         default=".",
         help="Where to drop the result directories with "
@@ -357,7 +367,7 @@ Examples:
 
     # --- Pre-computed results path -------------------------------------
     if args.include_results:
-        download_results(dest_root=args.results_dest)
+        download_results(dest_root=args.results_dest, dirs=args.results_dirs)
 
     if args.results_only:
         print(f"\nDone. Result directories are in place at {os.path.abspath(args.results_dest)}/")
