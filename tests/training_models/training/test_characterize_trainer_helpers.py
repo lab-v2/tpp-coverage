@@ -41,7 +41,8 @@ PREFIX = "c4_m1234_token100_lr0-001_distributed"
 
 
 def stamped(s: str) -> str:
-    return re.sub(r"\d{8}_\d{6}", "<stamp>", s)
+    """Mask wall-clock values: run-name timestamps and the trainer's "took 0.01s" timings."""
+    return re.sub(r"took \d+\.\d+s", "took <secs>", re.sub(r"\d{8}_\d{6}", "<stamp>", s))
 
 
 @pytest.fixture
