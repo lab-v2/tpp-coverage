@@ -39,24 +39,24 @@ def _generated(*args: str) -> set[str]:
 
 
 @pytest.mark.parametrize("dataset", ["wikipedia", "cosmopedia", "redpajama", "pes2o"])
-def test_main_design_matches_release(dataset):
+def test_main_design_matches_release(dataset: str) -> None:
     assert _generated("--dataset", dataset) == _released_names()[dataset]
 
 
-def test_c4_release_is_the_design_minus_three_runs():
+def test_c4_release_is_the_design_minus_three_runs() -> None:
     generated, released = _generated("--dataset", "c4"), _released_names()["c4"]
     assert released <= generated
     assert len(generated - released) == 3  # three NC holdout runs were never released
 
 
-def test_bigtpp_matches_release():
+def test_bigtpp_matches_release() -> None:
     assert (
         _generated("--dataset", "wikipedia", "--design", "bigtpp")
         == _released_names()["wikipedia_bigtpp"]
     )
 
 
-def test_bf16_release_is_a_subset_of_the_design():
+def test_bf16_release_is_a_subset_of_the_design() -> None:
     generated = _generated("--dataset", "wikipedia", "--precision", "bf16")
     released = _released_names()["wikipedia_bf16"]
     assert released <= generated and len(released) >= 300

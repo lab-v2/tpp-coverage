@@ -39,12 +39,10 @@ from scaling_laws.laws import (
 def test_skaling_at_k1_is_chinchilla(A, alpha, B, beta, E):
     """skaling_loss(..., k=1, ...) equals chinchilla_loss(...) in floating point.
 
-    Exact to within one ulp, and NOT bitwise: both evaluate the same three
-    summands, but chinchilla_loss associates them as (E + A/N^α) + B/D^β while
-    this law must form the inner sum first to raise it to k, giving
-    (A/N^α + B/D^β) + E. Float addition is commutative but not associative, so
-    the two orders can differ in the last bit - the tolerance below is one
-    relative ulp, not a fudge factor.
+    Exact to one ulp, NOT bitwise: chinchilla_loss associates the same three summands as
+    (E + A/N^α) + B/D^β, while this law forms the inner sum first to raise it to k,
+    (A/N^α + B/D^β) + E. Float addition is not associative, so the orders can differ in
+    the last bit: the tolerance below is one relative ulp, not a fudge factor.
     """
     N = np.array([1e6, 2.5e7, 3e8, 1.1e9])
     D = np.array([2e7, 1e9, 4.5e9, 9e10])
@@ -124,12 +122,10 @@ def test_fit_skaling_recovers_planted_params():
 def test_skaling_family_attains_every_chinchilla_fit():
     """Whatever Chinchilla fits, Skaling's family reproduces at k = 1.
 
-    This is the nesting claim at the level of the model rather than the
-    optimiser: Chinchilla's own fitted parameters, re-read as Skaling
-    parameters with k = 1, give the same SSE on the same data. (Whether the
-    6-parameter search FINDS that point on real data is a separate, optimiser
-    question - it is what the five-law comparison run measures, not something
-    a test can assert.)
+    The nesting claim for the model, not the optimiser: Chinchilla's fitted parameters, re-read
+    as Skaling parameters with k = 1, give the same SSE on the same data. (Whether the
+    6-parameter search FINDS that point on real data is an optimiser question, measured by the
+    five-law comparison run, not something a test can assert.)
     """
     from scaling_laws.laws import fit_chinchilla
 

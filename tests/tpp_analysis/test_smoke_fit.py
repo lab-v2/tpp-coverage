@@ -46,7 +46,7 @@ def _write_released_csv(path, loss_fn, params) -> None:
 
 
 @pytest.fixture(scope="module")
-def chinchilla_csv(tmp_path_factory):
+def chinchilla_csv(tmp_path_factory: pytest.TempPathFactory):
     path = tmp_path_factory.mktemp("smoke") / "synthetic.csv"
     _write_released_csv(path, chinchilla_loss, CHINCHILLA)
     return path
@@ -79,7 +79,7 @@ def test_kaplan_parameters_recovered(tmp_path):
     np.testing.assert_allclose(params, list(KAPLAN.values()), rtol=1e-3)
 
 
-def test_collinear_design_does_not_extrapolate_off_ray():
+def test_collinear_design_does_not_extrapolate_off_ray() -> None:
     """Nine runs on one TPP ray vs nine runs spread over TPP 2-200, same sizes, noiseless."""
     n = np.geomspace(1e6, 1e9, 9)
     rng = np.random.default_rng(0)

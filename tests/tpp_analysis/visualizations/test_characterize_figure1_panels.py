@@ -28,7 +28,7 @@ COMBOS = [
 
 
 @pytest.fixture(scope="module")
-def data_root(tmp_path_factory) -> Path:
+def data_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """A TPP_DATA_ROOT whose inputs link the released files the script reads."""
     src = released(
         "extracted_losses/*.csv",
@@ -44,7 +44,9 @@ def data_root(tmp_path_factory) -> Path:
 
 
 @pytest.mark.parametrize("prefix, dataset, law, mode", COMBOS)
-def test_figure1_panels(data_root, monkeypatch, prefix, dataset, law, mode):
+def test_figure1_panels(
+    data_root: Path, monkeypatch: pytest.MonkeyPatch, prefix: str, dataset: str, law: str, mode: str
+) -> None:
     from matplotlib.figure import Figure
 
     for key, value in (

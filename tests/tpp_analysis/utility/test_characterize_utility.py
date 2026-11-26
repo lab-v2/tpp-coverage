@@ -23,7 +23,7 @@ RUN = "wikipedia/non_colinear/N_5035656/WIKI_NxD_GRID_N5M_D10M_wikipedia_m503565
 
 
 @pytest.fixture(scope="module")
-def audit(tmp_path_factory) -> Path:
+def audit(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """The audit CSV of the two checkpoints, written by the base script."""
     src = released(f"{RUN}_*_epoch[23]_*.pt")
     root = tmp_path_factory.mktemp("checkpoints")
@@ -48,21 +48,21 @@ def audit(tmp_path_factory) -> Path:
     return out
 
 
-def _rows(path: Path) -> list[dict]:
+def _rows(path: Path) -> list[dict[str, str]]:
     with open(path, newline="") as f:
         return sorted(
             ({k: v for k, v in r.items() if k != "path"} for r in csv.DictReader(f)), key=str
         )
 
 
-def test_audit(audit):
+def test_audit(audit: Path) -> None:
     check_frozen(
         FROZEN / "audit_architectures.json",
         {"all": _rows(audit), "epoch3": _rows(audit.parent / "audit_e3.csv")},
     )
 
 
-def test_nlayers_histogram(audit, tmp_path, monkeypatch):
+def test_nlayers_histogram(audit: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """The unique-architecture histogram. Base behaviour pinned as found: `counts_runs` reads an
     `actual_n_layers` column, but the audit writes `n_layers`, so `--mode runs` on the audit's
     own CSV counts nothing and `plot` fails on the empty counts."""

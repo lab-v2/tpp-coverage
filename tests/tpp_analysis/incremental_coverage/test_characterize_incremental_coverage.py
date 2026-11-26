@@ -31,7 +31,7 @@ def wiki():
     )
 
 
-def _holdouts(data) -> dict:
+def _holdouts(data) -> dict[str, list[dict[str, object]]]:
     return {
         "unified": data.unified_holdout,
         "colinear": data.colinear_holdout,
@@ -39,7 +39,7 @@ def _holdouts(data) -> dict:
     }
 
 
-def _step_view(steps: list[dict]) -> list[dict]:
+def _step_view(steps: list[dict[str, object]]) -> list[dict[str, object]]:
     return [
         {k: s[k] for k in ("step", "n_levels", "levels", "n_runs", "coverage_frac")}
         | {"N": [d["N"] for d in s["data"]], "D": [d["D"] for d in s["data"]]}
@@ -103,13 +103,13 @@ def incremental(wiki) -> pd.DataFrame:
     return df.assign(params=df["params"].map(json.loads))
 
 
-def _plain(p):
+def _plain(p: dict[str, float] | list[float] | None) -> dict[str, float] | list[float] | None:
     if isinstance(p, dict):
         return {k: float(v) for k, v in p.items()}
     return None if p is None else [float(v) for v in p]
 
 
-def test_plots(incremental):
+def test_plots(incremental: pd.DataFrame) -> None:
     from incremental_coverage import viz
 
     df = incremental
