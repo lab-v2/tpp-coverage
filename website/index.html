@@ -64,7 +64,7 @@
     <h2 class="title is-3">Summary</h2>
     <ul>
       <li>Many scaling-law studies train at one or a few fixed tokens-per-parameter ratios $k = \dfrac{D}{N}$ (a <em>collinear</em> design), following Chinchilla (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>).</li>
-      <li>On such rays the model and data terms move together, so the fit cannot tell them apart: the scale pair is ill-conditioned (a "sloppy" model; <a href="#ref-transtrum2010">Transtrum et al., 2010</a>; <a href="#ref-transtrum2015">2015</a>), and extrapolation off the ray fails.</li>
+      <li>On such rays the model and data terms move together, so the fit cannot tell them apart: the scale pair is ill-conditioned (a "sloppy" model; <a href="#ref-transtrum2010">Transtrum et al., 2010</a>), and extrapolation off the ray fails.</li>
       <li>A closed-form threshold on the spread of the ratios, checked before training, says when a design is well conditioned.</li>
       <li>Designs that spread runs over TPP (non-collinear) win 97.3% of extrapolation comparisons.</li>
     </ul>
@@ -74,9 +74,11 @@
 
     <h2 class="title is-3">Motivation</h2>
     <ul>
-      <li>Frontier training cost grows about $2.4\times$ per year and passes \$1B by 2027 (<a href="#ref-cottier">Cottier et al., 2024</a>), so choosing the parameter count $N$ and token count $D$ before training pays off.</li>
-      <li>Scaling laws fit small runs and extrapolate the loss: Chinchilla (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>), Kaplan (<a href="#ref-kaplan">Kaplan et al., 2020</a>), Droppo-Elibol (<a href="#ref-droppo">Droppo and Elibol, 2021</a>) and repeated-data (<a href="#ref-muennighoff">Muennighoff et al., 2025</a>); also <a href="#ref-hestness">Hestness et al. (2017)</a>, <a href="#ref-henighan">Henighan et al. (2020)</a> and broken laws (<a href="#ref-caballero">Caballero et al., 2023</a>).</li>
-      <li>Other hyperparameters are scaled the same way: learning rate (<a href="#ref-li">Li et al., 2025</a>), batch size (<a href="#ref-li">Li et al., 2025</a>; <a href="#ref-bergsma">Bergsma et al., 2025</a>), weight decay (<a href="#ref-bergsma">Bergsma et al., 2025</a>), data mixture (<a href="#ref-shukor">Shukor et al., 2025</a>) and precision (<a href="#ref-kumar">Kumar et al., 2025</a>).</li>
+      <li>Frontier training cost: $2.4\times$ per year, over \$1B by 2027 (<a href="#ref-cottier">Cottier et al., 2024</a>).</li>
+      <li>Choosing parameters $N$ and tokens $D$ before training pays off.</li>
+      <li>Scaling laws: fit small runs, extrapolate the loss.</li>
+      <li>Also scaled: learning rate (<a href="#ref-li">Li et al., 2025</a>), batch size (<a href="#ref-li">Li et al., 2025</a>; <a href="#ref-bergsma">Bergsma et al., 2025</a>).</li>
+      <li>Weight decay (<a href="#ref-bergsma">Bergsma et al., 2025</a>), data mixture (<a href="#ref-shukor">Shukor et al., 2025</a>), precision (<a href="#ref-kumar">Kumar et al., 2025</a>).</li>
     </ul>
 
     <h2 class="title is-3">Scaling laws</h2>
@@ -120,7 +122,7 @@
       <li>Its condition number: $$\kappa_{A,B} = \dfrac{\lambda_{\max}(G_{A,B}(\boldsymbol{\theta}))}{\lambda_{\min}(G_{A,B}(\boldsymbol{\theta}))}.$$</li>
       <li>$\kappa_{A,B}$ measures how much noise in $L_i$ is amplified in $\hat{A}$, $\hat{B}$.</li>
       <li>A large $\kappa_{A,B}$ means wide confidence intervals on $A$ and $B$.</li>
-      <li>A <em>sloppy</em> model (<a href="#ref-transtrum2010">Transtrum et al., 2010</a>; <a href="#ref-transtrum2015">2015</a>): $A$ and $B$ can trade off with little change in the fit.</li>
+      <li>A <em>sloppy</em> model (<a href="#ref-transtrum2010">Transtrum et al., 2010</a>): $A$ and $B$ can trade off with little change in the fit.</li>
     </ul>
 
     <h2 class="title is-3">Scale columns of the Jacobian</h2>
@@ -139,7 +141,7 @@
     <h2 class="title is-3">TPP-diversity threshold</h2>
     <p>For $K$ rays with ratios $k_1 &lt; \dots &lt; k_K$, a target condition number $\kappa_{\mathrm{target}}$ and effective exponent $\beta_{\mathrm{eff}}$ ($= \beta$ for Chinchilla), to leading order $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever</p>
     <p>$$\boldsymbol{V_K \;\geq\; \tau_K}, \qquad V_K = \dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}} - \Bigl(\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{\beta_{\mathrm{eff}}}}\Bigr)^{2}, \qquad \tau_K = \dfrac{\bigl(K + \sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}}.$$</p>
-    <p>$V_K$ is the spread of the ratios and $\tau_K$ the threshold it must reach; both are checkable before training.</p>
+    <p>$V_K$ is the spread of the ratios and $\tau_K$ the threshold it must reach.</p>
 
     <h2 class="title is-3">Designs compared: CO and NC</h2>
     <ul>
@@ -168,21 +170,19 @@
       <li>Wide CO bars: the sloppy $(A, B)$ pair (<a href="#ref-transtrum2010">Transtrum et al., 2010</a>), $\kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right)$.</li>
       <li>NC bars are tight.</li>
     </ul>
-    <div class="columns">
-      <figure class="column"><img src="static/images/01_surface_Red_Pajama_Kaplan_First.png" alt="Fitted loss surface with holdout points"><figcaption>Fitted surface with holdout points.</figcaption></figure>
-      <figure class="column"><img src="static/images/01_convergence_Red_Pajama_Kaplan_First.png" alt="Holdout R squared against the share of TPP levels used"><figcaption>Holdout $R^2$ against the share of TPP levels used; 30 seeds, mean and 5th-95th percentile bars. Wide CO bars: the sloppy $(A, B)$ pair.</figcaption></figure>
-      <figure class="column"><img src="static/images/01_isoflop_Red_Pajama_Kaplan_First.png" alt="Induced isoFLOP curves"><figcaption>Induced isoFLOP curves.</figcaption></figure>
-    </div>
-    <p class="is-size-7">Kaplan law (<a href="#ref-kaplan">Kaplan et al., 2020</a>) on RedPajama (<a href="#ref-redpajama">Weber et al., 2024</a>), first epoch; CO in blue, NC in red.</p>
+    <figure><img src="static/images/01_convergence_Red_Pajama_Kaplan_First.png" alt="Holdout R squared against the share of TPP levels used"><figcaption>Holdout $R^2$ against the share of TPP levels used, Kaplan (<a href="#ref-kaplan">Kaplan et al., 2020</a>) on RedPajama (<a href="#ref-redpajama">Weber et al., 2024</a>).</figcaption></figure>
 
     <h2 class="title is-3">Design recipe</h2>
-    <ol>
+    <ul>
       <li>Set $\kappa_{\mathrm{target}}$ (e.g. 100).</li>
       <li>Pick $k_1 &lt; \dots &lt; k_K$ with $V_K \geq \tau_K$.</li>
       <li>Split runs evenly over the $K$ ratios.</li>
-      <li>Check the exact $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ of the planned $(N, D)$ before training.</li>
+      <li>Check exact $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ before training.</li>
       <li>Train, then fit the law on this design.</li>
-    </ol>
+    </ul>
+
+    <h2 class="title is-3">Project page</h2>
+    <p>Code, data and checkpoints are public: <a href="https://github.com/lab-v2/tpp-coverage">code</a>, <a href="https://huggingface.co/datasets/leibnitz-lab/colinear_scaling_models">data</a>, and this page at <a href="https://lab-v2.github.io/tpp-coverage/">lab-v2.github.io/tpp-coverage</a>.</p>
 
     <h2 class="title is-3">References</h2>
     <ol class="is-size-6">
@@ -200,7 +200,6 @@
       <li id="ref-caballero">E. Caballero et al. Broken neural scaling laws. ICLR 2023. <a href="https://arxiv.org/abs/2210.14891">arXiv:2210.14891</a></li>
       <li id="ref-nocedal">J. Nocedal and S. J. Wright. Numerical Optimization. Springer, 2006. <a href="https://doi.org/10.1007/978-0-387-40065-5">doi:10.1007/978-0-387-40065-5</a></li>
       <li id="ref-transtrum2010">M. K. Transtrum, B. B. Machta and J. P. Sethna. Why are nonlinear fits to data so challenging? Phys. Rev. Lett. 104, 2010. <a href="https://doi.org/10.1103/PhysRevLett.104.060201">doi:10.1103/PhysRevLett.104.060201</a></li>
-      <li id="ref-transtrum2015">M. K. Transtrum et al. Perspective: Sloppiness and emergent theories in physics, biology, and beyond. J. Chem. Phys. 143, 2015. <a href="https://doi.org/10.1063/1.4923066">doi:10.1063/1.4923066</a></li>
       <li id="ref-redpajama">M. Weber et al. RedPajama: an open dataset for training large language models. NeurIPS 2024. <a href="https://arxiv.org/abs/2411.12372">arXiv:2411.12372</a></li>
     </ol>
 
