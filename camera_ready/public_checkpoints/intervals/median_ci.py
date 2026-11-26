@@ -47,8 +47,7 @@ def intervals(
 
     A job is `estimate.median_task`'s tuple (tag, gaps, window groups, seed key).
     """
-    global _JOBS
-    _JOBS = jobs
+    _JOBS[:] = jobs  # filled in place (no rebinding), before the pool forks
     usable = [j for j, (_, v, g, _) in enumerate(jobs) if len(v) and sum(len(x) for x in g) >= 2]
     usable.sort(key=lambda j: -len(jobs[j][1]))  # largest first, for load balance
     rows = []

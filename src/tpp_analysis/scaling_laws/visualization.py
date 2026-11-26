@@ -121,15 +121,20 @@ def plot_3d_overview(filepath: str, title: str = "", save_dir: str | None = None
                     edgecolors="w",
                     label=_LABEL_MAP.get(rt, rt),
                 )
-        ax.invert_yaxis()
-        ax.set_xlabel("N (params)")
-        ax.set_ylabel("D (tokens)")
-        ax.set_zlabel("Loss")
+        _label_nd_loss_axes(ax)
         ax.set_title(f"{title or filepath} - {group_name}", fontweight="bold")
         ax.legend(fontsize=9)
         plt.tight_layout()
         sp = f"{save_dir}/{group_name.lower().replace('-', '_')}_3d.png" if save_dir else None
         _savefig_and_show(fig, sp)
+
+
+def _label_nd_loss_axes(ax: Axes3D) -> None:
+    """A run-scatter's 3-D axes: N, D (inverted) and Loss."""
+    ax.invert_yaxis()
+    ax.set_xlabel("N (params)")
+    ax.set_ylabel("D (tokens)")
+    ax.set_zlabel("Loss")
 
 
 def plot_overlay(filepath: str, title: str = "", save_path: str | None = None) -> None:
@@ -151,10 +156,7 @@ def plot_overlay(filepath: str, title: str = "", save_path: str | None = None) -
                 edgecolors="w",
                 label=_LABEL_MAP.get(rt, rt),
             )
-    ax.invert_yaxis()
-    ax.set_xlabel("N (params)")
-    ax.set_ylabel("D (tokens)")
-    ax.set_zlabel("Loss")
+    _label_nd_loss_axes(ax)
     ax.set_title(title or "Colinear vs Non-Colinear Overlay", fontweight="bold")
     ax.legend(loc="upper left")
     plt.tight_layout()

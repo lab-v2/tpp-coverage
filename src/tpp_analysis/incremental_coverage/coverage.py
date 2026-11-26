@@ -109,16 +109,7 @@ def build_colinear_steps(
     for tpp_val in unique_tpps:
         included.add(tpp_val)
         subset = [d for d, t in zip(train_data, binned) if t in included]
-        steps.append(
-            {
-                "step": len(steps) + 1,
-                "n_levels": len(included),
-                "levels": sorted(included),
-                "data": subset,
-                "n_runs": len(subset),
-                "coverage_frac": len(included) / total,
-            }
-        )
+        steps.append(_step_record(len(steps) + 1, included, subset, total))
 
     return steps
 
@@ -154,18 +145,23 @@ def build_noncolinear_steps(
         for d_val in pair:
             included.add(d_val)
         subset = [d for d, dv in zip(train_data, d_values) if dv in included]
-        steps.append(
-            {
-                "step": len(steps) + 1,
-                "n_levels": len(included),
-                "levels": sorted(included),
-                "data": subset,
-                "n_runs": len(subset),
-                "coverage_frac": len(included) / total,
-            }
-        )
+        steps.append(_step_record(len(steps) + 1, included, subset, total))
 
     return steps
+
+
+def _step_record(
+    step: int, included: set[float], subset: list[dict[str, object]], total: int
+) -> dict[str, object]:
+    """One incremental step: its number, the levels included so far, and their runs."""
+    return {
+        "step": step,
+        "n_levels": len(included),
+        "levels": sorted(included),
+        "data": subset,
+        "n_runs": len(subset),
+        "coverage_frac": len(included) / total,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════
