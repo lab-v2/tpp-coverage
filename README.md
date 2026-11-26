@@ -118,7 +118,7 @@ Every folder below has one job; a linked folder has its own README.
 | [`camera_ready/`](camera_ready/README.md) | The two analyses added for the camera-ready version: 24 published designs classified, ten public releases reanalysed |
 | [`large_scale/`](large_scale/README.md) | The paper's analysis rerun on an independent grid of 461 C4 runs up to 354M parameters |
 | [`cluster/`](cluster/README.md) | A larger Wikipedia stratum (to 380.6M parameters) trained on the paper's protocol |
-| [`docs/`](docs/README.md) | Step-by-step guides: downloading, training, analysis, figures, n-gram KL, and the known behaviours |
+| [`docs/`](docs/README.md) | Step-by-step guides: downloading, training, analysis, figures, n-gram KL, the public-checkpoint tests, and the known behaviours |
 | [`slides/`](slides/README.md) | The five-minute NeurIPS 2026 talk (Beamer source and PDF) |
 | [`website/`](website/README.md) | The project page at [lab-v2.github.io/tpp-coverage](https://lab-v2.github.io/tpp-coverage/) |
 | [`tests/`](tests/README.md) | The pytest suite, one folder per component |

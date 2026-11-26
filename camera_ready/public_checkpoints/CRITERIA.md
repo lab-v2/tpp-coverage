@@ -201,7 +201,7 @@ the design's own k-range. For a CO design that is empty by construction, because
 produced a number. Replaced by a like-for-like interpolation arm that keeps every property
 W4 was meant to have: withhold a seeded 20 percent of the CO ray, refit CO on the remaining
 80 percent, refit NC on a seeded 80 percent of ITS OWN points (identical cardinality, so the
-arm is still budget-matched), and score both on exactly the points withheld from the CO ray.
+comparison is still budget-matched), and score both on exactly the points withheld from the CO ray.
 The primary off-ray analysis is untouched by this: it uses the full designs and the full,
 design-independent tail holdout of W3 exactly as pre-registered. Only the secondary
 `gap_onray` column changes meaning. The amendment was made before any corrected result was
@@ -291,7 +291,7 @@ Pre-registered companions to the primary, all reported whichever way they come o
   is predicted negative; by fact (i) that slope is the same number at every kappa_target;
 - the C2 beta grid {0.10, 0.20, 0.28, 0.35, 0.50} applied to the primary regression.
 
-**Degenerate CO designs.** 25 of the 1250 CO designs have a merged ratio list of length 1, so
+**Degenerate CO designs.** 2% (25 of 1250) of the CO designs have a merged ratio list of length 1, so
 V_K = 0 and m_CO = -infinity. These are the most collinear designs in the corpus and dropping
 them would discard the extreme of the regressor. Primary rule: winsorise a non-finite m_CO to
 the minimum FINITE m_CO over the analysis set. This is conservative in the theory's own
@@ -316,7 +316,7 @@ target.
     test the predicted ordering gap > 0: median gap with bootstrap CI, win rate, and a sign
     test. Reported at every kappa in the grid, never at a selected one.
 
-(b) *Falsification arm.* Among pairs where BOTH arms are in the SAME regime, the theory
+(b) *Falsification arm.* Among pairs where BOTH designs are in the SAME regime, the theory
     predicts no systematic ordering: both-A means both designs are under-identified and
     Theorem 1 ranks neither; both-B means both are certified. A median gap whose CI EXCLUDES
     zero in either same-regime cell is a failure of this test and is reported as a failure, in
@@ -396,7 +396,7 @@ The justification, stated before any outcome:
     exists. Every scaling-law fit in the literature that uses a token-budget sweep at fixed
     architecture is fitting the same kind of point.
 
-(ii) *The deformation is common to both arms.* A decaying learning rate leaves an
+(ii) *The deformation is common to both designs.* A decaying learning rate leaves an
     intermediate checkpoint above the loss a run terminated and annealed at the same D would
     have reached. That offset deforms the loss surface. But CO and NC are carved from the SAME
     core, fitted on the same deformed surface, and scored on the SAME holdout drawn from it.
@@ -482,7 +482,7 @@ negative and the cells that rest on a single window. No cell is summarised away.
 **Integrity note on the DataDecide reconstruction (2026-08-01).** DataDecide releases a step
 index, not a token count, so D is reconstructed as `step x batch(size) x 2048` from the
 suite's own published constants. A validity check against the suite's own published full
-step count caught 48 of the 1103 released groups - all seed-14 / seed-15 groups at 150M and
+step count caught 4.4% (48 of 1103) of the released groups - all seed-14 / seed-15 groups at 150M and
 300M - whose step values run up to 11x that schedule, which would place a 150M model at 1097
 tokens per parameter when every DataDecide run is a 5xC (about 100 tokens per parameter) run.
 For those rows the `step` field is not the quantity the reconstruction assumes, so D is not
@@ -669,7 +669,7 @@ single-ray CO of the primary and only the off-ray arm are re-enumerated. The two
 secondary of W5 and the on-ray secondary of Amendment 1 stay at the pre-registered 5 seeds,
 and every table that reports them says so.
 
-**(b) The X-corpus is fitted at 512 seeds for the first time**, with `tighten1b_fit.py`
+**(b) The X-corpus is fitted at 512 seeds, which no earlier amendment did**, with `tighten1b_fit.py`
 unchanged except for (c). The E-corpus reuses `results_E_seeds512.csv` from Amendment 5,
 which already covers every window of every E cell and not only the >=1B ones.
 
