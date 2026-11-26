@@ -14,8 +14,6 @@ import re
 import shlex
 import subprocess
 
-from typing import Any
-
 import pytest
 import yaml
 
@@ -29,11 +27,11 @@ REQUIRED_CHECKS = {"tests", "ruff", "privacy", "pr-authorization", "Own runners 
 DEPLOY_JOBS = {"deploy"}
 
 
-def load(name: str) -> dict[str, Any]:
+def load(name: str) -> dict[str | bool, object]:
     return yaml.safe_load((WORKFLOWS / name).read_text())
 
 
-def triggers(doc: dict[str, Any]) -> dict[str, Any]:
+def triggers(doc: dict[str | bool, object]) -> dict[str, object]:
     return doc.get("on", doc.get(True))  # YAML 1.1 reads a bare `on` as True
 
 
@@ -47,7 +45,7 @@ def test_the_workflows_are_found() -> None:
 
 @pytest.mark.parametrize(("wf", "jid", "job"), JOBS, ids=[f"{f}:{j}" for f, j, _ in JOBS])
 def test_every_job_runs_on_the_own_pool_with_primary(
-    wf: str, jid: str, job: dict[str, Any]
+    wf: str, jid: str, job: dict[str, object]
 ) -> None:
     assert job["runs-on"] == OWN_POOL
     assert "container" not in job and "services" not in job

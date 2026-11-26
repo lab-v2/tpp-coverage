@@ -116,7 +116,7 @@ class TestCli:
         assert main(["--data", str(tmp_path / "absent.csv")]) == 2
 
     @pytest.mark.slow
-    def test_check_only_verifies_parity(self, capsys) -> None:
+    def test_check_only_verifies_parity(self, capsys: pytest.CaptureFixture[str]) -> None:
         assert main(["--check-only"]) == 0
         assert "PARITY OK" in capsys.readouterr().out
 
@@ -125,12 +125,12 @@ class TestResultsDocument:
     """Guard the shape the report depends on."""
 
     @pytest.fixture(scope="class")
-    def results(self) -> dict:
+    def results(self) -> dict[str, object]:
         from tpp_large_scale.config import LARGE_SCALE_DIR
 
         return json.loads((LARGE_SCALE_DIR / "results" / "results.json").read_text())
 
-    def test_top_level_keys(self, results) -> None:
+    def test_top_level_keys(self, results: dict[str, object]) -> None:
         expected = {
             "grid",
             "upstream_parity",
@@ -144,11 +144,11 @@ class TestResultsDocument:
         }
         assert expected <= set(results)
 
-    def test_all_formal_validation_blocks_present(self, results) -> None:
+    def test_all_formal_validation_blocks_present(self, results: dict[str, object]) -> None:
         """A silently skipped block would leave the report quoting stale numbers."""
         assert set(results["formal_validation"]) == {"prop1_cor1", "prop2_rmin", "isoflop"}
 
-    def test_all_robustness_checks_present(self, results) -> None:
+    def test_all_robustness_checks_present(self, results: dict[str, object]) -> None:
         expected = {
             "drop_small_N",
             "median_envelope",
@@ -159,38 +159,42 @@ class TestResultsDocument:
         }
         assert set(results["robustness"]) == expected
 
-    def test_upstream_parity_is_exact(self, results) -> None:
+    def test_upstream_parity_is_exact(self, results: dict[str, object]) -> None:
         assert all(d == 0.0 for d in results["upstream_parity"]["sse_delta_by_law"].values())
 
-    def test_formal_statements_match_their_predictions(self, results) -> None:
+    def test_formal_statements_match_their_predictions(self, results: dict[str, object]) -> None:
         prop1 = results["formal_validation"]["prop1_cor1"]
         assert prop1["kappa_slope_loglog"] == pytest.approx(-2.0, abs=0.1)
         assert prop1["ci_slope_loglog"] == pytest.approx(-1.0, abs=0.1)
         assert results["formal_validation"]["isoflop"]["invariance_max_abs_err"] == 0.0
 
-    def test_regime_verdicts_are_wellformed(self, results) -> None:
+    def test_regime_verdicts_are_wellformed(self, results: dict[str, object]) -> None:
         for verdict in results["full_grid_tpp"]["by_target"].values():
             assert verdict["regime"] in {"A", "B"}
             assert np.isfinite(verdict["tau_K"])
 
-    def test_collinear_ray_is_far_worse_than_the_full_grid(self, results) -> None:
+    def test_collinear_ray_is_far_worse_than_the_full_grid(
+        self, results: dict[str, object]
+    ) -> None:
         """The paper's central empirical claim, as an executable assertion."""
         full = results["full_grid_fits"]["Chinchilla"]["kappa_AB"]
         ray = results["co_rays"]["67"]["kappa_AB"]
         assert ray / full > 1e4
 
-    def test_equal_size_control_isolates_geometry_from_sample_size(self, results) -> None:
+    def test_equal_size_control_isolates_geometry_from_sample_size(
+        self, results: dict[str, object]
+    ) -> None:
         control = results["equal_n_control"]
         assert control["n_collinear"] == control["n_2d"]
         assert control["collinear_ray_kappa_AB"] / control["twod_spread_kappa_AB"] > 1e4
 
-    def test_non_collinear_wins_the_holdout(self, results) -> None:
+    def test_non_collinear_wins_the_holdout(self, results: dict[str, object]) -> None:
         holdout = results["co_vs_nc_holdout"]
         assert holdout["nc_win_rate"] > 0.5
         assert holdout["median_rmse_nc"] < holdout["median_rmse_co"]
         assert holdout["median_r2_nc"] > holdout["median_r2_co"]
 
-    def test_win_rate_is_significant(self, results) -> None:
+    def test_win_rate_is_significant(self, results: dict[str, object]) -> None:
         significance = results["robustness"]["winrate_significance"]
         assert significance["p_binom_gt_half"] < 0.05
         assert significance["ci95"][0] > 0.5

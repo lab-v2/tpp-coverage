@@ -54,14 +54,14 @@ def _beat(q: Path, prefix: str, loss: float, pct: float, age: float) -> None:
     (q / "shared" / "heartbeats" / f"{prefix}_x.json").write_text(json.dumps(hb))
 
 
-def test_task_fields_strip_quotes(tmp_path):
+def test_task_fields_strip_quotes(tmp_path: Path) -> None:
     q = _queue(tmp_path)
     assert (
         monitor.task_fields(q / "tasks" / "001_RUN_B.task")["SPLIT_FLAG"] == "--skip-val --seed 43"
     )
 
 
-def test_queue_state_counts(tmp_path):
+def test_queue_state_counts(tmp_path: Path) -> None:
     q = _queue(tmp_path)
     (q / "done" / "000_RUN_A").touch()
     (q / "claims" / "000_RUN_A").mkdir()
@@ -83,11 +83,11 @@ def test_queue_state_counts(tmp_path):
         (4.2, 90.0, None),
     ],
 )
-def test_loss_alert(loss, pct, expected):
+def test_loss_alert(loss: float, pct: float, expected: str | None) -> None:
     assert monitor.loss_alert({"loss": loss, "pct": pct}) == expected
 
 
-def test_health_lines(tmp_path):
+def test_health_lines(tmp_path: Path) -> None:
     q = _queue(tmp_path)
     (q / "done" / "000_RUN_A").touch()
     (q / "claims" / "001_RUN_B").mkdir()
@@ -106,7 +106,9 @@ def test_health_lines(tmp_path):
     ]
 
 
-def test_heartbeats_ignore_the_directory_order(tmp_path, monkeypatch):
+def test_heartbeats_ignore_the_directory_order(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Alerts come out in file-name order whatever order the file system lists the files in."""
     q = _queue(tmp_path)
     _beat(q, "RUN_A", float("nan"), 99.0, 10)
@@ -120,7 +122,7 @@ def test_heartbeats_ignore_the_directory_order(tmp_path, monkeypatch):
         ]
 
 
-def test_monitor_cli_requires_a_queue(tmp_path):
+def test_monitor_cli_requires_a_queue(tmp_path: Path) -> None:
     env = {k: v for k, v in os.environ.items() if k not in ("QUEUE_DIR", "SHARED_DIR")}
     proc = subprocess.run(
         [sys.executable, QUEUE / "monitor.py"], env=env, capture_output=True, text=True
@@ -140,7 +142,7 @@ touch "$SHARED_DIR/training_metrics/${prefix}_m1_token2_metrics.npz"
 """
 
 
-def test_slot_worker_runs_the_queue(tmp_path):
+def test_slot_worker_runs_the_queue(tmp_path: Path) -> None:
     q = _queue(tmp_path)
     venv = tmp_path / "venv"
     (venv / "bin").mkdir(parents=True)
@@ -179,7 +181,7 @@ def test_slot_worker_runs_the_queue(tmp_path):
     assert len(log.read_text().splitlines()) == 3
 
 
-def test_slot_worker_refuses_a_missing_environment(tmp_path):
+def test_slot_worker_refuses_a_missing_environment(tmp_path: Path) -> None:
     env = dict(
         os.environ,
         QUEUE_DIR=str(tmp_path / "absent"),
@@ -198,7 +200,7 @@ def test_slot_worker_refuses_a_missing_environment(tmp_path):
     sorted(CLUSTER.rglob("*.sh")) + sorted(CLUSTER.rglob("*.sbatch")),
     ids=lambda p: str(p.relative_to(CLUSTER)),
 )
-def test_shell_scripts_parse(script):
+def test_shell_scripts_parse(script: Path) -> None:
     subprocess.run(["bash", "-n", str(script)], check=True)
     if shutil.which("shellcheck"):
         subprocess.run(["shellcheck", "-S", "warning", "-s", "bash", str(script)], check=True)
@@ -209,11 +211,11 @@ def test_shell_scripts_parse(script):
     sorted((CLUSTER / "audit").rglob("*.py")) + sorted((CLUSTER / "wiki300m").glob("*.py")),
     ids=lambda p: str(p.relative_to(CLUSTER)),
 )
-def test_python_scripts_compile(script, tmp_path):
+def test_python_scripts_compile(script: Path, tmp_path: Path) -> None:
     py_compile.compile(str(script), cfile=str(tmp_path / "x.pyc"), doraise=True)
 
 
-def test_generator_reproduces_the_first_100_committed_tasks(tmp_path):
+def test_generator_reproduces_the_first_100_committed_tasks(tmp_path: Path) -> None:
     run(["python", CLUSTER / "wiki300m" / "generate_tasks.py", tmp_path], timeout=600)
     committed = CLUSTER / "wiki300m"
     assert (tmp_path / "manifest.tsv").read_text() == (committed / "manifest.tsv").read_text()
@@ -224,7 +226,7 @@ def test_generator_reproduces_the_first_100_committed_tasks(tmp_path):
     assert len(list((committed / "tasks").glob("*.task"))) == 468
 
 
-def test_per_law_table_matches_the_recorded_strata_run():
+def test_per_law_table_matches_the_recorded_strata_run() -> None:
     # The off-ray NC win rates bbox_strata.py printed when it wrote bbox_strata.csv:
     # Kaplan 24.2% / 94.3%, Chinchilla 97.8% / 92.5%, Droppo-Elibol 94.6% / 62.8% (low / high).
     out = run(["python", CLUSTER / "audit" / "tables" / "ci_per_law.py"], timeout=600).stdout

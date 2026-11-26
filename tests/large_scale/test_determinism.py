@@ -91,7 +91,9 @@ class TestFitReproducibility:
 
 
 class TestPlanIsWorkerIndependent:
-    def test_holdout_plan_identical_across_executors(self, grid, config) -> None:
+    def test_holdout_plan_identical_across_executors(
+        self, grid: TrainingGrid, config: AnalysisConfig
+    ) -> None:
         section = HoldoutSection()
         plans = []
         for workers in (1, 16):
@@ -101,12 +103,12 @@ class TestPlanIsWorkerIndependent:
             plans.append(section._plan(context))
         assert plans[0] == plans[1]
 
-    def test_holdout_plan_is_repeatable(self, grid, config) -> None:
+    def test_holdout_plan_is_repeatable(self, grid: TrainingGrid, config: AnalysisConfig) -> None:
         section = HoldoutSection()
         context = AnalysisContext(config=config, grid=grid)
         assert section._plan(context) == section._plan(context)
 
-    def test_plan_seeds_are_all_distinct(self, grid, config) -> None:
+    def test_plan_seeds_are_all_distinct(self, grid: TrainingGrid, config: AnalysisConfig) -> None:
         """A repeated seed would silently correlate trials."""
         trials = HoldoutSection()._plan(AnalysisContext(config=config, grid=grid))
         seeds = [t.collinear_seed for t in trials] + [t.non_collinear_seed for t in trials]
@@ -135,15 +137,19 @@ class TestSectionsAreWorkerInvariant:
     """The headline guarantee, exercised end to end on the real grid."""
 
     @staticmethod
-    def _context(grid, cfg, workers: int) -> AnalysisContext:
+    def _context(grid: TrainingGrid, cfg: AnalysisConfig, workers: int) -> AnalysisContext:
         return AnalysisContext(config=cfg, grid=grid, executor=DeterministicExecutor(workers))
 
-    def test_holdout_section_identical_serial_vs_parallel(self, grid, small_config) -> None:
+    def test_holdout_section_identical_serial_vs_parallel(
+        self, grid: TrainingGrid, small_config: AnalysisConfig
+    ) -> None:
         serial = HoldoutSection().run(self._context(grid, small_config, 1))
         parallel = HoldoutSection().run(self._context(grid, small_config, 16))
         assert serial == parallel
 
-    def test_robustness_section_identical_serial_vs_parallel(self, grid, small_config) -> None:
+    def test_robustness_section_identical_serial_vs_parallel(
+        self, grid: TrainingGrid, small_config: AnalysisConfig
+    ) -> None:
         outputs = []
         for workers in (1, 16):
             context = self._context(grid, small_config, workers)

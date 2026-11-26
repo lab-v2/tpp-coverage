@@ -84,12 +84,12 @@ def _text(path: Path) -> str | None:
 FILES = _files()
 
 
-def test_tree_is_scanned():
+def test_tree_is_scanned() -> None:
     assert len(FILES) > 80
 
 
 @pytest.mark.parametrize("label", sorted(FORBIDDEN))
-def test_no_forbidden_strings(label):
+def test_no_forbidden_strings(label: str) -> None:
     pattern = re.compile(FORBIDDEN[label], re.IGNORECASE)
     hits = []
     for path in FILES:
@@ -102,7 +102,7 @@ def test_no_forbidden_strings(label):
     assert not hits, f"{label}:\n" + "\n".join(hits[:50])
 
 
-def test_no_private_words():
+def test_no_private_words() -> None:
     hits = []
     for path in FILES:
         rel = str(path.relative_to(REPO))
@@ -117,7 +117,7 @@ def test_no_private_words():
     assert not hits, "private words:\n" + "\n".join(hits[:50])
 
 
-def test_pattern_catches_a_planted_leak():
+def test_pattern_catches_a_planted_leak() -> None:
     # The scanner must be able to fail: each pattern matches a known-bad sample.
     samples = {
         "home or allocation paths": "/home/someone/x",
@@ -129,7 +129,7 @@ def test_pattern_catches_a_planted_leak():
         assert re.search(FORBIDDEN[label], sample, re.IGNORECASE), label
 
 
-def test_private_word_matcher_catches_a_planted_word():
+def test_private_word_matcher_catches_a_planted_word() -> None:
     planted = frozenset({_sha("plantedhost")})
     assert private_words("ssh PlantedHost03 -p 22", planted) == ["plantedhost03"]
     assert private_words("export DIR=/x/plantedhost/run_1", planted) == ["plantedhost"]

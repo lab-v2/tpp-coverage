@@ -34,11 +34,10 @@ for p in (ANALYSIS, SRC):
 def pool_width(cap: int | None = None) -> int:
     """Processes a test's own pool may start: the threads of the affinity mask that are free now.
 
-    Under xdist up to one worker per thread runs at once, so a fixed width (`os.cpu_count()`, or
-    `min(32, ...)`) inside each of them oversubscribes the host. The free share is the mask minus
-    the host's busy threads over a 0.2 s sample of /proc/stat (the same reading as core-meter's
-    pool fixture), at least 1 and at most `cap`. The scripts these tests run give the same rows at
-    any width (each test compares them with committed tables), so the width only sets speed.
+    Under xdist one worker per thread may run, so a fixed width (`os.cpu_count()`, `min(32, ...)`)
+    in each oversubscribes the host. Free share: the mask minus busy threads over a 0.2 s
+    /proc/stat sample (as core-meter's pool fixture reads it), in [1, `cap`]. The scripts give the
+    same rows at any width (each test compares committed tables), so width only sets speed.
     """
 
     def busy_total() -> tuple[int, int]:
@@ -56,7 +55,7 @@ def pool_width(cap: int | None = None) -> int:
 
 
 def run(
-    args: list[str], cwd: Path = REPO, env: dict | None = None, timeout: int = 1800
+    args: list[str], cwd: Path = REPO, env: dict[str, str] | None = None, timeout: int = 1800
 ) -> subprocess.CompletedProcess:
     """Run a command with this environment's interpreter; fail the test on a non-zero exit.
 
@@ -96,7 +95,7 @@ def run(
 
 
 @pytest.fixture(scope="session")
-def pc_work(tmp_path_factory) -> tuple[Path, dict]:
+def pc_work(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, dict[str, str]]:
     """A private reanalysis work directory holding the HuggingFace run tables, and its env."""
     path = tmp_path_factory.mktemp("pc_work")
     env = {**os.environ, "TPP_PC_WORK": str(path)}
@@ -136,7 +135,7 @@ def tree_text(path: Path) -> str | None:
     return data.decode("utf-8", errors="replace")
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Run the `paper` refit only when it is asked for by name (`-m paper`), never inside a broader
     selection such as `-m slow`: it takes every thread, and under xdist each worker that received one
     of its tests would start its own host-wide pool (load 4,000 on 480 threads, 2026-11-25)."""

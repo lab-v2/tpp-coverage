@@ -25,7 +25,7 @@ def _entry_points() -> list[Path]:
 ENTRY_POINTS = _entry_points()
 
 
-def test_entry_points_are_discovered():
+def test_entry_points_are_discovered() -> None:
     # A guard against the discovery silently finding nothing.
     names = {p.name for p in ENTRY_POINTS}
     assert {
@@ -40,7 +40,7 @@ def test_entry_points_are_discovered():
 
 
 @pytest.mark.parametrize("script", ENTRY_POINTS, ids=lambda p: str(p.relative_to(REPO)))
-def test_help(script: Path):
+def test_help(script: Path) -> None:
     if re.search(r"^from \.", script.read_text(), re.M):
         # A package module with relative imports runs as `python -m` from src/.
         module = ".".join(script.relative_to(REPO / "src").with_suffix("").parts)
@@ -51,11 +51,11 @@ def test_help(script: Path):
 
 
 @pytest.mark.parametrize("script", sorted(REPO.joinpath("src").rglob("*.sh")), ids=lambda p: p.name)
-def test_shell_scripts_parse(script: Path):
+def test_shell_scripts_parse(script: Path) -> None:
     subprocess.run(["bash", "-n", str(script)], check=True)
 
 
-def test_one_hf_dataset_id():
+def test_one_hf_dataset_id() -> None:
     from hf_dataset import REPO_ID
 
     verify = (REPO / "src/training_models/training/verify_reproducibility.py").read_text()
@@ -78,12 +78,12 @@ def _listed(*args: str) -> list[str]:
         ("bigtpp", {"nxd": 60, "colinear": 60, "holdout": 18, "colinear_holdout": 18}),
     ],
 )
-def test_generator_run_counts(design, counts):
+def test_generator_run_counts(design: str, counts: dict[str, int]) -> None:
     kinds = [line.split()[0] for line in _listed("--dataset", "wikipedia", "--design", design)]
     assert {k: kinds.count(k) for k in set(kinds)} == counts
 
 
-def test_generator_scripts(tmp_path):
+def test_generator_scripts(tmp_path: Path) -> None:
     env_free = {"PATH": "/usr/bin:/bin"}
     run(
         ["python", GEN, "--dataset", "c4", "--out-dir", tmp_path, "--runs-per-job", "7"],
@@ -100,14 +100,14 @@ def test_generator_scripts(tmp_path):
     assert "#SBATCH --partition" not in text and "#SBATCH --exclude" not in text
 
 
-def test_generator_bf16_flag(tmp_path):
+def test_generator_bf16_flag(tmp_path: Path) -> None:
     run(["python", GEN, "--dataset", "wikipedia", "--precision", "bf16", "--out-dir", tmp_path])
     text = "\n".join(p.read_text() for p in (tmp_path / "wikipedia_main_bf16").glob("*_0*.sh"))
     assert text.count("--use-bf16") == text.count("torchrun") > 0
     assert "--output-prefix BF16WIKI_" in text
 
 
-def test_trainer_accepts_generated_flags():
+def test_trainer_accepts_generated_flags() -> None:
     flags = run(
         ["python", REPO / "src/training_models/training/dist_trainer_main.py", "--help"]
     ).stdout
