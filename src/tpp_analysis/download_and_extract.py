@@ -2,35 +2,20 @@
 """
 Download training metrics from HuggingFace and extract loss CSVs for scaling law fits.
 
-This is the entry point for reproducing the analysis. By default it downloads ONLY the training
-metrics (~100s of MB), not the model checkpoints (~100s of GB). The metrics
-contain per-batch losses needed to compute trailing-100-batch converged loss
-at each epoch boundary - the values used in all paper tables and figures.
+Entry point for reproducing the analysis. By default it downloads ONLY the training metrics
+(~100s of MB), not the checkpoints (~100s of GB): their per-batch losses give the trailing-100-
+batch converged loss at each epoch boundary, used in all paper tables and figures. Independent
+tier flags: the 5 main corpora by default; ``--include-special`` adds the BF16 replication
+(wikipedia_bf16, Appendix BF16), ``--include-prelim`` the BigTPP single-law run.
+``--include-results`` also pulls the pre-computed RESULTS_DIRS into the project root, to check
+figures and tables WITHOUT refitting; ``--results-only`` pulls just those, skipping the metrics
+download and the extract step (the fastest path to the paper's numbers). Public dataset: no
+token needed; HF_TOKEN (or ``hf auth login``) is used if present, for higher rate limits.
 
-Three dataset tiers:
-  - default:           the 5 main corpora.
-  - --include-special: BF16 replication (wikipedia_bf16) for Appendix BF16 results.
-  - --include-prelim:  BigTPP preliminary single-law experiment (wikipedia_bigtpp).
-  These are independent flags, so you can pull just what you need.
-
-Pre-computed results download (separate from raw metrics):
-  --include-results: also pull the analysis output directories
-                     (extracted_losses, full_coverage_results,
-                      seed_variance_results, subset_bbox_seeds,
-                      special_results, prelim_bigtpp_results)
-                     into the project root, so figures and tables can be
-                     checked WITHOUT re-running the fitting pipeline.
-  --results-only:    pull JUST the results directories above. Skips raw
-                     metrics download and the extract step entirely.
-                     Use this for the fastest path to the paper's numbers.
-
-The dataset is public: no HuggingFace account or token is needed. A token in
-HF_TOKEN (or from ``hf auth login``) is used if present, for higher rate limits.
-
-Run from src/tpp_analysis/ (or pass paths), inside the project environment:
+Examples:
+    # Run from src/tpp_analysis/ (or pass paths), inside the project environment:
     uv run python src/tpp_analysis/download_and_extract.py --results-only
 
-Usage:
     # Download metrics and extract CSVs (default - fast, ~100s MB):
     python download_and_extract.py
 
@@ -74,6 +59,8 @@ Output:
         prelim_bigtpp_results/
 """
 
+from __future__ import annotations
+
 import argparse
 import os
 import sys
@@ -102,7 +89,7 @@ def download(
     include_checkpoints: bool = False,
     include_special: bool = False,
     include_prelim: bool = False,
-):
+) -> None:
     """Download from HuggingFace.
 
     Tier flags layer additive partitions onto the download:
@@ -164,7 +151,7 @@ def download(
     print("  Done.\n")
 
 
-def download_results(dest_root: str = "."):
+def download_results(dest_root: str = ".") -> None:
     """Download pre-computed analysis result directories from HF and place
     them at dest_root/<dirname>/, matching the project's expected layout.
 
@@ -233,7 +220,7 @@ def download_results(dest_root: str = "."):
 
 def extract(
     repo_dir: str, output_dir: str, include_special: bool = False, include_prelim: bool = False
-):
+) -> None:
     """Extract loss CSVs from downloaded metrics."""
     from get_results.get_results import extract_from_hf
 
@@ -254,7 +241,7 @@ def extract(
     )
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Download training metrics and extract loss CSVs for scaling law fits",
         formatter_class=argparse.RawDescriptionHelpFormatter,

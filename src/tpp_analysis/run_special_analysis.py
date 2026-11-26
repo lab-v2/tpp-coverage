@@ -12,9 +12,11 @@ Seed protocol per the appendix's BF16 replication entry:
   - 30 optimizer seeds, base seed b=0, stride 137: s_i = 137 * i
   - Stored seed column = seed index (0..29), not the actual RNG seed
 
-Usage:
+Examples:
     python run_special_analysis.py --data-dir extracted_losses/ --n-workers 16
 """
+
+from __future__ import annotations
 
 import os
 import sys

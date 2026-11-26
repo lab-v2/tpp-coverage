@@ -1,26 +1,18 @@
 #!/usr/bin/env python3
 """
-═══════════════════════════════════════════════════════════════════════════
 AGGREGATE SEED-VARIANCE RESULTS FOR REGIME A WINRATE SWEEP
-═══════════════════════════════════════════════════════════════════════════
 
 Reads <seed-dir>/seed_*/subset_bbox_*.csv produced by
 subset_analysis_bbox_seeded.py (typically launched via dispatch_seeds.sh)
-across multiple seeds, then:
+across multiple seeds, computes per-seed NC-win rate on the κ_target sweep
+(identical sweep logic as winrate_vs_kappa_target.py), aggregates mean + 95% CI
+(percentile bootstrap) across seeds, and produces paper-ready plots with shaded CI
+bands (per_law_dualaxis_with_ci_first.pdf, small_multiples_with_ci_first.pdf,
+winrate_bars_with_ci_first.pdf, and the per-dataset 3-law overlay
+raw_wins_combined_<DATASET>_<mode>.pdf), plus per-seed diagnostic CSVs for outlier
+detection (per_seed_sweep_by_{law,cell}.csv; aggregates in agg_sweep_by_{law,cell}.csv).
 
-  1. Computes per-seed NC-win rate on the κ_target sweep
-     (identical sweep logic as winrate_vs_kappa_target.py)
-  2. Aggregates mean + 95% CI (percentile bootstrap) across seeds
-  3. Produces paper-ready plots with shaded CI bands:
-       per_law_dualaxis_with_ci_first.pdf
-       small_multiples_with_ci_first.pdf
-       winrate_bars_with_ci_first.pdf
-       raw_wins_combined_<DATASET>_<mode>.pdf  ← per-dataset 3-law overlay
-  4. Emits per-seed-per-cell diagnostic CSV for outlier detection:
-       per_seed_diagnostics.csv
-
-Usage
-─────
+Examples:
   # Default - reads from ./subset_bbox_seeds/ (matches dispatch_seeds.sh default)
   python aggregate_seed_runs.py --out-dir subset_bbox_seeds/aggregated
 
@@ -32,6 +24,8 @@ Usage
 NOTE: --seed-dir points at the PARENT containing seed_0/, seed_1/, ...,
 NOT a single seed_N/ directory.
 """
+
+from __future__ import annotations
 
 import argparse
 import re
@@ -115,7 +109,7 @@ _NUM_RE = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
 _NP_WRAPPER_RE = re.compile(r"np\.\w+\(([^)]*?)\)")
 
 
-def parse_tpp_list(s):
+def parse_tpp_list(s: object) -> np.ndarray | None:
     if not isinstance(s, str) or not s.strip():
         return None
     clean = _NP_WRAPPER_RE.sub(r"\1", s)
@@ -131,7 +125,7 @@ def parse_tpp_list(s):
 # ─────────────────────────────────────────────────────────────────────────
 # Load per-seed bbox CSVs
 # ─────────────────────────────────────────────────────────────────────────
-def load_seed_dir(seed_dir: Path):
+def load_seed_dir(seed_dir: Path) -> pd.DataFrame:
     """Combine CO and NC_BBOX rows per seed into one wide dataframe
     with columns: dataset, law, mode, subset_mask, target_tpps, rmse_co,
     rmse_nc, seed. Returns empty DataFrame if no CSVs found."""
@@ -166,7 +160,7 @@ def load_seed_dir(seed_dir: Path):
     return df
 
 
-def load_all_seeds(seed_runs_dir: Path):
+def load_all_seeds(seed_runs_dir: Path) -> pd.DataFrame:
     """Loads seed_runs_dir/seed_*/subset_bbox_*.csv for all seeds found.
     Returns long-format DataFrame with an added 'seed' column."""
     seed_dirs = sorted(seed_runs_dir.glob("seed_*"))
@@ -202,7 +196,9 @@ def load_all_seeds(seed_runs_dir: Path):
 # ─────────────────────────────────────────────────────────────────────────
 # Per-seed sweep: reused from single-seed script
 # ─────────────────────────────────────────────────────────────────────────
-def sweep_seed(g: pd.DataFrame, kappa_targets: np.ndarray):
+def sweep_seed(
+    g: pd.DataFrame, kappa_targets: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Given a single-seed slice (usually grouped by law/mode/dataset),
     compute (winrates, |Regime A|, NC wins count) at each κ_target."""
     tpps_list = [parse_tpp_list(s) for s in g["target_tpps"].values]
@@ -247,7 +243,9 @@ def sweep_seed(g: pd.DataFrame, kappa_targets: np.ndarray):
 # Per-seed diagnostics: long DataFrame indexed by (seed, law, mode, kt).
 # For per-(law, dataset) also track which dataset.
 # ─────────────────────────────────────────────────────────────────────────
-def build_per_seed_table(df: pd.DataFrame, kappa_targets: np.ndarray, include_dataset=False):
+def build_per_seed_table(
+    df: pd.DataFrame, kappa_targets: np.ndarray, include_dataset: bool = False
+) -> pd.DataFrame:
     group_cols = ["seed", "law", "mode"] + (["dataset"] if include_dataset else [])
     rows = []
     for keys, g in df.groupby(group_cols):
@@ -271,7 +269,12 @@ def build_per_seed_table(df: pd.DataFrame, kappa_targets: np.ndarray, include_da
 # Aggregate across seeds: mean + 95% CI via percentile bootstrap.
 # Mask out per-seed values where |A| < MIN_CELL_N first.
 # ─────────────────────────────────────────────────────────────────────────
-def bootstrap_ci(vals, n_boot=2000, alpha=0.05, rng=None):
+def bootstrap_ci(
+    vals: np.ndarray,
+    n_boot: int = 2000,
+    alpha: float = 0.05,
+    rng: np.random.Generator | None = None,
+) -> tuple[float, float, float, int]:
     """Return (mean, lower, upper) 95% CI via percentile bootstrap.
     `vals` is a 1D array of per-seed winrates; NaNs dropped."""
     if rng is None:
@@ -289,15 +292,18 @@ def bootstrap_ci(vals, n_boot=2000, alpha=0.05, rng=None):
     return (float(np.mean(v)), float(lo), float(hi), len(v))
 
 
-def aggregate(per_seed_df, group_cols, kappa_targets, min_cell_n=0):
+def aggregate(
+    per_seed_df: pd.DataFrame,
+    group_cols: list[str],
+    kappa_targets: np.ndarray,
+    min_cell_n: int = 0,
+) -> pd.DataFrame:
     """Collapse per-seed values to mean/CI per (group, κ_target) cell.
-    Reports CI on: (1) winrate %, (2) raw NC-win count (numerator),
-    (3) |Regime A| itself (which also varies per seed since fitted β
-    affects regime classification).
-
-    NaN-masking is optional via min_cell_n (default 0, no masking).
-    When 0, every κ_target value is reported; the widening CI band
-    at small |A| honestly signals where the estimate is noisy."""
+    Reports CI on: (1) winrate %, (2) raw NC-win count (numerator), (3) |Regime A|
+    itself (which also varies per seed since fitted β affects regime classification).
+    NaN-masking is optional via min_cell_n (default 0, no masking). When 0, every
+    κ_target value is reported; the widening CI band at small |A| honestly signals
+    where the estimate is noisy."""
     rng = np.random.default_rng(12345)
     out_rows = []
     for keys, g in per_seed_df.groupby(group_cols + ["kappa_target", "log10_kappa_target"]):
@@ -333,7 +339,9 @@ def aggregate(per_seed_df, group_cols, kappa_targets, min_cell_n=0):
 # ─────────────────────────────────────────────────────────────────────────
 # Raw NC-wins COUNT plots with CI (numerator only)
 # ─────────────────────────────────────────────────────────────────────────
-def plot_raw_wins_per_law_ci(agg_law: pd.DataFrame, kappa_targets, out_dir: Path, mode="first"):
+def plot_raw_wins_per_law_ci(
+    agg_law: pd.DataFrame, kappa_targets: np.ndarray, out_dir: Path, mode: str = "first"
+) -> None:
     """Per-law overlay, Y axis = NC-wins count (not %).
     Monotone-decreasing curves from max at κ=10^2 to ~0 at κ=10^7,
     with shaded CI band across seeds."""
@@ -375,8 +383,8 @@ def plot_raw_wins_per_law_ci(agg_law: pd.DataFrame, kappa_targets, out_dir: Path
 
 
 def plot_raw_wins_small_multiples_ci(
-    agg_cell: pd.DataFrame, kappa_targets, out_dir: Path, mode="first"
-):
+    agg_cell: pd.DataFrame, kappa_targets: np.ndarray, out_dir: Path, mode: str = "first"
+) -> None:
     """Per-(law, dataset) small multiples of NC-wins count with CI.
     Paper-ready styling: thicker shaded CI bands, no in-axis text
     annotations, clean row/column labels."""
@@ -462,7 +470,7 @@ def plot_raw_wins_small_multiples_ci(
 # (Regime A → Regime B) is dataset-agnostic: every law's NC-win count
 # collapses around the same κ_target threshold.
 # ─────────────────────────────────────────────────────────────────────────
-def _nb_style_axes(ax):
+def _nb_style_axes(ax: plt.Axes) -> None:
     """Apply notebook-style 2-D axes: grey panel, grey grid, all four
     spines visible, big inward ticks. Mirrors style_ticks_2d() from the
     figure notebook (visuals.ipynb)."""
@@ -494,7 +502,7 @@ def _nb_style_axes(ax):
     ax.grid(True, which="major", color=_NB_GRID_COLOR, linewidth=_NB_GRID_LW, alpha=1.0, zorder=0)
 
 
-def _nb_style_legend(legend):
+def _nb_style_legend(legend: matplotlib.legend.Legend | None) -> None:
     """White square frame with black border at fixed alpha - mirrors
     _style_legend() from the notebook."""
     if legend is None:
@@ -511,15 +519,13 @@ def _nb_style_legend(legend):
 
 
 def plot_raw_wins_combined_per_dataset_ci(
-    agg_cell: pd.DataFrame, kappa_targets, out_dir: Path, mode="first"
-):
+    agg_cell: pd.DataFrame, kappa_targets: np.ndarray, out_dir: Path, mode: str = "first"
+) -> None:
     """One PDF+PNG per dataset; all 3 laws overlaid with CI bands.
 
-    Filename pattern:  raw_wins_combined_<DATASET>_<MODE>.{pdf,png}
-    Panel size:        9 × 9 inches (notebook surface-plot baseline)
-    Style:             locked to notebook's "Shared Sizing Constants",
-                       scoped via rc_context so it does not affect the
-                       other plots in this file.
+    Files are raw_wins_combined_<DATASET>_<MODE>.{pdf,png}, 9 × 9 inch panels (notebook
+    surface-plot baseline). Style is locked to the notebook's "Shared Sizing Constants",
+    scoped via rc_context so it does not affect the other plots in this file.
     """
     g = agg_cell[agg_cell["mode"] == mode]
     datasets = sorted(g["dataset"].unique())
@@ -607,7 +613,9 @@ def _percent_ylim(ax: plt.Axes, top: float = 100.0) -> None:
     ax.set_ylim(min(0.0, lo), max(top, hi + (top - 100.0)))
 
 
-def plot_per_law_ci(agg_law: pd.DataFrame, kappa_targets: np.ndarray, out_dir: Path, mode="first"):
+def plot_per_law_ci(
+    agg_law: pd.DataFrame, kappa_targets: np.ndarray, out_dir: Path, mode: str = "first"
+) -> None:
     """Stacked 3-panel dual-axis plot: line with shaded CI + |Regime A|
     with its own lighter-grey CI band."""
     g = agg_law[agg_law["mode"] == mode]
@@ -668,7 +676,9 @@ def plot_per_law_ci(agg_law: pd.DataFrame, kappa_targets: np.ndarray, out_dir: P
     plt.close(fig)
 
 
-def plot_small_multiples_ci(agg_cell: pd.DataFrame, kappa_targets, out_dir: Path, mode="first"):
+def plot_small_multiples_ci(
+    agg_cell: pd.DataFrame, kappa_targets: np.ndarray, out_dir: Path, mode: str = "first"
+) -> None:
     """5-dataset × 3-law small multiples, each with shaded CI band
     for winrate % and a lighter-grey CI band for |Regime A|."""
     g = agg_cell[agg_cell["mode"] == mode]
@@ -754,8 +764,11 @@ def plot_small_multiples_ci(agg_cell: pd.DataFrame, kappa_targets, out_dir: Path
 
 
 def plot_bars_ci(
-    agg_law: pd.DataFrame, out_dir: Path, mode="first", kt_values=(1e2, 1e3, 1e4, 1e5, 1e6, 1e7)
-):
+    agg_law: pd.DataFrame,
+    out_dir: Path,
+    mode: str = "first",
+    kt_values: tuple[float, ...] = (1e2, 1e3, 1e4, 1e5, 1e6, 1e7),
+) -> None:
     """Bar chart at decade κ_target values, error bars = 95% CI."""
     g = agg_law[agg_law["mode"] == mode]
     laws = [l for l in ("Chinchilla", "Droppo-Elibol", "Kaplan") if l in g["law"].unique()]
@@ -832,7 +845,7 @@ def plot_bars_ci(
 # ─────────────────────────────────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────────────────────────────────
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--seed-dir",

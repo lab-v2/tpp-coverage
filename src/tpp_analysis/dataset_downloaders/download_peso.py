@@ -2,36 +2,21 @@
 """
 Download + pretokenize peS2o v2 train and val splits using SHUFFLED indices.
 
-APPROACH (shuffled, distribution-matched):
-  1. Load peS2o v2 from HuggingFace (random access).
-  2. Generate a random permutation of all document indices (with fixed seed).
-  3. Walk through shuffled indices, tokenize + chunk each document into
-     ceil(tokens / max_seq_len) sequences. Write train bins until we
-     hit the target token count.
-  4. Continue walking through the SAME shuffled permutation (no overlap
-     by construction) and write val bins until we hit the target token count.
-  5. Save split_config.json with all metadata for reproducibility.
+Dataset allenai/peS2o v2 (~38.8M documents, random access), tokenizer cl100k_base. Draw a
+fixed-seed permutation of all document indices and walk it, chunking each document into
+ceil(tokens / max_seq_len) sequences (no truncation): train bins up to the target token count,
+then val bins along the SAME permutation; split_config.json records all metadata. Why shuffled:
+the dataset groups s2ag (short abstracts, ~100-200 tokens) and s2orc (full papers, ~2000+
+tokens); a sequential left/right split gives Δ mean = +5818 tokens and length KL = 8.24
+(catastrophic), shuffling Δ = +14.6 and KL = 0.0015, a 5613x improvement. Train gets
+shuffled_indices[0 : T] and val [T : T+V]: zero overlap by construction.
 
-WHY SHUFFLED:
-  peS2o contains two sub-corpora: s2ag (short abstracts, ~100-200 tokens)
-  and s2orc (full papers, ~2000+ tokens). These are grouped in the dataset
-  ordering. A sequential left/right split produces Δ mean = +5818 tokens
-  and length KL = 8.24 (catastrophic). Shuffling reduces this to Δ = +14.6
-  and KL = 0.0015 - a 5613x improvement.
-
-OVERLAP GUARANTEE:
-  Train gets shuffled_indices[0 : T] and val gets shuffled_indices[T : T+V].
-  These are disjoint contiguous slices of a permutation - zero overlap by
-  construction. An explicit set-intersection check is run and asserted.
-
-Dataset: allenai/peS2o, version v2 (~38.8M documents)
-Tokenizer: cl100k_base
-Chunking: documents split into max_seq_len-token sequences (no truncation)
-
-Usage:
-    python pes2o_train_val.py
-    python pes2o_train_val.py --target-tokens 600000000 --max-seq-len 256 --seed 42
+Examples:
+    python download_peso.py
+    python download_peso.py --target-tokens 600000000 --max-seq-len 256 --seed 42
 """
+
+from __future__ import annotations
 
 import os
 import json

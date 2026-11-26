@@ -2,26 +2,24 @@
 """
 Plot a frequency bar chart of n_layers across the published architectures.
 
-Two modes:
-  --mode unique     One bar per architecture (14 total). Counts how many
-                    distinct architectures use each n_layers value.
-  --mode runs       One bar per checkpoint (~1,933). Counts how many
-                    actually-trained models use each n_layers value.
-                    Requires --audit-csv path.
+``--mode unique`` draws one bar per architecture (14 total): how many distinct
+architectures use each n_layers value. ``--mode runs`` draws one bar per checkpoint
+(~1,933): how many trained models use each value; it requires ``--audit-csv``.
 
-Usage:
+Style is locked to the figure notebooks' "Shared Sizing Constants": STIX fonts,
+9 x 9 panels, 25/20/20 font sizes, #D8D8D8 panel face with #a8a8a8 1.6 pt gridlines,
+all four spines at 1.5 pt, big inward ticks, no plot title.
+
+Examples:
     # From the 14-architecture table (no CSV needed)
     python plot_nlayers_distribution.py --mode unique --out fig_nlayers
 
     # From the audit CSV (run-count weighted)
     python plot_nlayers_distribution.py --mode runs \\
         --audit-csv architecture_audit_e3.csv --out fig_nlayers
-
-Style is locked to the figure notebook's "Shared Sizing Constants"
-(the figure notebooks): STIX fonts, 9 × 9 panels,
-25/20/20 font sizes, #D8D8D8 panel face with #a8a8a8 1.6 pt gridlines,
-all four spines at 1.5 pt, big inward ticks, no plot title.
 """
+
+from __future__ import annotations
 
 import argparse
 from collections import Counter
@@ -73,12 +71,12 @@ PUBLISHED_ARCHITECTURES = [
 ]
 
 
-def counts_unique():
+def counts_unique() -> Counter[int]:
     """Distribution across the 14 unique architectures."""
     return Counter(n_layers for (_, n_layers, *_) in PUBLISHED_ARCHITECTURES)
 
 
-def counts_runs(audit_csv: Path):
+def counts_runs(audit_csv: Path) -> Counter[int]:
     """Distribution across all trained checkpoints in the audit CSV."""
     import csv
 
@@ -96,7 +94,7 @@ def counts_runs(audit_csv: Path):
 # Mirrors style_ticks_2d() from the figure notebook (§ 7) with the x-axis
 # grid suppressed since the x-axis is categorical (one tick per bar).
 # ─────────────────────────────────────────────────────────────────────────
-def _nb_style_axes(ax):
+def _nb_style_axes(ax: plt.Axes) -> None:
     ax.tick_params(
         axis="both",
         which="major",
@@ -135,7 +133,7 @@ def _nb_style_axes(ax):
     ax.set_axisbelow(True)
 
 
-def plot(counts: Counter, out_stem: Path):
+def plot(counts: Counter, out_stem: Path) -> None:
     layers = sorted(counts.keys())
     freqs = [counts[k] for k in layers]
 
@@ -184,7 +182,7 @@ def plot(counts: Counter, out_stem: Path):
         plt.close(fig)
 
 
-def main():
+def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--mode", choices=["unique", "runs"], default="unique")
     p.add_argument(

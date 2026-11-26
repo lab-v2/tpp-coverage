@@ -4,12 +4,14 @@ Used by ``figure1_panels.py``, ``visuals.ipynb`` and
 ``special_viz_notebook_bf16_v2.ipynb``.
 """
 
+from __future__ import annotations
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgba
 
 
-_HOLDOUT_STYLES: dict[str, dict] = {
+_HOLDOUT_STYLES: dict[str, dict[str, str | int]] = {
     "holdout": {"color": "black", "marker": "o", "s": 40},
     "unified": {"color": "black", "marker": "o", "s": 40},
     "non-colinear": {"color": "darkorange", "marker": "^", "s": 40},
@@ -19,7 +21,7 @@ _HOLDOUT_STYLES: dict[str, dict] = {
 }
 
 
-def _holdout_style(label: str) -> dict:
+def _holdout_style(label: str) -> dict[str, str | int]:
     low = label.lower()
     for key in sorted(_HOLDOUT_STYLES, key=len, reverse=True):
         if key in low:
@@ -78,7 +80,7 @@ def _camera_depth(
 
 
 def _draw_boundary_edges_occlusion(
-    ax,
+    ax: plt.Axes,
     N_mesh: np.ndarray,
     D_mesh: np.ndarray,
     L_self_clip: np.ndarray,
@@ -160,7 +162,7 @@ def _compute_intersection_3d(
     L_co: np.ndarray,
     L_nc: np.ndarray,
     law_obj,
-    co_params: tuple | list,
+    co_params: tuple[float, ...] | list[float],
     z_lo: float,
     z_hi: float,
 ) -> list[tuple[np.ndarray, np.ndarray, np.ndarray]]:

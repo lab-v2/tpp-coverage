@@ -2,30 +2,20 @@
 """
 Download + pretokenize Cosmopedia train and val splits using SHUFFLED indices.
 
-APPROACH (shuffled, distribution-matched):
-  1. Generate a random permutation of all example indices (with fixed seed).
-  2. Walk through shuffled indices, tokenize + chunk each example into
-     ceil(tokens / max_seq_len) sequences. Write train bins until we
-     hit the target token count.
-  3. Continue walking through the SAME shuffled permutation (no overlap
-     by construction) and write val bins until we hit the target token count.
-  4. Save split_config.json with all metadata for reproducibility.
+Dataset HuggingFaceTB/cosmopedia (subset web_samples_v2), tokenizer cl100k_base. Draw a
+fixed-seed permutation of all example indices and walk it, chunking each example into
+ceil(tokens / max_seq_len) sequences (no truncation): train bins up to the target token count,
+then val bins along the SAME permutation; split_config.json records all metadata. Why shuffled:
+the dump may have ordering artifacts (by source, topic or generation batch), so sequential
+train/val splits from the beginning/end risk a distribution shift that biases scaling law fits.
+Train and val are contiguous slices of one permutation: zero overlap by construction.
 
-WHY SHUFFLED:
-  The Cosmopedia HuggingFace dump may have ordering artifacts (e.g. by
-  source, topic, or generation batch). Sequential train/val splits from
-  the beginning/end risk systematic distribution shift that biases
-  scaling law fits. Shuffling eliminates this. Train and val are
-  contiguous slices of a single permutation - zero overlap by construction.
-
-Dataset: HuggingFaceTB/cosmopedia, subset web_samples_v2
-Tokenizer: cl100k_base
-Chunking: examples split into max_seq_len-token sequences (no truncation)
-
-Usage:
-    python cosmopedia_train_val.py
-    python cosmopedia_train_val.py --target-tokens 600000000 --max-seq-len 256 --seed 42
+Examples:
+    python download_cosmopedia.py
+    python download_cosmopedia.py --target-tokens 600000000 --max-seq-len 256 --seed 42
 """
+
+from __future__ import annotations
 
 import os
 import json

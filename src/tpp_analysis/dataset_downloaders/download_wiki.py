@@ -2,36 +2,21 @@
 """
 Download + pretokenize Wikipedia train and val splits using SHUFFLED indices.
 
-APPROACH (shuffled, distribution-matched):
-  1. Generate a random permutation of all article indices (with fixed seed).
-  2. Walk through shuffled indices, tokenize + chunk each article into
-     ceil(tokens / max_seq_len) sequences. Write train bins until we
-     hit the target token count.
-  3. Continue walking through the SAME shuffled permutation (no overlap
-     by construction) and write val bins until we hit the target token count.
-  4. Save split_config.json with all metadata for reproducibility.
+Dataset wikimedia/wikipedia (subset 20231101.en, ~6.4M articles), tokenizer cl100k_base. Draw a
+fixed-seed permutation of all article indices and walk it, chunking each article into
+ceil(tokens / max_seq_len) sequences (no truncation): train bins up to the target token count,
+then val bins along the SAME permutation; split_config.json records all metadata. Why shuffled:
+the dump is ordered by page ID (roughly creation date); articles at index 0 average ~720 tokens
+and at index 6.4M ~878, a 22% difference that causes a ~0.7 nat offset in holdout loss and
+destroys scaling law fits (verified in the KL divergence notebook). Train gets
+shuffled_indices[0 : T] and val [T : T+V]: zero overlap by construction.
 
-WHY SHUFFLED:
-  The Wikipedia HuggingFace dump is ordered by internal page ID (roughly
-  article creation date). Articles at the start (index 0) average ~720
-  tokens while articles at the end (index 6.4M) average ~878 tokens - a
-  22% structural difference that causes a ~0.7 nat systematic offset in
-  holdout loss, destroying scaling law fits. Shuffling eliminates this
-  distribution shift. See the KL divergence notebook for verification.
-
-OVERLAP GUARANTEE:
-  Train gets shuffled_indices[0 : T] and val gets shuffled_indices[T : T+V].
-  These are disjoint contiguous slices of a permutation - zero overlap by
-  construction. An explicit set-intersection check is run and asserted.
-
-Dataset: wikimedia/wikipedia, subset 20231101.en (~6.4M articles)
-Tokenizer: cl100k_base
-Chunking: articles split into max_seq_len-token sequences (no truncation)
-
-Usage:
-    python wikipedia_train_val.py
-    python wikipedia_train_val.py --target-tokens 600000000 --max-seq-len 256 --seed 42
+Examples:
+    python download_wiki.py
+    python download_wiki.py --target-tokens 600000000 --max-seq-len 256 --seed 42
 """
+
+from __future__ import annotations
 
 import os
 import json

@@ -2,36 +2,18 @@
 """
 Parallel n-gram KL divergence comparison (n=1,2,3,4,5) for train vs val splits.
 
-PARALLELISM ARCHITECTURE (3 levels):
-  Level 1: Each DATASET is its own independent subprocess      (5 processes)
-  Level 2: Each N-GRAM ORDER is its own independent subprocess (5 per dataset = 25 total)
-  Level 3: Within each n-gram job, token counting is parallelized across chunks (multiprocessing)
+Three levels of parallelism: each DATASET (5) and each N-GRAM ORDER (5 per dataset, 25 total)
+is its own subprocess, and inside each job token counting runs over chunks in a
+multiprocessing Pool of --workers processes. --mode run-all spawns up to 25 jobs; throttle
+with --max-parallel. Split strategies, 1.3B tokens each side: Wikipedia, peS2o and C4 use a
+shuffled permutation, Red Pajama a shuffled permutation at shard and doc level, Cosmopedia a
+left/right sequential split (synthetic data, no ordering bias). Input is the dataset_downloaders
+layout $DATA_DIR/<dataset>/{train,val}_{tokens,lengths}.bin for wikipedia, redpajama, pes2o,
+cosmopedia and c4: *_tokens.bin is uint32 sequences padded to max_seq_len, *_lengths.bin uint16
+original sequence lengths (for masking padding).
 
-  So running --mode run-all spawns up to 25 independent processes, each of which
-  internally uses --workers threads for the actual counting. On godol, you can
-  launch all 25 at once or throttle with --max-parallel.
-
-Datasets & split strategies:
-  - Wikipedia:   shuffled permutation, 1.3B tokens each side
-  - Red Pajama:  shuffled permutation (shard + doc level), 1.3B tokens each side
-  - peS2o:       shuffled permutation, 1.3B tokens each side
-  - C4:          shuffled permutation, 1.3B tokens each side
-  - Cosmopedia:  left/right sequential split (synthetic data, no ordering bias), 1.3B tokens each side
-
-On-disk layout (produced by the dataset_downloaders):
-  $DATA_DIR/
-    wikipedia/{train,val}_{tokens,lengths}.bin
-    redpajama/{train,val}_{tokens,lengths}.bin
-    pes2o/{train,val}_{tokens,lengths}.bin
-    cosmopedia/{train,val}_{tokens,lengths}.bin
-    c4/{train,val}_{tokens,lengths}.bin
-
-Binary format (from our pretokenization pipeline):
-  - *_tokens.bin:  uint32, padded sequences of max_seq_len
-  - *_lengths.bin: uint16, original sequence lengths (for masking padding)
-
-Usage:
-  # Run ALL 15 jobs (5 datasets x 5 n-grams) in parallel:
+Examples:
+  # Run ALL 25 jobs (5 datasets x 5 n-grams) in parallel:
   python ngram_kl_parallel.py --mode run-all --base-dir $DATA_DIR --workers 4
 
   # Run all 5 n-gram orders for ONE dataset:
@@ -46,6 +28,8 @@ Usage:
   # Quick test with token budget cap:
   python ngram_kl_parallel.py --mode single --dataset wikipedia --ngram 1 --token-budget 50000000
 """
+
+from __future__ import annotations
 
 import os
 import sys
