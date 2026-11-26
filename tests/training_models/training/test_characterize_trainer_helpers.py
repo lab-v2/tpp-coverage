@@ -9,6 +9,8 @@ their time stamps; expected values are the base commit's, frozen in `frozen/`.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import argparse
 import importlib
 import json
@@ -25,6 +27,9 @@ import torch
 from characterize import check_frozen
 from conftest import SRC
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
 sys.path.insert(0, str(SRC / "training_models" / "training"))
 T = importlib.import_module("training_models.training.DistributedTrainer")
 M = importlib.import_module("dist_trainer_main")
@@ -40,7 +45,7 @@ def stamped(s: str) -> str:
 
 
 @pytest.fixture
-def restore_flags():
+def restore_flags() -> Iterator[None]:
     """set_seed turns on global determinism flags; give the worker its own back afterwards."""
     flags = (torch.are_deterministic_algorithms_enabled(), torch.backends.cudnn.deterministic)
     bench = torch.backends.cudnn.benchmark
@@ -49,7 +54,7 @@ def restore_flags():
     torch.backends.cudnn.deterministic, torch.backends.cudnn.benchmark = flags[1], bench
 
 
-def test_seeding(restore_flags):
+def test_seeding(restore_flags: None) -> None:
     T.set_seed(11)
     view = {
         "draws": [random.random(), float(np.random.rand()), torch.rand(3).tolist()],
@@ -67,13 +72,19 @@ def test_seeding(restore_flags):
     check_frozen(FROZEN / "seeding.json", view)
 
 
-def tiny_model():
+def tiny_model() -> tuple[ModelConfig, torch.nn.Module]:
     torch.manual_seed(0)
     cfg = ModelConfig(vocab_size=50, max_seq_len=8, n_layers=1, n_heads=2, d_model=8, d_ff=32)
     return cfg, create_model(cfg)
 
 
-def saved_state(model, cfg):
+def saved_state(
+    model: torch.nn.Module, cfg: ModelConfig
+) -> tuple[
+    torch.optim.Optimizer,
+    torch.optim.lr_scheduler.LRScheduler,
+    torch.optim.lr_scheduler.LRScheduler,
+]:
     """An optimizer and both schedulers after one step of the model, as the loop holds them."""
     opt = T.make_optimizer("adamw", model.parameters(), 1e-3, 0.3)
     ws = torch.optim.lr_scheduler.LinearLR(opt, start_factor=0.01, end_factor=1.0, total_iters=2)
@@ -85,7 +96,7 @@ def saved_state(model, cfg):
     return opt, ws, cs
 
 
-def read_tree(root: Path) -> dict:
+def read_tree(root: Path) -> dict[str, object]:
     """Every file under `root` by stamp-free relative name: JSON and NPZ contents, checkpoints'
     scalar fields and tensors."""
     out = {}
@@ -111,7 +122,9 @@ def read_tree(root: Path) -> dict:
     return {k: (stamped(v) if isinstance(v, str) else v) for k, v in out.items()}
 
 
-def test_checkpoint_and_metrics_files(tmp_path, monkeypatch, capsys):
+def test_checkpoint_and_metrics_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.chdir(tmp_path)
     cfg, model = tiny_model()
     opt, ws, cs = saved_state(model, cfg)
@@ -155,7 +168,9 @@ def test_checkpoint_and_metrics_files(tmp_path, monkeypatch, capsys):
     check_frozen(FROZEN / "resume_reads.json", view)
 
 
-def test_checkpoint_validation_and_failed_saves(tmp_path, monkeypatch, capsys):
+def test_checkpoint_validation_and_failed_saves(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.chdir(tmp_path)
     trainer = T.DistributedTrainer()
     empty = tmp_path / "empty.pt"
@@ -184,7 +199,7 @@ def test_checkpoint_validation_and_failed_saves(tmp_path, monkeypatch, capsys):
     check_frozen(FROZEN / "failed_saves.json", view)
 
 
-def test_find_and_load_metrics(tmp_path):
+def test_find_and_load_metrics(tmp_path: Path) -> None:
     d = tmp_path / "training_metrics"
     d.mkdir()
     ckpt = f"{PREFIX}_epoch2_bs4_seq8_time0.01h_completedAt20260101_000000.pt"
@@ -201,7 +216,7 @@ def test_find_and_load_metrics(tmp_path):
     check_frozen(FROZEN / "find_metrics.json", view)
 
 
-def test_resume_distributed_training(tmp_path, monkeypatch):
+def test_resume_distributed_training(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.chdir(tmp_path)
     (tmp_path / "training_metrics").mkdir()
     np.savez(tmp_path / "training_metrics" / f"{PREFIX}_intermediate.npz", steps=[0, 1, 2])
@@ -220,7 +235,7 @@ def test_resume_distributed_training(tmp_path, monkeypatch):
     check_frozen(FROZEN / "resume.json", view)
 
 
-def test_trainer_entry_without_a_process_group(restore_flags):
+def test_trainer_entry_without_a_process_group(restore_flags: None) -> None:
     """The trainer's own checks before CUDA: names, accumulation, the process group."""
     trainer = T.DistributedTrainer(seed=5)
     assert trainer.load_dataset("unknown", 8, True) == (None, None)

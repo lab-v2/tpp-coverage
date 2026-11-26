@@ -2,19 +2,19 @@
 
 The trainer hard-codes CUDA (`torch.device("cuda:<rank>")`) and the nccl backend, so these tests
 are marked `gpu` and skipped where torch sees no GPU (tests/conftest.py). Each run trains a
-one-layer Llama (d_model 16) for two epochs on the first 64 rows of the real pre-tokenized
-Wikipedia corpus (`$DATA_DIR/wikipedia/{train,val}_{tokens,lengths}.bin`, the layout the
-downloaders write; skipped when absent), with the code's own deterministic flags.
+one-layer Llama (d_model 16) for two epochs, with the code's deterministic flags, on the first 64
+rows of the real Wikipedia corpus (`$DATA_DIR/wikipedia/{train,val}_{tokens,lengths}.bin`).
 
 What is compared with the base commit's values (`frozen/`, see `tests/characterize.py`): every
-checkpoint's `model_state_dict` and optimizer tensors, its scalar fields and scheduler states, the
-loss, learning-rate and token arrays of the metrics files, the metadata JSON, and the output of
-`verify_reproducibility.py` on the run's files. Files are found by glob and read; their bytes and
-names are never compared (both carry timestamps). Timing fields and the host name are left out.
-The frozen values hold for the GPU and torch build they were taken on (GH200, torch 2.5.1+cu124).
+checkpoint's tensors, scalar fields and scheduler states, the metrics files' arrays, the metadata
+JSON and `verify_reproducibility.py`'s output on the run. Files are found by glob; their bytes,
+names (both stamped), timings and host name are never compared. The frozen values hold for the
+GPU and torch build they were taken on (GH200, torch 2.5.1+cu124).
 """
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import json
 import os
@@ -28,6 +28,9 @@ import pytest
 
 from characterize import check_frozen
 from conftest import SRC, run
+
+if TYPE_CHECKING:
+    import torch
 
 pytestmark = pytest.mark.gpu
 FROZEN = Path(__file__).parent / "frozen"
@@ -90,7 +93,7 @@ def _train(cwd: Path, data_dir: Path, args: list[str]) -> str:
 
 
 @pytest.fixture(scope="module")
-def corpus(tmp_path_factory) -> Path:
+def corpus(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """A DATA_DIR holding the first ROWS rows of each split of the real Wikipedia corpus."""
     src = Path(os.environ.get("DATA_DIR", "/nonexistent")) / "wikipedia"
     if not (src / "train_tokens.bin").exists():
@@ -106,7 +109,7 @@ def corpus(tmp_path_factory) -> Path:
 
 
 @pytest.fixture(scope="module")
-def runs(corpus, tmp_path_factory) -> dict[str, Path]:
+def runs(corpus: Path, tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
     """The two independent runs side by side, then a resume from the cosine run's epoch 1."""
     root = tmp_path_factory.mktemp("runs")
     # Two processes at once on one GPU: each is a few seconds of a 3M-parameter model.
@@ -119,7 +122,7 @@ def runs(corpus, tmp_path_factory) -> dict[str, Path]:
     return {name: root / name for name in [*RUNS, "resume"]}
 
 
-def _load(path: Path) -> dict:
+def _load(path: Path) -> dict[str, object]:
     import torch
 
     return torch.load(path, map_location="cpu", weights_only=False)
@@ -131,11 +134,11 @@ def _checkpoints(cwd: Path, where: str = "saved_checkpoints") -> list[Path]:
     return sorted(found, key=lambda p: _load(p)["epoch"])
 
 
-def _tensor(t) -> dict:
+def _tensor(t: torch.Tensor) -> dict[str, object]:
     return {"shape": list(t.shape), "dtype": str(t.dtype), "values": t.float().numpy()}
 
 
-def _unstamp(value):
+def _unstamp(value: object) -> object:
     """Strings with their time stamps (`20261126_021914`, a resumed run's prefix) replaced."""
     if isinstance(value, str):
         return re.sub(r"\d{8}_\d{6}", "<stamp>", value)
@@ -146,11 +149,11 @@ def _unstamp(value):
     return value
 
 
-def _drop_volatile(d: dict) -> dict:
+def _drop_volatile(d: dict[str, object]) -> dict[str, object]:
     return {k: _unstamp(v) for k, v in d.items() if k not in VOLATILE}
 
 
-def _checkpoint_view(path: Path) -> dict:
+def _checkpoint_view(path: Path) -> dict[str, object]:
     ckpt = _load(path)
     opt = ckpt["optimizer_state_dict"]
     view = {k: v for k, v in _drop_volatile(ckpt).items() if not k.endswith("state_dict")}
@@ -166,12 +169,12 @@ def _checkpoint_view(path: Path) -> dict:
     return view
 
 
-def _npz(path: Path) -> dict:
+def _npz(path: Path) -> dict[str, object]:
     data = np.load(path, allow_pickle=True)
     return _drop_volatile({k: data[k].tolist() for k in sorted(data.files)})
 
 
-def _json(path: Path) -> dict:
+def _json(path: Path) -> dict[str, object]:
     return _drop_volatile(json.loads(path.read_text()))
 
 
@@ -189,7 +192,7 @@ def _names(paths: list[Path]) -> list[str]:
     return sorted(out)
 
 
-def test_corpus_slice_is_the_frozen_one(corpus):
+def test_corpus_slice_is_the_frozen_one(corpus: Path) -> None:
     """The slice the runs train on: a different corpus fails here, not in the tensors."""
     view = {}
     for split in ("train", "val"):
@@ -200,7 +203,7 @@ def test_corpus_slice_is_the_frozen_one(corpus):
 
 
 @pytest.mark.parametrize("name", [*RUNS, "resume"])
-def test_checkpoints(runs, name):
+def test_checkpoints(runs: dict[str, Path], name: str) -> None:
     cwd = runs[name]
     local = _checkpoints(cwd)
     shared = _checkpoints(cwd, "shared/saved_checkpoints")
@@ -215,7 +218,7 @@ def test_checkpoints(runs, name):
 
 
 @pytest.mark.parametrize("name", [*RUNS, "resume"])
-def test_metrics(runs, name):
+def test_metrics(runs: dict[str, Path], name: str) -> None:
     cwd = runs[name]
     local = _one(cwd, "training_metrics/*_metrics.npz")
     shared = _one(cwd, "shared/training_metrics/*_metrics.npz")
@@ -235,14 +238,14 @@ def test_metrics(runs, name):
     check_frozen(FROZEN / f"metrics_{name}.json", view)
 
 
-def _verify(*args) -> list[str]:
+def _verify(*args: object) -> list[str]:
     """`verify_reproducibility.py` output without file names, timings and their lines."""
     out = run(["python", TRAINING / "verify_reproducibility.py", *map(str, args)]).stdout
     skip = ("Loading:", "cumulative_time", "epoch_times", "batch_times")
     return [ln for ln in out.splitlines() if not any(s in ln for s in skip)]
 
 
-def test_verify_reproducibility_on_the_run(runs):
+def test_verify_reproducibility_on_the_run(runs: dict[str, Path]) -> None:
     cwd = runs["cosine"]
     first, last = _checkpoints(cwd)
     shared_last = _checkpoints(cwd, "shared/saved_checkpoints")[-1]

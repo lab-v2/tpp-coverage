@@ -19,7 +19,7 @@ def _ce(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
     return nn.CrossEntropyLoss()(logits.reshape(-1, logits.size(-1)), labels.reshape(-1))
 
 
-def test_padded_loss_equals_the_loss_over_real_tokens():
+def test_padded_loss_equals_the_loss_over_real_tokens() -> None:
     torch.manual_seed(0)
     vocab, seq = 11, 9
     lengths = [9, 5, 2]  # real tokens per row; the rest is padding (id 0)
@@ -47,14 +47,16 @@ def test_padded_loss_equals_the_loss_over_real_tokens():
     assert not torch.isclose(unmasked, reference)
 
 
-def test_unpadded_batch_is_unchanged_by_the_mask():
+def test_unpadded_batch_is_unchanged_by_the_mask() -> None:
     ids = torch.randint(0, 50, (4, 17))
     _, labels, _ = T.shift_for_next_token(ids, torch.ones_like(ids))
     assert torch.equal(labels, ids[:, 1:])
 
 
 @pytest.mark.parametrize("n_examples,batch,accum", [(10, 4, 2), (12, 4, 4), (7, 6, 3), (8, 8, 1)])
-def test_accumulated_gradient_equals_the_full_batch_gradient(n_examples, batch, accum):
+def test_accumulated_gradient_equals_the_full_batch_gradient(
+    n_examples: int, batch: int, accum: int
+) -> None:
     torch.manual_seed(1)
     x = torch.randn(n_examples, 5)
     y = torch.randint(0, 3, (n_examples,))
@@ -93,7 +95,7 @@ def test_accumulated_gradient_equals_the_full_batch_gradient(n_examples, batch, 
         ("adafactor", torch.optim.Adafactor),
     ],
 )
-def test_make_optimizer_steps(name, cls):
+def test_make_optimizer_steps(name: str, cls) -> None:
     torch.manual_seed(2)
     model = nn.Linear(4, 1)
     opt = T.make_optimizer(name, model.parameters(), lr=1e-2, weight_decay=0.1)
@@ -106,7 +108,7 @@ def test_make_optimizer_steps(name, cls):
     assert not torch.equal(before, model.weight)
 
 
-def test_lion_update_is_the_sign_of_the_interpolated_momentum():
+def test_lion_update_is_the_sign_of_the_interpolated_momentum() -> None:
     p = nn.Parameter(torch.tensor([1.0, -2.0, 0.5]))
     opt = T.Lion([p], lr=0.1, betas=(0.9, 0.99), weight_decay=0.0)
     p.grad = torch.tensor([0.3, -0.4, 0.0])
@@ -115,12 +117,12 @@ def test_lion_update_is_the_sign_of_the_interpolated_momentum():
     torch.testing.assert_close(p.detach(), torch.tensor([0.9, -1.9, 0.5]))
 
 
-def test_unknown_optimizer_is_rejected():
+def test_unknown_optimizer_is_rejected() -> None:
     with pytest.raises(ValueError, match="unknown optimizer"):
         T.make_optimizer("rmsprop", nn.Linear(2, 2).parameters(), 1e-3, 0.0)
 
 
-def test_schedule_factor():
+def test_schedule_factor() -> None:
     assert T.schedule_factor("constant", 999, 1000) == 1.0
     assert T.schedule_factor("wsd", 0, 1000) == 1.0
     assert T.schedule_factor("wsd", 799, 1000) == 1.0
@@ -130,7 +132,7 @@ def test_schedule_factor():
         T.schedule_factor("linear", 0, 10)
 
 
-def test_trainer_cli_has_the_new_flags():
+def test_trainer_cli_has_the_new_flags() -> None:
     out = run(
         ["python", REPO / "src/training_models/training/dist_trainer_main.py", "--help"]
     ).stdout
@@ -146,7 +148,7 @@ def test_trainer_cli_has_the_new_flags():
         assert flag in out, flag
 
 
-def test_score_padding_reproduces_the_released_labels():
+def test_score_padding_reproduces_the_released_labels() -> None:
     ids = torch.tensor([[5, 6, 7, 0, 0]])
     mask = torch.tensor([[1, 1, 1, 0, 0]])
     _, legacy, _ = T.shift_for_next_token(ids, mask, mask_padding=False)
