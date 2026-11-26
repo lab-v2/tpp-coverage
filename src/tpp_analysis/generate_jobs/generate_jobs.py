@@ -219,6 +219,30 @@ torchrun --nproc_per_node={gpus} --standalone \\
 """
 
 
+def _experiment(
+    args: argparse.Namespace, design: Design, bf16: bool, lr: float, i: int, total: int, run: Run
+) -> str:
+    """One run's block of a job script: the i-th of `total` trainings."""
+    holdout = run.kind in ("holdout", "colinear_holdout")
+    return EXPERIMENT.format(
+        i=i,
+        total=total,
+        name=run_name(args.dataset, design, bf16, run),
+        gpus=args.gpus,
+        n=run.n,
+        d=run.d,
+        lr=lr,
+        wd=WEIGHT_DECAY,
+        epochs=design.epochs,
+        batch_size=BATCH_SIZE,
+        seq_len=SEQ_LEN,
+        dataset=args.dataset,
+        arch=ARCH,
+        mode_flag="--use-train-as-val \\\n    " if holdout else "--skip-val \\\n    ",
+        bf16_flag="--use-bf16 \\\n    " if bf16 else "",
+    )
+
+
 def write_scripts(args: argparse.Namespace) -> list[Path]:
     design = DESIGNS[args.design]
     bf16 = args.precision == "bf16"
@@ -254,24 +278,7 @@ def write_scripts(args: argparse.Namespace) -> list[Path]:
             venv=venv,
         )
         for i, run in enumerate(chunk, 1):
-            holdout = run.kind in ("holdout", "colinear_holdout")
-            body += EXPERIMENT.format(
-                i=i,
-                total=len(chunk),
-                name=run_name(args.dataset, design, bf16, run),
-                gpus=args.gpus,
-                n=run.n,
-                d=run.d,
-                lr=lr,
-                wd=WEIGHT_DECAY,
-                epochs=design.epochs,
-                batch_size=BATCH_SIZE,
-                seq_len=SEQ_LEN,
-                dataset=args.dataset,
-                arch=ARCH,
-                mode_flag="--use-train-as-val \\\n    " if holdout else "--skip-val \\\n    ",
-                bf16_flag="--use-bf16 \\\n    " if bf16 else "",
-            )
+            body += _experiment(args, design, bf16, lr, i, len(chunk), run)
         path = out_dir / f"{job_name}.sh"
         path.write_text(body)
         path.chmod(0o755)

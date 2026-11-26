@@ -845,7 +845,8 @@ def plot_bars_ci(
 # ─────────────────────────────────────────────────────────────────────────
 # MAIN
 # ─────────────────────────────────────────────────────────────────────────
-def main() -> None:
+def _parse_args() -> argparse.Namespace:
+    """The command line: seed and output directories, and the kappa_target sweep."""
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--seed-dir",
@@ -861,7 +862,44 @@ def main() -> None:
     ap.add_argument("--kt-min", type=float, default=DEFAULT_KT_MIN)
     ap.add_argument("--kt-max", type=float, default=DEFAULT_KT_MAX)
     ap.add_argument("--n-points", type=int, default=DEFAULT_KT_STEPS)
-    args = ap.parse_args()
+    return ap.parse_args()
+
+
+def _print_kappa_summary(agg_law: pd.DataFrame, kappa_targets: np.ndarray) -> None:
+    """Mean NC win rate and |A| with their 95% CIs at every kappa_target, first epoch."""
+    # ── Summary at every κ_target in the sweep ──────────────────
+    print("\n" + "=" * 80)
+    print(f"  MEAN ± 95% CI AT ALL {len(kappa_targets)} κ_target VALUES (first epoch)")
+    print("=" * 80)
+    print(
+        f"  {'log10(κ)':>10s}  {'κ_target':>12s}  "
+        f"{'mean%':>7s}  {'[lo, hi]':>16s}  "
+        f"{'|A|':>8s}  [|A| CI]"
+    )
+    for law in sorted(agg_law["law"].unique()):
+        print(f"\n  ── {law} ──")
+        sub = agg_law[(agg_law["law"] == law) & (agg_law["mode"] == "first")].sort_values(
+            "kappa_target"
+        )
+        for _, r in sub.iterrows():
+            mean = r["mean_nc_wins_pct"]
+            lo = r["ci_lo"]
+            hi = r["ci_hi"]
+            rsize = r["mean_regime_A_size"]
+            rlo = r["regime_A_ci_lo"]
+            rhi = r["regime_A_ci_hi"]
+            mean_str = f"{mean:5.1f}%" if np.isfinite(mean) else "   -  "
+            ci_str = f"[{lo:5.1f},{hi:5.1f}]" if np.isfinite(lo) else "       -      "
+            print(
+                f"  {r['log10_kappa_target']:>10.3f}  "
+                f"{r['kappa_target']:>12.2e}  "
+                f"{mean_str}  {ci_str}  "
+                f"{rsize:>8.0f}  [{rlo:.0f},{rhi:.0f}]"
+            )
+
+
+def main() -> None:
+    args = _parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
     kappa_targets = np.logspace(np.log10(args.kt_min), np.log10(args.kt_max), args.n_points)
@@ -900,35 +938,7 @@ def main() -> None:
         plot_raw_wins_combined_per_dataset_ci(agg_cell, kappa_targets, args.out_dir, mode=mode)
     plot_bars_ci(agg_law, args.out_dir, mode="first")
 
-    # ── Summary at every κ_target in the sweep ──────────────────
-    print("\n" + "=" * 80)
-    print(f"  MEAN ± 95% CI AT ALL {len(kappa_targets)} κ_target VALUES (first epoch)")
-    print("=" * 80)
-    print(
-        f"  {'log10(κ)':>10s}  {'κ_target':>12s}  "
-        f"{'mean%':>7s}  {'[lo, hi]':>16s}  "
-        f"{'|A|':>8s}  [|A| CI]"
-    )
-    for law in sorted(agg_law["law"].unique()):
-        print(f"\n  ── {law} ──")
-        sub = agg_law[(agg_law["law"] == law) & (agg_law["mode"] == "first")].sort_values(
-            "kappa_target"
-        )
-        for _, r in sub.iterrows():
-            mean = r["mean_nc_wins_pct"]
-            lo = r["ci_lo"]
-            hi = r["ci_hi"]
-            rsize = r["mean_regime_A_size"]
-            rlo = r["regime_A_ci_lo"]
-            rhi = r["regime_A_ci_hi"]
-            mean_str = f"{mean:5.1f}%" if np.isfinite(mean) else "   -  "
-            ci_str = f"[{lo:5.1f},{hi:5.1f}]" if np.isfinite(lo) else "       -      "
-            print(
-                f"  {r['log10_kappa_target']:>10.3f}  "
-                f"{r['kappa_target']:>12.2e}  "
-                f"{mean_str}  {ci_str}  "
-                f"{rsize:>8.0f}  [{rlo:.0f},{rhi:.0f}]"
-            )
+    _print_kappa_summary(agg_law, kappa_targets)
 
     print(f"\nArtifacts written to {args.out_dir}/")
     print("  Per-seed:      per_seed_sweep_by_{law,cell}.csv")

@@ -47,17 +47,8 @@ def extract_model_params_from_filename(filename: str) -> tuple[int, int, float, 
     return m, psi, lr, epoch
 
 
-def load_model_safely(
-    checkpoint_path: str, device: torch.device, architecture: str = "llama"
-) -> tuple[nn.Module, dict[str, object]]:
-    """Load model with proper error handling and memory management, handling checkpoint key mismatch."""
-    print_info(f"Loading checkpoint: {checkpoint_path} (Architecture: {architecture})")
-
-    try:
-        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
-    except Exception as e:
-        raise RuntimeError(f"Failed to load checkpoint: {e}")
-
+def _model_config_from(checkpoint: dict[str, object]) -> ModelConfig:
+    """The checkpoint's ModelConfig, with the cl100k_base vocabulary and d_ff = 4 d_model."""
     # Extract model config
     model_config_dict = checkpoint.get("model_config", {})
     if not model_config_dict:
@@ -70,7 +61,7 @@ def load_model_safely(
 
     # Create tokenizer and model config
     tokenizer = tiktoken.get_encoding("cl100k_base")
-    model_config = ModelConfig(
+    return ModelConfig(
         vocab_size=tokenizer.n_vocab,
         max_seq_len=model_config_dict["max_seq_len"],
         n_layers=model_config_dict["n_layers"],
@@ -79,6 +70,20 @@ def load_model_safely(
         d_ff=model_config_dict["d_model"] * 4,
         dropout=model_config_dict.get("dropout", 0.1),
     )
+
+
+def load_model_safely(
+    checkpoint_path: str, device: torch.device, architecture: str = "llama"
+) -> tuple[nn.Module, dict[str, object]]:
+    """Load model with proper error handling and memory management, handling checkpoint key mismatch."""
+    print_info(f"Loading checkpoint: {checkpoint_path} (Architecture: {architecture})")
+
+    try:
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    except Exception as e:
+        raise RuntimeError(f"Failed to load checkpoint: {e}")
+
+    model_config = _model_config_from(checkpoint)
 
     # Create model
     model = create_model(model_config, architecture=architecture)

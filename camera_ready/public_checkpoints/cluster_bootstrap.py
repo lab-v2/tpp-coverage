@@ -60,7 +60,7 @@ class ClusterOLS:
             keep &= np.isfinite(df[c].to_numpy(float))
         df = df.loc[keep]
         self.n_obs = len(df)
-        self.p = p = len(x_cols)
+        self.p = len(x_cols)
 
         x = np.column_stack([df[c].to_numpy(float) for c in x_cols])
         yv = df[y].to_numpy(float)
@@ -73,16 +73,8 @@ class ClusterOLS:
         self.n_clusters = len(units)
         self.units = units
 
-        # per-unit sufficient statistics, packed into one row each
-        m = 1 + p + 1 + p * p + p
-        z = np.empty((len(df), m))
-        z[:, 0] = w
-        z[:, 1 : 1 + p] = x * w[:, None]
-        z[:, 1 + p] = yv * w
-        z[:, 2 + p : 2 + p + p * p] = (x[:, :, None] * x[:, None, :]).reshape(len(df), p * p) * w[
-            :, None
-        ]
-        z[:, 2 + p + p * p :] = x * (yv * w)[:, None]
+        z = self._packed_rows(x, yv, w)
+        m = z.shape[1]
 
         stats = np.zeros((self.n_clusters, m))
         np.add.at(stats, unit_codes, z)
@@ -93,7 +85,23 @@ class ClusterOLS:
         self.unit_group[unit_codes] = group_codes
         self.n_cells = len(self.cells)
         self.m = m
+        self._index_units(df, unit_codes, order_col)
 
+    @staticmethod
+    def _packed_rows(x: np.ndarray, yv: np.ndarray, w: np.ndarray) -> np.ndarray:
+        """Per-row sufficient statistics (w, xw, yw, xx'w, xyw), packed into one row each."""
+        n, p = x.shape
+        m = 1 + p + 1 + p * p + p
+        z = np.empty((n, m))
+        z[:, 0] = w
+        z[:, 1 : 1 + p] = x * w[:, None]
+        z[:, 1 + p] = yv * w
+        z[:, 2 + p : 2 + p + p * p] = (x[:, :, None] * x[:, None, :]).reshape(n, p * p) * w[:, None]
+        z[:, 2 + p + p * p :] = x * (yv * w)[:, None]
+        return z
+
+    def _index_units(self, df: pd.DataFrame, unit_codes: np.ndarray, order_col: str | None) -> None:
+        """Unit order inside a cell (for the moving-block bootstrap), and the cluster lists."""
         # unit ordering inside a cell, for the moving-block bootstrap
         if order_col is not None:
             vals = df[order_col].to_numpy(float)

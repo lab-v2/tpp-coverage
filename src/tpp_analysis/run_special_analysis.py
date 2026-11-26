@@ -77,68 +77,10 @@ SEED_STRIDE = 137  # BF16 uses stride 137 per appendix
 
 
 def _get_seed_fitters():
-    """Build seed-aware fitters for the three (N, D, L)-shape laws."""
-    from scaling_laws.laws import (
-        _fit_generic,
-        kaplan_loss,
-        chinchilla_loss,
-        droppo_elibol_loss,
-    )
+    """The seed-aware fitters of the three (N, D, L)-shape laws: full_coverage_ci's."""
+    from full_coverage_ci import _SEED_FITTERS  # the same bounds, samplers and seeding
 
-    def _fit_kaplan_seed(N, D, L, n_restarts=300, seed=42):
-        bounds = [(1e3, 1e14), (1e3, 1e14), (0.01, 2.0), (0.01, 2.0)]
-
-        def sampler(rng, L):
-            return [
-                10 ** rng.uniform(5, 12),
-                10 ** rng.uniform(5, 12),
-                rng.uniform(0.05, 1.5),
-                rng.uniform(0.05, 1.5),
-            ]
-
-        return _fit_generic(kaplan_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
-
-    def _fit_chinchilla_seed(N, D, L, n_restarts=300, seed=42):
-        bounds = [(0.0, 10.0), (1e-2, 1e10), (0.01, 2.0), (1e-2, 1e10), (0.01, 2.0)]
-
-        def sampler(rng, L):
-            return [
-                rng.uniform(0.0, min(L) * 0.9),
-                10 ** rng.uniform(0, 8),
-                rng.uniform(0.1, 1.5),
-                10 ** rng.uniform(0, 8),
-                rng.uniform(0.1, 1.5),
-            ]
-
-        return _fit_generic(chinchilla_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
-
-    def _fit_droppo_elibol_seed(N, D, L, n_restarts=300, seed=42):
-        bounds = [
-            (1e-6, 10.0),
-            (1e3, 1e14),
-            (1e3, 1e14),
-            (0.01, 2.0),
-            (0.01, 2.0),
-            (0.01, 2.0),
-        ]
-
-        def sampler(rng, L):
-            return [
-                rng.uniform(0.01, min(L) * 0.8),
-                10 ** rng.uniform(5, 12),
-                10 ** rng.uniform(5, 12),
-                rng.uniform(0.05, 1.5),
-                rng.uniform(0.05, 1.5),
-                rng.uniform(0.05, 1.5),
-            ]
-
-        return _fit_generic(droppo_elibol_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
-
-    return {
-        "Kaplan": (_fit_kaplan_seed, kaplan_loss),
-        "Chinchilla": (_fit_chinchilla_seed, chinchilla_loss),
-        "Droppo-Elibol": (_fit_droppo_elibol_seed, droppo_elibol_loss),
-    }
+    return dict(_SEED_FITTERS)
 
 
 # ============================================================

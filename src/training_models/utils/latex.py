@@ -439,6 +439,25 @@ def _gplearn_expression_to_latex(expr: str) -> str | None:
     return latex_str
 
 
+def _latex(expr: sp.Expr) -> str:
+    """SymPy's LaTeX in the house style (dot products, unfolded short fractions)."""
+    return sp.latex(
+        expr,
+        fold_short_frac=False,
+        mul_symbol="dot",
+        fold_frac_powers=True,
+        fold_func_brackets=True,
+    )
+
+
+def _term_counts(expr: sp.Expr) -> tuple[int, int, int]:
+    """(total, numerator, denominator) additive terms of a fraction, each side expanded."""
+    numer, denom = sp.fraction(expr)
+    numer_terms = len(sp.Add.make_args(sp.expand(numer)))
+    denom_terms = len(sp.Add.make_args(sp.expand(denom)))
+    return numer_terms + denom_terms, numer_terms, denom_terms
+
+
 def convert_expression_to_latex(expression: str) -> tuple[str, str, int, int, int]:
     """
     Convert gplearn expression to LaTeX format with normalization.
@@ -477,33 +496,15 @@ def convert_expression_to_latex(expression: str) -> tuple[str, str, int, int, in
     normalized_sci = convert_large_numbers_to_float(expr=normalized)
 
     # Generate LaTeX
-    if latex_original_raw is None:
-        latex_original = sp.latex(
-            sympy_expr,
-            fold_short_frac=False,
-            mul_symbol="dot",
-            fold_frac_powers=True,
-            fold_func_brackets=True,
-        )
-    else:
-        latex_original = latex_original_raw
-    latex_simplified = sp.latex(
-        normalized_sci,
-        fold_short_frac=False,
-        mul_symbol="dot",
-        fold_frac_powers=True,
-        fold_func_brackets=True,
-    )
+    latex_original = latex_original_raw if latex_original_raw is not None else _latex(sympy_expr)
+    latex_simplified = _latex(normalized_sci)
 
     # Format LaTeX
     latex_original_formatted = break_latex_equation(latex_str=latex_original, max_width=120)
     latex_simplified_formatted = break_latex_equation(latex_str=latex_simplified, max_width=120)
 
     # Count terms
-    numer, denom = sp.fraction(normalized_sci)
-    numer_terms = len(sp.Add.make_args(sp.expand(numer)))
-    denom_terms = len(sp.Add.make_args(sp.expand(denom)))
-    total_terms = numer_terms + denom_terms
+    total_terms, numer_terms, denom_terms = _term_counts(normalized_sci)
 
     return (
         f"${latex_original_formatted}$",

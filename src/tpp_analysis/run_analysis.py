@@ -97,80 +97,16 @@ DEFAULT_BASE_SEED = 0
 def _get_seed_fitters() -> dict[
     str, tuple[Callable[..., tuple[np.ndarray | None, float, bool]], Callable[..., np.ndarray]]
 ]:
-    """Build seed-aware fitters for the three (N, D, L)-shape laws.
-    Import inside function for fork safety.
+    """The seed-aware fitters of the three (N, D, L)-shape laws: full_coverage_ci's, imported
+    inside the function for fork safety.
 
     Returns: dict[law_name -> (fit_fn, predict_fn)]
         fit_fn(N, D, L, n_restarts, seed) -> (params_array, sse, success)
         predict_fn(N, D, *params) -> L_pred
     """
-    from scaling_laws.laws import (
-        _fit_generic,
-        kaplan_loss,
-        chinchilla_loss,
-        droppo_elibol_loss,
-    )
+    from full_coverage_ci import _SEED_FITTERS  # the same bounds, samplers and seeding
 
-    def _fit_kaplan_seed(
-        N: np.ndarray, D: np.ndarray, L: np.ndarray, n_restarts: int = 300, seed: int = 42
-    ) -> tuple[np.ndarray | None, float, bool]:
-        bounds = [(1e3, 1e14), (1e3, 1e14), (0.01, 2.0), (0.01, 2.0)]
-
-        def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
-            return [
-                10 ** rng.uniform(5, 12),
-                10 ** rng.uniform(5, 12),
-                rng.uniform(0.05, 1.5),
-                rng.uniform(0.05, 1.5),
-            ]
-
-        return _fit_generic(kaplan_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
-
-    def _fit_chinchilla_seed(
-        N: np.ndarray, D: np.ndarray, L: np.ndarray, n_restarts: int = 300, seed: int = 42
-    ) -> tuple[np.ndarray | None, float, bool]:
-        bounds = [(0.0, 10.0), (1e-2, 1e10), (0.01, 2.0), (1e-2, 1e10), (0.01, 2.0)]
-
-        def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
-            return [
-                rng.uniform(0.0, min(L) * 0.9),
-                10 ** rng.uniform(0, 8),
-                rng.uniform(0.1, 1.5),
-                10 ** rng.uniform(0, 8),
-                rng.uniform(0.1, 1.5),
-            ]
-
-        return _fit_generic(chinchilla_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
-
-    def _fit_droppo_elibol_seed(
-        N: np.ndarray, D: np.ndarray, L: np.ndarray, n_restarts: int = 300, seed: int = 42
-    ) -> tuple[np.ndarray | None, float, bool]:
-        bounds = [
-            (1e-6, 10.0),
-            (1e3, 1e14),
-            (1e3, 1e14),
-            (0.01, 2.0),
-            (0.01, 2.0),
-            (0.01, 2.0),
-        ]
-
-        def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
-            return [
-                rng.uniform(0.01, min(L) * 0.8),
-                10 ** rng.uniform(5, 12),
-                10 ** rng.uniform(5, 12),
-                rng.uniform(0.05, 1.5),
-                rng.uniform(0.05, 1.5),
-                rng.uniform(0.05, 1.5),
-            ]
-
-        return _fit_generic(droppo_elibol_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
-
-    return {
-        "Kaplan": (_fit_kaplan_seed, kaplan_loss),
-        "Chinchilla": (_fit_chinchilla_seed, chinchilla_loss),
-        "Droppo-Elibol": (_fit_droppo_elibol_seed, droppo_elibol_loss),
-    }
+    return dict(_SEED_FITTERS)
 
 
 # ============================================================
