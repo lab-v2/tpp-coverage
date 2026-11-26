@@ -6,26 +6,18 @@ This module contains general utility functions for colored output, environment f
 and mathematical expression conversion.
 """
 
+from __future__ import annotations
+
 from functools import reduce
 from math import gcd
 from pathlib import Path
-from typing import Any
 import sympy as sp
 
 
 def normalize_fraction_by_leading_coefficient(expr: sp.Expr) -> sp.Expr:
     """
-    Normalize a fraction by factoring out the leading coefficient.
-
-    GUARANTEES: After normalization, the polynomial part has leading coefficient = 1.
-
-    Process:
-    1. Simplify the whole expression
-    2. Factor out the leading coefficient as: scalar_factor × polynomial
-    3. Simplify both parts separately
-
-    Example: (2x^2 + 4y) / (3xy) -> (2/(3xy)) × (x^2 + 2y)
-    where the polynomial (x^2 + 2y) has leading coefficient 1.
+    Simplify a rational function and factor it as scalar × polynomial, the polynomial with
+    leading coefficient 1: (2x^2 + 4y) / (3xy) -> (2/(3xy)) × (x^2 + 2y).
 
     Args:
         expr: SymPy expression (should be a rational function)
@@ -110,47 +102,47 @@ def normalize_fraction_by_leading_coefficient(expr: sp.Expr) -> sp.Expr:
     return result
 
 
-def print_red(text: Any):
+def print_red(text: object) -> None:
     """Print text in red color."""
     print(f"\033[91m{text}\033[0m")
 
 
-def print_blue(text: Any):
+def print_blue(text: object) -> None:
     """Print text in blue color."""
     print(f"\033[94m{text}\033[0m")
 
 
-def print_green(text: Any):
+def print_green(text: object) -> None:
     """Print text in green color."""
     print(f"\033[92m{text}\033[0m")
 
 
-def print_yellow(text: Any):
+def print_yellow(text: object) -> None:
     """Print text in yellow color."""
     print(f"\033[93m{text}\033[0m")
 
 
-def print_purple(text: Any):
+def print_purple(text: object) -> None:
     """Print text in purple/magenta color."""
     print(f"\033[95m{text}\033[0m")
 
 
-def print_cyan(text: Any):
+def print_cyan(text: object) -> None:
     """Print text in cyan color."""
     print(f"\033[96m{text}\033[0m")
 
 
-def print_bold(text: Any):
+def print_bold(text: object) -> None:
     """Print text in bold."""
     print(f"\033[1m{text}\033[0m")
 
 
-def print_underline(text: Any):
+def print_underline(text: object) -> None:
     """Print text with underline."""
     print(f"\033[4m{text}\033[0m")
 
 
-def colored_text(text: Any, color: str) -> str:
+def colored_text(text: object, color: str) -> str:
     """
     Return text with color formatting (without printing).
 
@@ -178,7 +170,7 @@ def colored_text(text: Any, color: str) -> str:
     return f"{color_code}{text}{reset_code}" if color_code else str(text)
 
 
-def print_colored(text: Any, color: str):
+def print_colored(text: object, color: str) -> None:
     """
     Print text in the specified color.
 
@@ -189,7 +181,7 @@ def print_colored(text: Any, color: str):
     print(colored_text(text, color))
 
 
-def print_header(title: str, color: str = "blue", width: int = 65):
+def print_header(title: str, color: str = "blue", width: int = 65) -> None:
     """
     Print a formatted header with color and borders.
 
@@ -204,7 +196,7 @@ def print_header(title: str, color: str = "blue", width: int = 65):
     print_colored(border, color)
 
 
-def print_section(title: str, color: str = "yellow"):
+def print_section(title: str, color: str = "yellow") -> None:
     """
     Print a section separator with color.
 
@@ -216,22 +208,22 @@ def print_section(title: str, color: str = "yellow"):
     print_colored(f"--- {title} ---", color)
 
 
-def print_success(message: Any):
+def print_success(message: object) -> None:
     """Print success message in green with checkmark."""
     print_green(f"✓ {message}")
 
 
-def print_error(message: Any):
+def print_error(message: object) -> None:
     """Print error message in red with X mark."""
     print_red(f"✗ {message}")
 
 
-def print_warning(message: Any):
+def print_warning(message: object) -> None:
     """Print warning message in yellow with warning symbol."""
     print_yellow(f"⚠ {message}")
 
 
-def print_info(message: Any):
+def print_info(message: object) -> None:
     """Print info message in blue with info symbol."""
     print_blue(f"ℹ {message}")
 
@@ -569,7 +561,7 @@ def _simplify_large_fraction_coefficients(expr: sp.Expr) -> sp.Expr:
         denom_expanded = sp.expand(denom)
 
         # Get all numeric coefficients from both numerator and denominator
-        def get_numeric_coeffs(expr_part):
+        def get_numeric_coeffs(expr_part: sp.Expr) -> list[float]:
             coeffs = []
             for term in sp.Add.make_args(expr_part):
                 coeff = term.as_coeff_Mul()[0]
