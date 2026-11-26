@@ -45,14 +45,13 @@ def test_local_images_exist_and_are_images(src: str) -> None:
     assert head.startswith(b"\x89PNG") or b"<svg" in head or head.lstrip().startswith(b"<?xml"), src
 
 
-def test_logos_of_the_three_institutions() -> None:
-    assert "syracuse_university.svg" not in README, "only the AI Institute's Syracuse logo"
-    for alt in (
-        "Institute for Artificial Intelligence",
-        "College of Engineering and Computer Science",
-        "Leibniz Lab",
-    ):
-        assert re.search(rf'<img alt="[^"]*{alt}[^"]*" src="images/', README), alt
+def test_logos_are_neurips_the_ai_institute_and_leibniz_lab() -> None:
+    """Exactly the three logos every asset carries; the dark-text ones swap for a light copy."""
+    logos = re.findall(r'<img alt="[^"]*" src="images/([^"/]+)"', README)  # not the diagram
+    assert sorted(logos) == ["leibniz_lab.png", "neurips.svg", "syracuse_ai_institute.svg"], logos
+    for stem in ("neurips", "syracuse_ai_institute"):
+        assert f'media="(prefers-color-scheme: dark)" srcset="images/{stem}_dark.svg"' in README
+        assert (REPO / "images" / f"{stem}_dark.svg").is_file(), stem
 
 
 def test_diagram_labels_are_plain_words() -> None:
