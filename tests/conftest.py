@@ -38,6 +38,12 @@ def pool_width(cap: int | None = None) -> int:
     in each oversubscribes the host. Free share: the mask minus busy threads over a 0.2 s
     /proc/stat sample (as core-meter's pool fixture reads it), in [1, `cap`]. The scripts give the
     same rows at any width (each test compares committed tables), so width only sets speed.
+
+    The free share is floored at 1/16 of the mask (30 of 480 threads): sampled while every
+    xdist worker is busy, as at the start of a session, it reads 1, and a test that drew 1
+    ran its whole pool serially long after the rest of the suite had ended (the two-cell
+    public-checkpoint fit took 486 s that way, most of the suite's wall time). The floor
+    oversubscribes only while the short tests still run.
     """
 
     def busy_total() -> tuple[int, int]:
@@ -50,7 +56,7 @@ def pool_width(cap: int | None = None) -> int:
     time.sleep(0.2)
     b1, t1 = busy_total()
     busy = (b1 - b0) / max(1, t1 - t0) * (os.cpu_count() or n)
-    free = max(1, int(n - busy))
+    free = max(1, n // 16, int(n - busy))
     return free if cap is None else max(1, min(cap, free))
 
 

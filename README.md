@@ -75,7 +75,7 @@ uv run bash src/tpp_analysis/visualizations/run_appendix_figures.sh
 ```
 
 Add `--clear-cache` to `run_analysis.py` to refit every law from the loss tables; the refit
-reproduces the released results bit for bit (about 4 minutes on 480 threads; `tests/tpp_analysis/test_paper_numbers.py` checks it).
+reproduces the released results bit for bit (about 3 minutes on 480 threads; `tests/tpp_analysis/test_paper_numbers.py` checks it).
 
 # Repository structure
 

@@ -11,6 +11,8 @@ No account or token is needed; a token in `HF_TOKEN` is used if present (higher 
 ```bash
 # A. Pre-computed results only (fastest; tables and figures render from these)
 uv run python src/tpp_analysis/download_and_extract.py --results-only
+#    (--results-dirs extracted_losses full_coverage_results seed_variance_results: only the 78 MB
+#    a refit check reads, not the 3.8 GB of all six result folders)
 
 # B. Training metrics (~0.5 GB), then extract per-epoch losses into extracted_losses/
 uv run python src/tpp_analysis/download_and_extract.py

@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 WORKFLOWS = REPO / ".github" / "workflows"
 OWN_POOL = ["self-hosted", "linux", "primary"]
 #: The status-check contexts branch protection requires (job `name:`s).
-REQUIRED_CHECKS = {"tests", "ruff", "privacy", "pr-authorization", "Own runners guard"}
+REQUIRED_CHECKS = {"tests", "paper", "ruff", "privacy", "pr-authorization", "Own runners guard"}
 #: Jobs that are not status checks: the Pages build and deploy of the project page (pages.yml).
 DEPLOY_JOBS = {"build", "deploy"}
 
@@ -88,6 +88,12 @@ def test_ci_runs_the_full_suite_in_parallel_ruff_and_the_privacy_scan() -> None:
     }
     assert re.search(r"uv run .*pytest -n auto", runs["tests"])
     assert "tests/" not in runs["tests"].split("pytest", 1)[1]  # the whole suite, no subset
+    # The paper gate refits alone in its own job, beside the suite rather than after it.
+    assert re.search(r"uv run .*pytest -n 0 .*-m paper$", runs["paper"])
+    assert "-m paper" not in runs["tests"]
+    assert not {"needs"} & (
+        ALL["ci.yml"]["jobs"]["paper"].keys() | ALL["ci.yml"]["jobs"]["tests"].keys()
+    )
     assert re.search(r"ruff check( --output-format=github)? \.$", runs["ruff"])
     assert privacy_targets() and all(t.endswith("test_privacy.py") for t in privacy_targets())
 

@@ -148,23 +148,47 @@ class TestSectionsAreWorkerInvariant:
     def test_holdout_section_identical_serial_vs_parallel(
         self, grid: TrainingGrid, small_config: AnalysisConfig
     ) -> None:
-        serial = HoldoutSection().run(self._context(grid, small_config, 1))
-        parallel = HoldoutSection().run(self._context(grid, small_config, 16))
+        contexts = [self._context(grid, small_config, workers) for workers in (1, 16)]
+        serial, parallel = (HoldoutSection().run(context) for context in contexts)
         assert serial == parallel
+        # The robustness check that reads this summary: its win-rate significance.
+        for context, summary in zip(contexts, (serial, parallel)):
+            context.holdout_summary = summary
+        significance = [RobustnessSection()._winrate_significance(c) for c in contexts]
+        assert significance[0] is not None
+        assert significance[0] == significance[1]
 
-    def test_robustness_section_identical_serial_vs_parallel(
-        self, grid: TrainingGrid, small_config: AnalysisConfig
+    #: The robustness checks that fan their trials out through the executor, each with the
+    #: method that computes it; one test per check, so their serial references run side by
+    #: side. The third check compared, the win-rate significance, reads only the holdout
+    #: summary and is compared in the holdout test above.
+    ROBUSTNESS_CHECKS = {
+        "fair_co_vs_nc": "_fair_extrapolation",
+        "random_2d_5pt_kappaAB": "_random_two_d_designs",
+    }
+
+    @pytest.mark.parametrize("check", sorted(ROBUSTNESS_CHECKS))
+    def test_robustness_check_identical_serial_vs_parallel(
+        self, grid: TrainingGrid, small_config: AnalysisConfig, check: str
     ) -> None:
+        method = self.ROBUSTNESS_CHECKS[check]
         outputs = []
         for workers in (1, 16):
             context = self._context(grid, small_config, workers)
-            FullGridFitsSection().run(context)
-            context.holdout_summary = HoldoutSection().run(context)
-            outputs.append(RobustnessSection().run(context))
+            outputs.append(getattr(RobustnessSection(), method)(context))
         serial, parallel = outputs
-        assert serial["fair_co_vs_nc"] == parallel["fair_co_vs_nc"]
-        assert serial["random_2d_5pt_kappaAB"] == parallel["random_2d_5pt_kappaAB"]
-        assert serial["winrate_significance"] == parallel["winrate_significance"]
+        assert serial is not None
+        assert serial == parallel
+
+    def test_robustness_section_keys_are_the_checks_compared(
+        self, grid: TrainingGrid, small_config: AnalysisConfig
+    ) -> None:
+        """The parallel run of the whole section reports every check compared above."""
+        context = self._context(grid, small_config, 16)
+        FullGridFitsSection().run(context)
+        context.holdout_summary = HoldoutSection().run(context)
+        checks = set(RobustnessSection().run(context))
+        assert {*self.ROBUSTNESS_CHECKS, "winrate_significance"} <= checks
 
 
 class TestThreadPinning:
