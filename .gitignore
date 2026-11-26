@@ -33,4 +33,6 @@ subset_bbox_seeds/
 special_results/
 prelim_bigtpp_results/
 figures/
+# ...except the slide figures the deck includes (slides/README.md).
+!slides/figures/
 camera_ready/public_checkpoints/work/

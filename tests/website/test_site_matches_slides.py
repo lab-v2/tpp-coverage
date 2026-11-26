@@ -15,6 +15,7 @@ the earlier, count-only version of this file let through; each must fail here.
 from __future__ import annotations
 
 import re
+import subprocess
 from collections import Counter
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
@@ -516,3 +517,45 @@ PLANTED = [
 def test_planted_changes_fail(what: str, old: str, new: str) -> None:
     assert old in PAGE, f"planted change {what!r} no longer applies"
     assert problems(DECK, PAGE.replace(old, new, 1)), what
+
+
+def deck_graphics_missing(deck: str, tracked: set[str], makefile: str) -> list[str]:
+    """Graphics the deck includes that neither a tracked file nor a Makefile target provides."""
+    paths = re.search(r"\\graphicspath\{((?:\{[^}]*\})+)\}", deck)
+    dirs = re.findall(r"\{([^}]*)\}", paths[1]) if paths else [""]
+    made = set(re.findall(r"build/[\w.-]+\.pdf", makefile))
+    made |= {
+        f"build/{Path(s).stem}.pdf"
+        for s in tracked
+        if s.startswith("images/") and s.endswith(".svg")
+    }
+    missing = []
+    for g in re.findall(r"\\includegraphics(?:\[[^]]*\])?\{([^}]*)\}", deck):
+        candidates = [str(Path("slides", d, g)) for d in ["", *dirs]]
+        resolved = {
+            str(Path(c).resolve().relative_to(REPO.resolve()))
+            for c in (REPO / c for c in candidates)
+        }
+        rel = {str(Path(d, g)) for d in ["", *dirs]}
+        if not (resolved & tracked or rel & made):
+            missing.append(g)
+    return missing
+
+
+def _tracked() -> set[str]:
+    out = subprocess.run(["git", "ls-files"], cwd=REPO, capture_output=True, text=True, check=True)
+    return set(out.stdout.split())
+
+
+def test_deck_builds_from_tracked_files() -> None:
+    makefile = (REPO / "slides" / "Makefile").read_text()
+    tracked = _tracked()
+    assert deck_graphics_missing(DECK, tracked, makefile) == []
+    # Can fail: a figure the repo stops tracking, or one the Makefile no longer makes.
+    fig = "slides/figures/01_convergence_Red_Pajama_Kaplan_First.pdf"
+    assert deck_graphics_missing(DECK, tracked - {fig}, makefile) == [
+        "01_convergence_Red_Pajama_Kaplan_First.pdf"
+    ]
+    assert deck_graphics_missing(DECK, tracked, makefile.replace("qr_project_page", "qr")) == [
+        "qr_project_page.pdf"
+    ]
