@@ -621,7 +621,11 @@ def main() -> None:
     HOLDOUT_FRACTION = args.holdout_fraction
     GLOBAL_SEED = args.seed
 
-    n_workers = args.n_workers or mp.cpu_count()
+    # One fit per worker at a time: measured 0.94 cores per worker (load/W: 962 CPU-s over 128 s
+    # wall at 8 workers, C4, 2 laws x 2 modes, 20 restarts), so the default is one per core. The
+    # count stays mp.cpu_count(): rows come back in completion order, so another count changes
+    # the CSV's row order (8 and 32 workers: same 2384 rows, in a different order).
+    n_workers = args.n_workers or mp.cpu_count()  # measured ~1 core per worker (load/W 0.94)
     ds_to_run = args.datasets or list(DATASETS.keys())
     laws_to_run = args.laws or list(FITTERS.keys())
     modes_to_run = args.modes or MODES
