@@ -3,6 +3,8 @@
 LaTeX conversion and formatting utilities for symbolic regression expressions.
 """
 
+from __future__ import annotations
+
 import sympy as sp
 
 
@@ -357,23 +359,23 @@ def _format_number_literal(value: object) -> str:
     return str(value)
 
 
-def _gp_add(a, b):
+def _gp_add(a: object, b: object) -> tuple[str, object, object]:
     return ("add", a, b)
 
 
-def _gp_sub(a, b):
+def _gp_sub(a: object, b: object) -> tuple[str, object, object]:
     return ("sub", a, b)
 
 
-def _gp_mul(a, b):
+def _gp_mul(a: object, b: object) -> tuple[str, object, object]:
     return ("mul", a, b)
 
 
-def _gp_div(a, b):
+def _gp_div(a: object, b: object) -> tuple[str, object, object]:
     return ("div", a, b)
 
 
-def _gp_pow(a, b):
+def _gp_pow(a: object, b: object) -> tuple[str, object, object]:
     return ("pow", a, b)
 
 
