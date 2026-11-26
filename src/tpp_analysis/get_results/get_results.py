@@ -568,7 +568,34 @@ def extract_from_local(
 # ============================================================
 
 
-def main() -> None:
+# Shared flag definitions to keep both subcommands in sync
+def _add_shared(p: argparse.ArgumentParser) -> None:
+    """The flags both subcommands take."""
+    p.add_argument(
+        "-o",
+        "--output-dir",
+        default="extracted_losses",
+        help="Output directory for CSVs (default: extracted_losses)",
+    )
+    p.add_argument(
+        "--include-special",
+        action="store_true",
+        help="Also extract BF16 replication (wikipedia_bf16)",
+    )
+    p.add_argument(
+        "--include-prelim",
+        action="store_true",
+        help="Also extract BigTPP preliminary experiment (wikipedia_bigtpp)",
+    )
+    p.add_argument(
+        "--no-final-loss",
+        action="store_true",
+        help="Use epoch averages instead of trailing-100-batch converged loss",
+    )
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    """The command line: the from_hf and from_local subcommands."""
     parser = argparse.ArgumentParser(
         description="Extract training losses for scaling law fits",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -590,30 +617,6 @@ Examples:
 
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
-    # Shared flag definitions to keep both subcommands in sync
-    def _add_shared(p: argparse.ArgumentParser) -> None:
-        p.add_argument(
-            "-o",
-            "--output-dir",
-            default="extracted_losses",
-            help="Output directory for CSVs (default: extracted_losses)",
-        )
-        p.add_argument(
-            "--include-special",
-            action="store_true",
-            help="Also extract BF16 replication (wikipedia_bf16)",
-        )
-        p.add_argument(
-            "--include-prelim",
-            action="store_true",
-            help="Also extract BigTPP preliminary experiment (wikipedia_bigtpp)",
-        )
-        p.add_argument(
-            "--no-final-loss",
-            action="store_true",
-            help="Use epoch averages instead of trailing-100-batch converged loss",
-        )
-
     # from_hf
     hf_parser = subparsers.add_parser(
         "from_hf",
@@ -629,7 +632,11 @@ Examples:
     )
     local_parser.add_argument("metrics_dir", help="Path to training_metrics directory")
     _add_shared(local_parser)
+    return parser
 
+
+def main() -> None:
+    parser = _build_parser()
     args = parser.parse_args()
 
     print("=" * 70)
