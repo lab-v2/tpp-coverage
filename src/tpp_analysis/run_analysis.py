@@ -149,11 +149,8 @@ def _run_full_coverage_combo(
 
     if is_pe:
         # ── PARAMETRIC-EPOCH PATH ──
-        try:
-            from scaling_laws.laws import parametric_epoch_loss, fit_parametric_epoch
-        except ImportError:
-            print(f"  [SKIP] {tag}: parametric_epoch_loss not importable")
-            return []
+        from scaling_laws.laws import parametric_epoch_loss, fit_parametric_epoch
+
         param_names = LAW_PARAM_NAMES["Parametric-Epoch"]
 
         for design_label, train_runs in [

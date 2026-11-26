@@ -6,12 +6,17 @@ import shutil
 import subprocess
 import sys
 
-try:
+if sys.version_info >= (3, 11):
     import tomllib
-except ModuleNotFoundError:  # Python 3.10
+else:  # the project pins 3.10, where pytest brings tomli
     import tomli as tomllib
 
 from conftest import REPO
+
+
+def test_toml_reader_is_the_one_this_python_has() -> None:
+    """A version check, not an ImportError fallback: a missing tomli fails loudly on 3.10."""
+    assert tomllib.__name__ == ("tomllib" if sys.version_info >= (3, 11) else "tomli")
 
 
 def test_coverage_settings_follow_pools_subprocesses_and_branches():
