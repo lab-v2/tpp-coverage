@@ -55,13 +55,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           BASE: ${{ github.event.pull_request.base.sha }}
-        run: uv run --locked python tests/affected.py fetch affected-map.json --base "$BASE"
+        run: uv run --locked python tests/affected.py fetch "$RUNNER_TEMP/affected-map.json" --base "$BASE"
       - name: Choose the tests this change can affect
         id: pick
         if: github.event_name == 'pull_request'
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
-        run: uv run --locked python tests/affected.py select affected-map.json --base "$BASE" --github-output "$GITHUB_OUTPUT"
+        run: uv run --locked python tests/affected.py select "$RUNNER_TEMP/affected-map.json" --base "$BASE" --github-output "$GITHUB_OUTPUT"
       - name: The affected test files, in parallel
         if: steps.pick.outputs.mode == 'some' && steps.pick.outputs.tests != ''
         env:
@@ -76,14 +76,14 @@ jobs:
         # On main, and on a pull request whose map is missing or whose shared inputs changed.
         if: github.event_name == 'push' || steps.pick.outputs.mode == 'full'
         timeout-minutes: 30
-        run: uv run --locked python tests/affected.py build --part suite affected-map.json
+        run: uv run --locked python tests/affected.py build --part suite "$RUNNER_TEMP/affected-map.json"
       - name: Keep the test map for pull requests
         if: github.event_name == 'push'
         # Pinned to the commit behind tag v7.0.1.
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: affected-map
-          path: affected-map.json
+          path: ${{ runner.temp }}/affected-map.json
           if-no-files-found: error
 
   # The paper gate is a job of its own, so it runs beside the suite instead of after it. On a
@@ -121,13 +121,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           BASE: ${{ github.event.pull_request.base.sha }}
-        run: uv run --locked python tests/affected.py fetch affected-map.json --base "$BASE"
+        run: uv run --locked python tests/affected.py fetch "$RUNNER_TEMP/affected-map.json" --base "$BASE"
       - name: Choose the tests this change can affect
         id: pick
         if: github.event_name == 'pull_request'
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
-        run: uv run --locked python tests/affected.py select affected-map.json --base "$BASE" --github-output "$GITHUB_OUTPUT"
+        run: uv run --locked python tests/affected.py select "$RUNNER_TEMP/affected-map.json" --base "$BASE" --github-output "$GITHUB_OUTPUT"
       - name: The paper's numbers, refit from scratch, when their inputs changed (alone; every thread)
         if: steps.pick.outputs.mode == 'full' || steps.pick.outputs.paper == 'true'
         # The fixture times out the refit at 15 min and prints every process's stack.
@@ -136,13 +136,13 @@ jobs:
       - name: The paper's numbers, refit from scratch and traced (on main; rebuilds its map)
         if: github.event_name == 'push'
         timeout-minutes: 40
-        run: uv run --locked python tests/affected.py build --part paper affected-map-paper.json
+        run: uv run --locked python tests/affected.py build --part paper "$RUNNER_TEMP/affected-map-paper.json"
       - name: Keep the paper gate's map for pull requests
         if: github.event_name == 'push'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: affected-map-paper
-          path: affected-map-paper.json
+          path: ${{ runner.temp }}/affected-map-paper.json
           if-no-files-found: error
 
   ruff:
