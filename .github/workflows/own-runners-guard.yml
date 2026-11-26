@@ -49,7 +49,7 @@ jobs:
       - name: Prove where this repo's Actions run
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        # The guard is the host's own tested copy (claude-code-skills, own-ci-runners),
+        # The guard is the host's own tested copy (the own-ci-runners skill),
         # not a file vendored here: one source of truth for every repo, and a
         # machine outside the own pool has no such file and fails.
         # Python 3.12 because the guard uses PEP 695 aliases (unpinned, uv once

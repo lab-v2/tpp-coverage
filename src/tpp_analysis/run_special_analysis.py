@@ -734,17 +734,21 @@ def main():
     print(f"\n  Full coverage: {len(combos)} combos × {args.n_seeds} seeds")
     t0 = time.time()
 
-    all_rows = []
+    # Rows are kept in combo order, not finishing order: the parquet's columns are the union of
+    # the rows' keys in first-seen order, and the laws name different parameters, so finishing
+    # order made the column order depend on the pool's timing.
+    results: dict[int, list[dict]] = {}
     with ProcessPoolExecutor(max_workers=args.n_workers) as pool:
-        futures = {pool.submit(_run_full_coverage_combo, c): c for c in combos}
+        futures = {pool.submit(_run_full_coverage_combo, c): i for i, c in enumerate(combos)}
         for future in as_completed(futures):
             try:
-                all_rows.extend(future.result())
+                results[futures[future]] = future.result()
             except Exception as e:
                 import traceback
 
                 traceback.print_exc()
                 print(f"  [ERROR] {e}")
+    all_rows = [row for i in sorted(results) for row in results[i]]
 
     if all_rows:
         df = pd.DataFrame(all_rows)

@@ -13,13 +13,13 @@ component of the same name; `conftest.py` holds the shared paths and helpers.
 | `camera_ready/` | `camera_ready/`: both analyses rerun against their committed outputs |
 | `cluster/` | `cluster/`: the task generator, the queue scripts and the audit |
 | `ci/` | `.github/`: the workflows and the merge rule |
-| `website/` | `website/`: one section per talk slide, showing and citing only what the deck does |
+| `website/` | `website/`: one section per talk slide, each bullet the deck's item word for word (markup, punctuation, case, number words and citation form aside) with its numbers, formulas, citations and names; references, authors, BibTeX, arXiv id, abstract and the Code and Data links as the deck, `CITATION.cff` and the README give them; the summary pinned in the test; every image present |
 | `repository/` | The whole tree: README, links, entry points, vocabulary, privacy |
 
 The suite checks law recovery on synthetic data, every entry point's `--help`, that the
 released tables are reproduced, the camera-ready analyses, and that the analysis modules still
 return, write and draw what the base commit did. It also checks the README's
-links, images, diagram and citation, and that no private host or path is in the tree.
+links, images, diagram and citation, and that no private host, path, or path to a tool only the owner's machines hold, is in the tree.
 
 CI runs the suite, the hooks of `.pre-commit-config.yaml`, `ruff check .` and the privacy
 scan on every pull request and every push to `main`. A pull request may merge only when its author is a lab-v2 member, or when a
@@ -29,7 +29,7 @@ The characterization tests (`tpp_analysis/**/test_characterize_*.py`, helpers in
 `characterize.py`) run the analysis modules on the released inputs (pinned to one HuggingFace
 revision) and compare their tables, CSVs, fits and figure data with the base commit's outputs,
 frozen in `frozen/` beside each test. They pin behaviour for refactors; `TPP_FREEZE=1` refreezes
-them, on the base commit only. Figures are compared by their data, never by image bytes.
+them, on the base commit only. Figures are compared by their data (including every line's and collection's zorder and alpha), never by image bytes.
 
 The `training_models/` ones compare what the code returns and writes with the
 base commit's outputs, frozen in `frozen/` beside each test (helpers in `characterize.py`;
@@ -45,10 +45,13 @@ Tests marked `gpu` are skipped where torch sees no CUDA device, as on the CI hos
 with the CUDA build of the locked torch (`uv pip install --reinstall --extra-index-url
 https://download.pytorch.org/whl/cu124 torch==2.5.1` after `uv sync --locked`; the locked aarch64
 wheel is CPU-only) and `DATA_DIR` holding `wikipedia/{train,val}_{tokens,lengths}.bin`, run them
-alone: `DATA_DIR=<corpora> .venv/bin/python -m pytest -n 0 -m gpu` (about 30 s on a GH200; their
-frozen values were taken on a GH200 with torch 2.5.1+cu124).
+alone (about 30 s on a GH200; their frozen values were taken on a GH200 with torch 2.5.1+cu124).
+Use the environment's interpreter, `DATA_DIR=<corpora> .venv/bin/python -m pytest -n 0 -m gpu`, not `uv run`:
+`uv run` first syncs the environment to the lock, which puts the CPU-only torch back.
 The `paper` test refits the paper's main analysis on every thread, so the default run leaves it out
-and it runs alone: `uv run pytest -n 0 -m paper` (CI runs both).
+and it runs alone: `uv run pytest -n 0 -m paper` (CI runs both). Its table step alone,
+`run_analysis.build_paper_tables` on the released per-seed fits, is checked byte for byte against
+the released tables in the default run (`tpp_analysis/scripts/test_characterize_run_analysis_tables.py`).
 
 `uv run python tests/measure_coverage.py <out-dir>` measures line and branch coverage of the
 suite and the paper gate together, following pool workers and subprocesses, and writes

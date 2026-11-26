@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -48,6 +49,20 @@ FORBIDDEN = {
     "review process": r"(\breviewers?\b|\bktkD\b|\bnK5Y\b|\bPnLF\b|\bQNJP\b|oVM1ErNilo|openreview\.net|rebuttal)",
     "anonymization": r"(anonymous\.4open|4open\.science)",
     "em dash": "\u2014",
+    "private tool paths": r"(claude-code-skills|\$\{?HOME\}?/|\$\$HOME/)",
+}
+GUARD = ".github/workflows/own-runners-guard.yml"
+# Exact lines allowed to match one pattern, each with its reason: {label: {(file, line text)}}.
+EXEMPT = {
+    "private tool paths": {
+        # The guard proves the job runs on the project's own runners by calling the copy each of
+        # them holds under $HOME; a machine outside that pool has no such file and fails.
+        (
+            GUARD,
+            """        run: '"$HOME/.claude/skills/own-ci-runners/../../bin/py" """
+            """"$HOME/.claude/skills/own-ci-runners/templates/guard.py"'""",
+        ),
+    },
 }
 
 
@@ -63,15 +78,22 @@ def private_words(line: str, hashes: frozenset[str] = PRIVATE_WORD_HASHES) -> li
 
 
 def _files() -> list[Path]:
-    out = []
-    for path in REPO.rglob("*"):
-        if (
-            path.is_file()
-            and not (set(path.relative_to(REPO).parts) & SKIP_DIRS)
-            and path.name not in SKIP_FILES
-        ):
-            out.append(path)
-    return out
+    """Tracked files and untracked ones git does not ignore; build outputs (gitignored) are not
+    part of the tree."""
+    out = subprocess.run(
+        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+        cwd=REPO,
+        capture_output=True,
+        check=True,
+    ).stdout.decode()
+    paths = [REPO / rel for rel in out.split("\0") if rel]
+    return sorted(
+        p
+        for p in paths
+        if p.is_file()
+        and not (set(p.relative_to(REPO).parts) & SKIP_DIRS)
+        and p.name not in SKIP_FILES
+    )
 
 
 def _text(path: Path) -> str | None:
@@ -88,18 +110,38 @@ def test_tree_is_scanned() -> None:
     assert len(FILES) > 80
 
 
+def forbidden_hits(label: str, files: dict[str, str]) -> list[str]:
+    """Lines of ``files`` ({path: text}) matching the pattern, minus that label's exact exemptions."""
+    pattern = re.compile(FORBIDDEN[label], re.IGNORECASE)
+    allowed = EXEMPT.get(label, set())
+    hits = []
+    for rel, text in files.items():
+        for n, line in enumerate(text.splitlines(), 1):
+            if pattern.search(line) and (rel, line) not in allowed:
+                hits.append(f"{rel}:{n}: {line.strip()[:120]}")
+    return hits
+
+
+def _tree() -> dict[str, str]:
+    texts = {str(p.relative_to(REPO)): _text(p) for p in FILES}
+    return {rel: t for rel, t in texts.items() if t is not None}
+
+
 @pytest.mark.parametrize("label", sorted(FORBIDDEN))
 def test_no_forbidden_strings(label: str) -> None:
-    pattern = re.compile(FORBIDDEN[label], re.IGNORECASE)
-    hits = []
-    for path in FILES:
-        text = _text(path)
-        if text is None:
-            continue
-        for n, line in enumerate(text.splitlines(), 1):
-            if pattern.search(line):
-                hits.append(f"{path.relative_to(REPO)}:{n}: {line.strip()[:120]}")
+    hits = forbidden_hits(label, _tree())
     assert not hits, f"{label}:\n" + "\n".join(hits[:50])
+
+
+def test_an_appended_private_step_in_the_guard_fails() -> None:
+    guard = (REPO / GUARD).read_text()
+    assert forbidden_hits("private tool paths", {GUARD: guard}) == []
+    step = "      - run: python $HOME/claude-code-skills/x.py\n"
+    hits = forbidden_hits("private tool paths", {GUARD: guard + step})
+    assert len(hits) == 1 and "claude-code-skills/x.py" in hits[0], hits
+    # The exempt line is exempt only verbatim: an edited copy of it fails.
+    edited = guard.replace("templates/guard.py", "templates/other.py")
+    assert forbidden_hits("private tool paths", {GUARD: edited})
 
 
 def test_no_private_words() -> None:
@@ -124,7 +166,12 @@ def test_pattern_catches_a_planted_leak() -> None:
         "review process": "Reviewer ktkD",
         "anonymization": "anonymous.4open.science/r/x",
         "em dash": "a \u2014 b",
+        "private tool paths": "python $$HOME/claude-code-skills/x.py",
     }
+    assert sorted(samples) == sorted(FORBIDDEN)
+    for sample in ("$HOME/bin/x", "${HOME}/x", "make -C ~/claude-code-skills"):
+        assert re.search(FORBIDDEN["private tool paths"], sample), sample
+    assert not re.search(FORBIDDEN["private tool paths"], 'for v in "$HOME" "$(id -un)"')
     for label, sample in samples.items():
         assert re.search(FORBIDDEN[label], sample, re.IGNORECASE), label
 
@@ -136,3 +183,11 @@ def test_private_word_matcher_catches_a_planted_word() -> None:
     assert private_words("a planted host, not the word", planted) == []
     assert len(PRIVATE_WORD_HASHES) == 18
     assert all(re.fullmatch(r"[0-9a-f]{64}", h) for h in PRIVATE_WORD_HASHES)
+
+
+@pytest.mark.parametrize("label", sorted(EXEMPT))
+def test_every_exemption_is_still_needed(label: str) -> None:
+    pattern = re.compile(FORBIDDEN[label], re.IGNORECASE)
+    for rel, line in EXEMPT[label]:
+        assert line in (REPO / rel).read_text().splitlines(), f"{rel}: exempt line is gone"
+        assert pattern.search(line), f"{rel} no longer needs its {label} exemption"

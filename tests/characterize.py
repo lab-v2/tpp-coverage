@@ -9,7 +9,8 @@ paper gate and the other tests check the numbers against the paper.
 Refreezing is deliberate: `TPP_FREEZE=1 uv run pytest <test>` rewrites the frozen files from the
 code as it now stands, so run it only on the base commit, never to make a failing test pass.
 Figures are compared by their data (line and scatter coordinates, collection vertices and
-colours, bar geometry, labels, limits, legend entries), never by image bytes.
+colours, zorder and alpha of every line and collection, bar geometry, labels, limits, legend
+entries), never by image bytes.
 """
 
 from __future__ import annotations
@@ -183,12 +184,14 @@ def _color(c: object) -> object:
 
 
 def _lines(lines: list[object]) -> dict[str, object]:
-    """All lines of an axes: per line its size, colour, style and label; their data pooled."""
+    """All lines of an axes: per line its size, colour, style, zorder, alpha and label; data pooled."""
     data = [ln.get_data_3d() if hasattr(ln, "get_data_3d") else ln.get_data() for ln in lines]
     out: dict[str, object] = {
         "points": [len(d[0]) for d in data],
         "colors": [_color(ln.get_color()) for ln in lines],
         "styles": [f"{ln.get_linestyle()}|{ln.get_marker()}|{ln.get_linewidth()}" for ln in lines],
+        "zorders": [ln.get_zorder() for ln in lines],
+        "alphas": [ln.get_alpha() for ln in lines],
         "labels": [ln.get_label() for ln in lines if not ln.get_label().startswith("_")],
     }
     for axis in range(max((len(d) for d in data), default=0)):
@@ -220,6 +223,8 @@ def _collection(coll: Collection) -> dict[str, object]:
     if arr is not None:
         out["array"] = summarize(np.ma.filled(np.ma.asarray(arr, dtype=float), np.nan))
     out["facecolor"] = summarize(coll.get_facecolor())
+    out["zorder"] = coll.get_zorder()
+    out["alpha"] = coll.get_alpha()
     out["label"] = coll.get_label() if not coll.get_label().startswith("_") else ""
     return out
 
