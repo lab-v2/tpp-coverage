@@ -176,7 +176,7 @@ ACI-1341006). The code is released under the GNU
 General Public License v2 ([`LICENSE`](LICENSE)).
 
 <p align="center">
-  <a href="https://www.syracuse.edu/"><img alt="Syracuse University" src="images/syracuse_university.svg" height="60"></a>
+  <a href="https://instituteai.syracuse.edu/"><img alt="Syracuse University Institute for Artificial Intelligence" src="images/syracuse_ai_institute.svg" height="60"></a>
   &nbsp;&nbsp;&nbsp;
   <a href="https://ecs.syracuse.edu/academics/electrical-engineering-and-computer-science/">
     <picture>

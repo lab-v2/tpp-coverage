@@ -454,6 +454,11 @@ def problems(deck: str, page: str, repo: Path = REPO) -> list[str]:
         out += [f"{label}: author name {bad!r}" for bad in WRONG_NAME.findall(text)]
     p = parse_page(page)
 
+    # Syracuse appears through its AI Institute logo only, never its plain one.
+    for label, text in (("deck", deck), ("page", page)):
+        if "syracuse_university" in text:
+            out.append(f"{label}: plain Syracuse University logo; use the AI Institute's")
+
     # The header places each logo above or below the title as the deck's title slide does.
     if page_logos(page) != title_logos(deck):
         out.append(f"header logos {page_logos(page)} != title slide logos {title_logos(deck)}")
@@ -699,6 +704,11 @@ PLANTED = [
         "NeurIPS logo moved below the title",
         '<div class="venue-logo mb-4">\n        <a href="https://neurips.cc/"><img src="images/neurips.svg" alt="NeurIPS"></a>\n      </div>\n',
         "",
+    ),
+    (
+        "plain Syracuse logo added",
+        '<a href="https://instituteai.syracuse.edu/">',
+        '<a href="https://www.syracuse.edu/"><img src="images/syracuse_university.svg" alt="Syracuse University"></a><a href="https://instituteai.syracuse.edu/">',
     ),
     ("venue logo shrunk", "width: 357px", "width: 120px"),
     ("venue logo stretched", "max-width: 80vw; height: auto;", "max-width: 80vw;"),
