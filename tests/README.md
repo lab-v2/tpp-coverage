@@ -45,8 +45,9 @@ Tests marked `gpu` are skipped where torch sees no CUDA device, as on the CI hos
 with the CUDA build of the locked torch (`uv pip install --reinstall --extra-index-url
 https://download.pytorch.org/whl/cu124 torch==2.5.1` after `uv sync --locked`; the locked aarch64
 wheel is CPU-only) and `DATA_DIR` holding `wikipedia/{train,val}_{tokens,lengths}.bin`, run them
-alone: `DATA_DIR=<corpora> .venv/bin/python -m pytest -n 0 -m gpu` (about 30 s on a GH200; their
-frozen values were taken on a GH200 with torch 2.5.1+cu124).
+alone (about 30 s on a GH200; their frozen values were taken on a GH200 with torch 2.5.1+cu124).
+Use the environment's interpreter, `DATA_DIR=<corpora> .venv/bin/python -m pytest -n 0 -m gpu`, not `uv run`:
+`uv run` first syncs the environment to the lock, which puts the CPU-only torch back.
 The `paper` test refits the paper's main analysis on every thread, so the default run leaves it out
 and it runs alone: `uv run pytest -n 0 -m paper` (CI runs both). Its table step alone,
 `run_analysis.build_paper_tables` on the released per-seed fits, is checked byte for byte against
