@@ -478,7 +478,7 @@ def run_full_incremental(
                 co_steps_epoch,
                 holdouts,
                 "Colinear",
-                modes=["first"],  # placeholder; epoch law ignores mode
+                modes=["first"],  # any one mode: the epoch law fits every epoch and ignores it
                 laws_to_fit=epoch_laws,
                 n_restarts=n_restarts,
                 verbose=verbose,
