@@ -10,7 +10,6 @@ Then fits all four scaling laws at each step and tracks R², RMSE, ΔR², etc.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
 import time
 
 import numpy as np
@@ -47,7 +46,7 @@ MODE_MULTIPLIER = {
 EPOCH_MODES = ["final", "first", "second"]
 
 
-def effective_tpp_bins(mode: str, base_bins: Optional[List[float]] = None) -> List[float]:
+def effective_tpp_bins(mode: str, base_bins: list[float] | None = None) -> list[float]:
     """Scale the designed TPP bins by the mode's epoch multiplier."""
     if base_bins is None:
         base_bins = BASE_TPP_BINS
@@ -55,7 +54,7 @@ def effective_tpp_bins(mode: str, base_bins: Optional[List[float]] = None) -> Li
     return [b * m for b in base_bins]
 
 
-def compute_tpp(run: Dict, mode: str = "final") -> float:
+def compute_tpp(run: dict[str, object], mode: str = "final") -> float:
     """
     Effective tokens-per-parameter, matching prepare_arrays D-scaling.
 
@@ -67,16 +66,16 @@ def compute_tpp(run: Dict, mode: str = "final") -> float:
     return run["D"] * m / run["N"]
 
 
-def snap_to_nearest(value: float, bins: List[float]) -> float:
+def snap_to_nearest(value: float, bins: list[float]) -> float:
     """Snap a value to the nearest bin."""
     return min(bins, key=lambda b: abs(b - value))
 
 
 def assign_tpp_bins(
-    train_data: List[Dict],
+    train_data: list[dict[str, object]],
     mode: str = "final",
-    base_tpp_bins: Optional[List[float]] = None,
-) -> List[float]:
+    base_tpp_bins: list[float] | None = None,
+) -> list[float]:
     """
     Compute effective TPP for each run and snap to the mode-scaled bins.
     """
@@ -91,18 +90,16 @@ def assign_tpp_bins(
 
 
 def build_colinear_steps(
-    train_data: List[Dict],
+    train_data: list[dict[str, object]],
     mode: str = "final",
-    base_tpp_bins: Optional[List[float]] = None,
-) -> List[Dict]:
+    base_tpp_bins: list[float] | None = None,
+) -> list[dict[str, object]]:
     """
     Incrementally add TPP levels from lowest → highest.
 
     Bins are scaled by mode (first=×1, second=×2, final=×3)
-    so the levels match what prepare_arrays uses for fitting.
-
-    Each step dict contains:
-        step, n_levels, levels (sorted TPP values), data, n_runs, coverage_frac
+    so the levels match what prepare_arrays uses for fitting. Each step dict holds
+    step, n_levels, levels (sorted TPP values), data, n_runs, coverage_frac.
     """
     binned = assign_tpp_bins(train_data, mode, base_tpp_bins)
     unique_tpps = sorted(set(binned))
@@ -127,22 +124,15 @@ def build_colinear_steps(
 
 
 def build_noncolinear_steps(
-    train_data: List[Dict],
-) -> List[Dict]:
+    train_data: list[dict[str, object]],
+) -> list[dict[str, object]]:
     """
-    Incrementally add D levels by pinching inward from the extremes,
-    always adding a pair (bottom + top) per step.
+    Incrementally add D levels by pinching inward from the extremes, one pair per step.
 
-    Step 1: D_min + D_max
-    Step 2: D_2nd_min + D_2nd_max
-    Step 3: D_3rd_min + D_3rd_max
-    ...
-
-    If there's an odd number of unique D values, the middle value
-    is added as a solo in the final step.
-
-    Each step dict contains:
-        step, n_levels, levels (sorted D values), data, n_runs, coverage_frac
+    Step 1 adds D_min + D_max, step 2 the 2nd min + 2nd max, and so on; with an odd
+    number of unique D values the middle one is added alone in the final step.
+    Each step dict holds step, n_levels, levels (sorted D values), data, n_runs,
+    coverage_frac.
     """
     d_values = [d["D"] for d in train_data]
     unique_ds = sorted(set(d_values))
@@ -185,11 +175,11 @@ def build_noncolinear_steps(
 
 def _fit_standard_law(
     law: ScalingLaw,
-    train_data: List[Dict],
-    holdouts: Dict[str, List[Dict]],
+    train_data: list[dict[str, object]],
+    holdouts: dict[str, list[dict[str, object]]],
     mode: str,
     n_restarts: int,
-) -> Dict:
+) -> dict[str, object]:
     """Fit a standard (N, D) → L law at one step."""
     N_tr, D_tr, L_tr = prepare_arrays(train_data, mode)
     if len(L_tr) < 5:
@@ -214,10 +204,10 @@ def _fit_standard_law(
 
 def _fit_epoch_law(
     law: ScalingLaw,
-    train_data: List[Dict],
-    holdouts: Dict[str, List[Dict]],
+    train_data: list[dict[str, object]],
+    holdouts: dict[str, list[dict[str, object]]],
     n_restarts: int,
-) -> Dict:
+) -> dict[str, object]:
     """Fit the Parametric-Epoch law (N, U_D, R) at one step."""
     N_tr, U_D_tr, R_tr, _ep, L_tr = prepare_epoch_expanded(train_data)
     if len(L_tr) < 5:
@@ -257,12 +247,12 @@ def _fit_epoch_law(
 
 
 def fit_at_step(
-    step_data: List[Dict],
-    holdouts: Dict[str, List[Dict]],
-    laws_to_fit: Optional[List[ScalingLaw]] = None,
-    modes: Optional[List[str]] = None,
+    step_data: list[dict[str, object]],
+    holdouts: dict[str, list[dict[str, object]]],
+    laws_to_fit: list[ScalingLaw] | None = None,
+    modes: list[str] | None = None,
     n_restarts: int = 200,
-) -> List[Dict]:
+) -> list[dict[str, object]]:
     """Fit all specified laws × modes on one subset; evaluate on holdouts."""
     if laws_to_fit is None:
         laws_to_fit = LAWS
@@ -304,12 +294,12 @@ _METRIC_COLS = _R2_COLS + _RMSE_COLS + ["sse"]
 
 
 def run_incremental_analysis(
-    steps: List[Dict],
-    holdouts: Dict[str, List[Dict]],
+    steps: list[dict[str, object]],
+    holdouts: dict[str, list[dict[str, object]]],
     design_label: str,
-    modes: Optional[List[str]] = None,
+    modes: list[str] | None = None,
     n_restarts: int = 200,
-    laws_to_fit: Optional[List[ScalingLaw]] = None,
+    laws_to_fit: list[ScalingLaw] | None = None,
     verbose: bool = True,
 ) -> pd.DataFrame:
     """
@@ -420,14 +410,12 @@ def run_full_incremental(
     verbose: bool = True,
 ) -> pd.DataFrame:
     """
-    End-to-end: build CO and NC steps, fit all laws incrementally,
-    compute deltas, and return a single combined DataFrame.
+    End-to-end: build CO and NC steps, fit all laws incrementally, return one DataFrame.
 
-    Colinear: builds separate step sequences per mode (first/second/final)
-    so TPP bins are correctly scaled (×1, ×2, ×3).
-    Epoch law runs once with base TPP bins (mode-independent).
-
-    Non-colinear: same D-based steps for all modes; fits all modes at each step.
+    Colinear: separate step sequences per mode (first/second/final) so TPP bins are
+    correctly scaled (×1, ×2, ×3); the epoch law runs once with base TPP bins
+    (mode-independent). Non-colinear: same D-based steps for all modes, all modes fit
+    at each step. Deltas are computed before returning.
     """
     holdouts = {
         "unified": data.unified_holdout,
