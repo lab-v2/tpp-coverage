@@ -8,6 +8,8 @@ ordering and I/O; sections own only their own computation.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
@@ -40,6 +42,10 @@ from .trials import (
     run_conditioning,
 )
 from ..upstream import fit_generic
+
+if TYPE_CHECKING:
+    from ..model.fitting import LawSpec
+    from .trials import ComparisonOutcome
 
 #: A single-band design has one TPP ratio, so V_1 = 0 < tau_1 by construction.
 SINGLE_BAND_DIVERSITY = 0.0
@@ -275,7 +281,7 @@ class HoldoutSection(AnalysisSection):
             )
         return trials
 
-    def _summarise(self, outcomes: list) -> dict[str, object]:
+    def _summarise(self, outcomes: list[ComparisonOutcome]) -> dict[str, object]:
         rmse_co = [o.rmse_collinear for o in outcomes]
         rmse_nc = [o.rmse_non_collinear for o in outcomes]
         r2_co = [o.r2_collinear for o in outcomes]
@@ -666,14 +672,12 @@ class FormalValidationSection(AnalysisSection):
         }
 
     @staticmethod
-    def _fitted_gaps(context: AnalysisContext) -> dict:
+    def _fitted_gaps(context: AnalysisContext) -> dict[LawSpec, float]:
         """Fitted exponent gap per law, for marking on the sweep curve.
 
-        Only Chinchilla's blow-up is measured directly: the clean ray has five
-        model sizes, too few to identify Kaplan (4 params, borderline) or
-        Droppo-Elibol (6 params, impossible). All four laws share the same
-        j2 = c j1 N^eps collinearity structure, so the shared leading-order
-        eps^-2 curve is evaluated at each law's fitted gap instead.
+        The clean ray's five model sizes identify only Chinchilla's blow-up (Kaplan has 4 params,
+        Droppo-Elibol 6). All the laws share the j2 = c j1 N^eps collinearity, so the shared
+        leading-order eps^-2 curve is evaluated at each law's fitted gap instead.
         """
         gaps = {}
         fitter = LawFitter(restarts=DEFAULT_RESTARTS, global_search=True)

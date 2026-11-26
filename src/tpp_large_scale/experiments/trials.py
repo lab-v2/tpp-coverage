@@ -11,6 +11,8 @@ must be able to pickle them.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -19,6 +21,9 @@ from ..model.conditioning import GaussNewtonConditioning
 from ..model.fitting import CHINCHILLA, LawFitter
 from ..model.grid import FitArrays
 from ..upstream import evaluate
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 Vector = tuple[float, ...]
 
@@ -40,7 +45,7 @@ class Design:
     loss: Vector
 
     @classmethod
-    def from_frame(cls, frame) -> "Design":
+    def from_frame(cls, frame: pd.DataFrame) -> "Design":
         return cls(
             n=tuple(float(x) for x in frame["N"]),
             d=tuple(float(x) for x in frame["Dt"]),

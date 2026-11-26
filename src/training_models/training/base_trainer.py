@@ -5,10 +5,11 @@ Base trainer interface for LLM Scaling Analysis.
 Defines the common interface for all training execution schemes.
 """
 
+from __future__ import annotations
+
 import os
 import sys
 from abc import ABC, abstractmethod
-from typing import Any
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(project_root)
@@ -25,8 +26,8 @@ class BaseTrainer(ABC):
         model_config: ModelConfig,
         train_data: list[str],
         val_data: list[str],
-        **kwargs,
-    ) -> dict[str, Any]:
+        **kwargs: object,
+    ) -> dict[str, object]:
         """
         Train a model and return results.
 

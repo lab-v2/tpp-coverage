@@ -2,6 +2,8 @@
 Feed-forward network component for transformer models.
 """
 
+from __future__ import annotations
+
 import torch
 import torch.nn as nn
 
@@ -17,7 +19,7 @@ from training_models.models import ModelConfig
 class FeedForward(nn.Module):
     """Position-wise feed-forward network."""
 
-    def __init__(self, config: ModelConfig):
+    def __init__(self, config: ModelConfig) -> None:
         super().__init__()
         self.linear1 = nn.Linear(config.d_model, config.d_ff)
         self.linear2 = nn.Linear(config.d_ff, config.d_model)

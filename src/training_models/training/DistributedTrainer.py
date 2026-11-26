@@ -69,14 +69,8 @@ DEFAULT_SEED = 42
 
 def set_seed(seed: int = DEFAULT_SEED, rank: int = 0) -> None:
     """
-    Set seeds for all random number generators to ensure reproducibility.
-
-    This function sets seeds for:
-    - Python's random module
-    - NumPy's random generator
-    - PyTorch CPU random generator
-    - PyTorch CUDA random generator (all GPUs)
-    - CuDNN deterministic flags
+    Seed Python's random, NumPy, and PyTorch's CPU and all-GPU generators, and set the CuDNN
+    deterministic flags, so a run reproduces.
 
     Args:
         seed: Base seed value (default: 42)
@@ -313,8 +307,8 @@ class DistributedTrainer(BaseTrainer):
         model_config: ModelConfig,
         train_data: list[str] | None = None,
         checkpoint_prefix: str | None = None,
-        **kwargs,
-    ) -> dict:
+        **kwargs: object,
+    ) -> dict[str, object]:
         """Train models using distributed training across multiple GPUs."""
         epochs = kwargs["epochs"]
         lr = kwargs["lr"]
@@ -606,7 +600,7 @@ class DistributedTrainer(BaseTrainer):
         tokenizer: Encoding,
         max_seq_len: int,
         sample_size: int = 10000,
-    ):
+    ) -> float:
         """Estimate average tokens per example for datasets with length metadata.
         Input: data: PretokenizedDataset
         Output: average tokens per example (float)
@@ -626,15 +620,15 @@ class DistributedTrainer(BaseTrainer):
 
     def _save_initial_metadata(
         self,
-        checkpoint_prefix,
-        model_config,
-        lr,
-        epochs,
-        batch_size,
-        weight_decay,
-        seed=DEFAULT_SEED,
-        shared_dir=SHARED_NVME_DIR,
-    ):
+        checkpoint_prefix: str,
+        model_config: ModelConfig,
+        lr: float,
+        epochs: int,
+        batch_size: int,
+        weight_decay: float,
+        seed: int = DEFAULT_SEED,
+        shared_dir: str = SHARED_NVME_DIR,
+    ) -> None:
         """Save initial training config metadata before training starts."""
         try:
             metadata = {
@@ -679,7 +673,7 @@ class DistributedTrainer(BaseTrainer):
         except Exception as e:
             print(f"Initial metadata save failed: {e}")
 
-    def _write_heartbeat(self, shared_dir: str, prefix: str, payload: dict):
+    def _write_heartbeat(self, shared_dir: str, prefix: str, payload: dict[str, object]) -> None:
         """Atomically write a small JSON with the current training state.
 
         Monitoring only: wrapped so any failure (quota, NFS hiccup) can never
@@ -701,7 +695,9 @@ class DistributedTrainer(BaseTrainer):
         except Exception:
             pass
 
-    def _save_intermediate_metrics(self, checkpoint_prefix: str, metrics: dict, global_step: int):
+    def _save_intermediate_metrics(
+        self, checkpoint_prefix: str, metrics: dict[str, list[float]], global_step: int
+    ) -> None:
         """Save intermediate metrics backup (overwrites same file for crash recovery)."""
         try:
             os.makedirs("training_metrics", exist_ok=True)
@@ -724,17 +720,17 @@ class DistributedTrainer(BaseTrainer):
 
     def _build_metadata(
         self,
-        checkpoint_prefix,
-        metrics,
-        model_config,
-        lr,
-        epochs,
-        total_tokens,
-        cumulative_time,
-        batch_size,
-        weight_decay,
-        seed=DEFAULT_SEED,
-    ):
+        checkpoint_prefix: str,
+        metrics: dict[str, list[float]],
+        model_config: ModelConfig,
+        lr: float,
+        epochs: int,
+        total_tokens: int,
+        cumulative_time: float,
+        batch_size: int,
+        weight_decay: float,
+        seed: int = DEFAULT_SEED,
+    ) -> dict[str, object]:
         """Build metadata dictionary for JSON export."""
         train_losses = metrics.get("epoch_train_losses", [])
         val_losses = metrics.get("val_losses", [])
@@ -792,7 +788,7 @@ class DistributedTrainer(BaseTrainer):
         start_epoch: int = 0,
         resume_checkpoint: str | None = None,
         initial_tokens: int = 0,
-        prior_metrics: dict | None = None,
+        prior_metrics: dict[str, list[float]] | None = None,
         batch_size: int = DEFAULT_BATCH_SIZE,
         shared_dir: str = SHARED_NVME_DIR,
         keep_checkpoints: int = DEFAULT_KEEP_CHECKPOINTS,
@@ -802,7 +798,7 @@ class DistributedTrainer(BaseTrainer):
         optimizer_name: str = "adamw",
         schedule: str = "cosine",
         grad_accum_steps: int = 1,
-    ) -> tuple[float, list[float], dict]:
+    ) -> tuple[float, list[float], dict[str, list[float]]]:
         # make sure weights and optimizer states are being resumed
         # With gradient accumulation the train_loader yields micro-batches;
         # schedulers, metrics, checkpoints and step counts are all per
@@ -1190,7 +1186,7 @@ class DistributedTrainer(BaseTrainer):
         total_epochs: int,
         max_seq_len: int,
         use_bf16: bool = False,
-    ):
+    ) -> float:
         """Runs validation with a token limit across DDP."""
         model.eval()
         val_loss_sum = 0
@@ -1238,7 +1234,7 @@ class DistributedTrainer(BaseTrainer):
 
         return total_loss_sum / max(total_batches_processed, 1)
 
-    def _validate_checkpoint(self, path):
+    def _validate_checkpoint(self, path: str) -> bool:
         try:
             # 1. Check if file exists and has size > 0
             if not os.path.exists(path) or os.path.getsize(path) == 0:
@@ -1259,7 +1255,7 @@ class DistributedTrainer(BaseTrainer):
             print(f"Validation error: {e}")
             return False
 
-    def _cleanup_old_checkpoints(self, directory: str, prefix: str, keep_last_n: int = 2):
+    def _cleanup_old_checkpoints(self, directory: str, prefix: str, keep_last_n: int = 2) -> None:
         """Remove old checkpoints, keeping only the last N for this run prefix."""
         pattern = os.path.join(directory, f"{prefix}_epoch*.pt")
         checkpoints = glob.glob(pattern)
@@ -1268,7 +1264,7 @@ class DistributedTrainer(BaseTrainer):
             return
 
         # Sort by epoch number
-        def extract_epoch(path):
+        def extract_epoch(path: str) -> int:
             match = re.search(r"_epoch(\d+)", os.path.basename(path))
             return int(match.group(1)) if match else 0
 
@@ -1284,23 +1280,23 @@ class DistributedTrainer(BaseTrainer):
 
     def _save_checkpoint(
         self,
-        model,
-        optimizer,
-        ws,
-        cs,
-        epoch,
-        t_loss,
-        v_loss,
-        tokens,
-        prefix,
-        config,
-        weight_decay,
-        current_step=None,
-        cumulative_time=0.0,
-        batch_size=128,
+        model: DDP,
+        optimizer: optim.Optimizer,
+        ws: optim.lr_scheduler.LRScheduler,
+        cs: optim.lr_scheduler.LRScheduler,
+        epoch: int,
+        t_loss: float,
+        v_loss: float | None,
+        tokens: int,
+        prefix: str,
+        config: ModelConfig,
+        weight_decay: float,
+        current_step: int | None = None,
+        cumulative_time: float = 0.0,
+        batch_size: int = 128,
         keep_last_n: int = 2,
         seed: int = DEFAULT_SEED,
-    ):
+    ) -> None:
         """Save checkpoint to local directory with atomic write and cleanup."""
         tmp_path = None
         try:
@@ -1353,24 +1349,24 @@ class DistributedTrainer(BaseTrainer):
 
     def _save_checkpoint_shared(
         self,
-        model,
-        optimizer,
-        ws,
-        cs,
-        epoch,
-        t_loss,
-        v_loss,
-        tokens,
-        prefix,
-        config,
-        weight_decay,
-        current_step=None,
-        cumulative_time=0.0,
-        batch_size=128,
+        model: DDP,
+        optimizer: optim.Optimizer,
+        ws: optim.lr_scheduler.LRScheduler,
+        cs: optim.lr_scheduler.LRScheduler,
+        epoch: int,
+        t_loss: float,
+        v_loss: float | None,
+        tokens: int,
+        prefix: str,
+        config: ModelConfig,
+        weight_decay: float,
+        current_step: int | None = None,
+        cumulative_time: float = 0.0,
+        batch_size: int = 128,
         shared_dir: str = SHARED_NVME_DIR,
         keep_last_n: int = 2,
         seed: int = DEFAULT_SEED,
-    ):
+    ) -> None:
         """Save checkpoint to shared NVMe directory with atomic write and cleanup."""
         tmp_path = None
         try:
@@ -1432,17 +1428,17 @@ class DistributedTrainer(BaseTrainer):
 
     def _save_metrics(
         self,
-        checkpoint_prefix,
-        metrics,
-        model_config,
-        lr,
-        epochs,
-        total_tokens,
-        weight_decay,
-        cumulative_time=0.0,
-        batch_size=128,
-        seed=DEFAULT_SEED,
-    ):
+        checkpoint_prefix: str,
+        metrics: dict[str, list[float]],
+        model_config: ModelConfig,
+        lr: float,
+        epochs: int,
+        total_tokens: int,
+        weight_decay: float,
+        cumulative_time: float = 0.0,
+        batch_size: int = 128,
+        seed: int = DEFAULT_SEED,
+    ) -> None:
         """Save final training metrics to local timestamped NPZ and JSON."""
         os.makedirs("training_metrics", exist_ok=True)
 
@@ -1474,18 +1470,18 @@ class DistributedTrainer(BaseTrainer):
 
     def _save_metrics_shared(
         self,
-        checkpoint_prefix,
-        metrics,
-        model_config,
-        lr,
-        epochs,
-        total_tokens,
-        weight_decay,
-        cumulative_time=0.0,
-        batch_size=128,
+        checkpoint_prefix: str,
+        metrics: dict[str, list[float]],
+        model_config: ModelConfig,
+        lr: float,
+        epochs: int,
+        total_tokens: int,
+        weight_decay: float,
+        cumulative_time: float = 0.0,
+        batch_size: int = 128,
         shared_dir: str = SHARED_NVME_DIR,
-        seed=DEFAULT_SEED,
-    ):
+        seed: int = DEFAULT_SEED,
+    ) -> None:
         """Save final training metrics to shared NVMe directory only."""
         try:
             time_hours = cumulative_time / 3600

@@ -8,6 +8,8 @@ every caller without hand-editing each notebook.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from collections.abc import Callable
 
 import numpy as np
@@ -21,6 +23,9 @@ from scaling_laws.laws import (
     kaplan_loss,
     droppo_elibol_loss,
 )
+
+if TYPE_CHECKING:
+    from scaling_laws.data import PreparedData
 
 
 LAW_LOSS_FNS: dict[str, Callable] = {
@@ -41,7 +46,7 @@ LEGEND_ALPHA: float = 0.9
 
 
 def compute_flop_budgets(
-    pdata,
+    pdata: PreparedData,
     holdout_type: str = "unified",
     n_curves: int | None = None,
 ) -> np.ndarray:

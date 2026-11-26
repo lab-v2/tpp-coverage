@@ -2,6 +2,8 @@
 Multi-head attention component for transformer models.
 """
 
+from __future__ import annotations
+
 import torch
 import torch.nn as nn
 
@@ -17,7 +19,7 @@ from training_models.models import ModelConfig
 class MultiHeadAttention(nn.Module):
     """Multi-head self-attention."""
 
-    def __init__(self, config: ModelConfig):
+    def __init__(self, config: ModelConfig) -> None:
         super().__init__()
         self.config = config
         self.head_dim = config.d_model // config.n_heads

@@ -44,7 +44,7 @@ _NUM_RE = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
 _NP_WRAPPER_RE = re.compile(r"np\.\w+\(([^)]*?)\)")
 
 
-def parse_tpp_list(s):
+def parse_tpp_list(s: object) -> np.ndarray | None:
     if not isinstance(s, str) or not s.strip():
         return None
     clean = _NP_WRAPPER_RE.sub(r"\1", s)
@@ -57,7 +57,7 @@ def parse_tpp_list(s):
         return None
 
 
-def per_seed_log_avg_winrate(g: pd.DataFrame, law: str, kappa_targets):
+def per_seed_log_avg_winrate(g: pd.DataFrame, law: str, kappa_targets: np.ndarray) -> float:
     """Returns this (seed, cell) slice's log-averaged winrate over
     the alive κ range."""
     beta = LIT_BETA_EFF[law]
@@ -131,7 +131,9 @@ def load_all_seeds(seed_dir: Path) -> pd.DataFrame:
     )
 
 
-def worker(args):
+def worker(
+    args: tuple[str, str, str, pd.DataFrame, np.ndarray],
+) -> tuple[str, str, str, dict[int, float]]:
     law, dataset, mode, g, kappa_targets = args
     seeds = sorted(g["seed"].unique())
     out = {}

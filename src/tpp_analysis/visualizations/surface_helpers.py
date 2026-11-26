@@ -6,9 +6,14 @@ Used by ``figure1_panels.py``, ``visuals.ipynb`` and
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgba
+
+if TYPE_CHECKING:
+    from scaling_laws.laws import ScalingLaw
 
 
 _HOLDOUT_STYLES: dict[str, dict[str, str | int]] = {
@@ -161,7 +166,7 @@ def _compute_intersection_3d(
     D_mesh: np.ndarray,
     L_co: np.ndarray,
     L_nc: np.ndarray,
-    law_obj,
+    law_obj: ScalingLaw,
     co_params: tuple[float, ...] | list[float],
     z_lo: float,
     z_hi: float,

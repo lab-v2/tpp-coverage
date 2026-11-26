@@ -5,6 +5,8 @@ Checkpoint utilities for distributed training.
 Extracted from the working evaluate_holdout_distributed.py implementation.
 """
 
+from __future__ import annotations
+
 import re
 import torch
 import torch.nn as nn
@@ -47,7 +49,7 @@ def extract_model_params_from_filename(filename: str) -> tuple[int, int, float, 
 
 def load_model_safely(
     checkpoint_path: str, device: torch.device, architecture: str = "llama"
-) -> tuple[nn.Module, dict]:
+) -> tuple[nn.Module, dict[str, object]]:
     """Load model with proper error handling and memory management, handling checkpoint key mismatch."""
     print_info(f"Loading checkpoint: {checkpoint_path} (Architecture: {architecture})")
 

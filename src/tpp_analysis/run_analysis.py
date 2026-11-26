@@ -19,6 +19,8 @@ Examples:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from collections.abc import Callable
 
 import faulthandler
@@ -40,6 +42,9 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import r2_score, mean_squared_error
 from concurrent.futures import ProcessPoolExecutor
+
+if TYPE_CHECKING:
+    from scaling_laws.data import PreparedData
 
 # ============================================================
 # Config
@@ -173,14 +178,14 @@ def _get_seed_fitters() -> dict[
 # ============================================================
 
 
-def _run_full_coverage_combo(args):
+def _run_full_coverage_combo(
+    args: tuple[str, str, str, str, int, int, int, str],
+) -> list[dict[str, object]]:
     """Worker for one (dataset, law, mode) combo.
 
-    Two code paths:
-      - Standard laws (Chinchilla / Kaplan / Droppo-Elibol): use prepare_arrays
-        with the given mode → (N, D, L), then call the law's seed-aware fitter.
-      - Parametric-Epoch (mode = 'Epoch-Expanded'): use prepare_epoch_expanded
-        → (N, U_D, R, epoch, L), then call fit_parametric_epoch directly.
+    Chinchilla, Kaplan and Droppo-Elibol fit (N, D, L) from prepare_arrays with the law's
+    seed-aware fitter; Parametric-Epoch (mode 'Epoch-Expanded') fits (N, U_D, R, epoch, L) from
+    prepare_epoch_expanded with fit_parametric_epoch.
     """
     (dataset_name, csv_path, law_name, mode, n_seeds, n_restarts, base_seed, save_dir) = args
 
@@ -407,7 +412,9 @@ def _run_full_coverage_combo(args):
 # ============================================================
 
 
-def _run_seed_variance_combo(args):
+def _run_seed_variance_combo(
+    args: tuple[str, str, str, str, int, int, int, str],
+) -> list[dict[str, object]]:
     """Worker for one (dataset, law, mode) seed-variance combo.
 
     Parametric-Epoch is skipped here - it's a 4D law (N × U_D × R × L) that
@@ -551,7 +558,7 @@ def _run_seed_variance_combo(args):
 
 
 @functools.lru_cache(maxsize=None)
-def _unit_data(csv_path, dataset_name):
+def _unit_data(csv_path: str, dataset_name: str) -> PreparedData:
     """The prepared dataset, loaded once per worker process."""
     from scaling_laws.data import load_and_prepare
 

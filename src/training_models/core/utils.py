@@ -94,12 +94,8 @@ def _count_tokens_batch(args: tuple[list[str], str, int]) -> int:
 
 
 def count_total_tokens(texts: list[str], tokenizer: tiktoken.Encoding, max_seq_len: int) -> int:
-    """Count total tokens in a dataset applying max_seq_len truncation per text.
-
-    This function counts tokens exactly as they would be used in training,
-    matching the logic in PretokenizedDataset.__getitem__ where tokens are
-    truncated at max_seq_len per text. Uses multiprocessing to parallelize
-    token counting across 10 worker processes.
+    """Count a dataset's tokens with each text truncated at max_seq_len, as
+    PretokenizedDataset.__getitem__ feeds them to training, in a pool of 10 processes.
 
     Args:
         texts: List of text strings to tokenize
