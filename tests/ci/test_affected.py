@@ -325,7 +325,14 @@ def test_a_path_through_a_symlink_to_the_repository_counts(repo: Path) -> None:
     assert affected.parse_trace(log)[1] == {"src/new.py"}
 
 
+def traced() -> bool:
+    """This process is under a tracer already (affected.py build), and ptrace does not nest."""
+    with open("/proc/self/status") as fh:
+        return any(ln.split()[1:] != ["0"] for ln in fh if ln.startswith("TracerPid:"))
+
+
 @pytest.mark.skipif(shutil.which("strace") is None, reason="needs strace")
+@pytest.mark.skipif(traced(), reason="already traced: strace cannot trace inside strace")
 def test_a_traced_unit_sees_what_its_subprocesses_read(repo: Path, tmp_path: Path) -> None:
     """The data file is read only by a grandchild process, which strace -f must follow."""
     (repo / "tests" / "test_reads.py").write_text(
