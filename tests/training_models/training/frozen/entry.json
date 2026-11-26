@@ -1,0 +1,1 @@
+{"defaults":[128.0,2048.0,0.3],"mask_padding":false,"required_gpus_without_cuda":2.0,"scheme":"distributed","seed":5.0,"warmup":[0.03,0.01,42.0]}

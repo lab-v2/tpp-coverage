@@ -137,9 +137,19 @@ def tree_text(path: Path) -> str | None:
 
 
 def pytest_collection_modifyitems(config, items):
-    """Run the `paper` refit only when it is asked for by name (`-m paper`), never inside a broader
+    """Skip the `gpu` tests where torch sees no CUDA device (the CPU CI hosts).
+
+    Run the `paper` refit only when it is asked for by name (`-m paper`), never inside a broader
     selection such as `-m slow`: it takes every thread, and under xdist each worker that received one
     of its tests would start its own host-wide pool (load 4,000 on 480 threads, 2026-11-25)."""
+    gpu = [i for i in items if i.get_closest_marker("gpu") is not None]
+    if gpu:
+        import torch  # only when a gpu test was collected: it costs every worker a second
+
+        if not torch.cuda.is_available():
+            skip = pytest.mark.skip(reason="gpu: torch sees no CUDA device on this host")
+            for item in gpu:
+                item.add_marker(skip)
     if "paper" in (config.option.markexpr or "").replace("not paper", ""):
         return
     keep = [i for i in items if i.get_closest_marker("paper") is None]
