@@ -13,7 +13,6 @@ not the average across all three holdout splits.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -24,7 +23,7 @@ import pandas as pd
 # ════════════════════════════════════════════════════════════════════════════
 
 
-def build_summary_df(results: List[Dict]) -> pd.DataFrame:
+def build_summary_df(results: list[dict[str, object]]) -> pd.DataFrame:
     """
     Convert the list of result dicts (from `run_dataset_fits`) into a
     tidy DataFrame with one row per (dataset, law, design, mode) and
@@ -231,7 +230,7 @@ def _latex_stats_table(
     best_rmse_median = _best("rmse_median", False)
     best_rmse_std = _best("rmse_std", False)
 
-    def _cell(design, key, best_design):
+    def _cell(design: str, key: str, best_design: str) -> str:
         v = stats[design][key]
         return _win(v) if design == best_design else _fmt(v)
 
@@ -276,7 +275,7 @@ def _latex_stats_table(
 # ════════════════════════════════════════════════════════════════════════════
 
 
-def _winrate_ci(n_wins: int, n_total: int, confidence: float = 0.95) -> tuple:
+def _winrate_ci(n_wins: int, n_total: int, confidence: float = 0.95) -> tuple[float, float, float]:
     """Wilson score interval for binomial proportion."""
     if n_total == 0:
         return 0.0, 0.0, 0.0
@@ -307,7 +306,7 @@ def _latex_winrate_table(winners: pd.DataFrame, win_threshold: float = 60.0) -> 
     if uni.empty:
         return "% No unified holdout winners."
 
-    def _pct_row(sub):
+    def _pct_row(sub: pd.DataFrame) -> tuple[int, int, int, float, float, float]:
         n = len(sub)
         nc = (sub["Winner"] == "Non-Colinear").sum()
         co = n - nc
@@ -346,7 +345,9 @@ def _latex_winrate_table(winners: pd.DataFrame, win_threshold: float = 60.0) -> 
     # Build side-by-side table matching paper Table 4 format
     n_rows = max(len(ds_rows), len(law_rows), len(mode_rows))
 
-    def pad(lst):
+    def pad(
+        lst: list[tuple[str, tuple[int, int, int, float, float, float]]],
+    ) -> list[tuple[str, tuple[int, int, int, float, float, float]]]:
         return lst + [("", (0, 0, 0, 0.0, 0.0, 0.0))] * (n_rows - len(lst))
 
     ds_rows, law_rows, mode_rows = pad(ds_rows), pad(law_rows), pad(mode_rows)
@@ -397,7 +398,7 @@ def _latex_winrate_table_appendix(winners: pd.DataFrame) -> str:
     if winners.empty:
         return "% No winners data available."
 
-    def _pct_row(sub):
+    def _pct_row(sub: pd.DataFrame) -> tuple[int, int, int, float]:
         n = len(sub)
         nc = (sub["Winner"] == "Non-Colinear").sum()
         co = n - nc
@@ -448,23 +449,20 @@ def _latex_winrate_table_appendix(winners: pd.DataFrame) -> str:
 
 
 def display_comparison_tables(
-    results: List[Dict],
-    dataset_filter: Optional[str] = None,
+    results: list[dict[str, object]],
+    dataset_filter: str | None = None,
 ) -> str:
     """
-    Generate LaTeX comparison tables with \\win{} winner highlighting.
+    Print and return LaTeX comparison tables with \\win{} winner highlighting.
 
-    Produces **three tables per dataset** (Unified, Colinear, Non-Colinear
-    holdout) so you can see the competition from every angle.
+    Three tables per dataset (Unified, Colinear, Non-Colinear holdout).
 
-    Parameters
-    ----------
-    results : list of dicts from `run_dataset_fits` or `run_full_analysis`
-    dataset_filter : if given, only show tables for this dataset name
+    Args:
+        results: result dicts from `run_dataset_fits` or `run_full_analysis`.
+        dataset_filter: if given, only show tables for this dataset name.
 
-    Returns
-    -------
-    str : concatenated LaTeX table code
+    Returns:
+        The concatenated LaTeX table code.
     """
     df_all = build_summary_df(results)
     datasets = [dataset_filter] if dataset_filter else sorted(df_all["Dataset"].unique())
@@ -486,24 +484,22 @@ def display_comparison_tables(
 
 
 def display_aggregated_stats(
-    results: List[Dict],
+    results: list[dict[str, object]],
     win_threshold: float = 60.0,
 ) -> str:
     """
-    Generate the aggregated stats LaTeX tables: 4 summary tables
-    (Train, Unified holdout, Colinear holdout, Non-Colinear holdout)
-    plus one win-rate breakdown table.
+    Print and return the aggregated stats LaTeX tables: 4 summary tables
+    (Train, Unified, Colinear, Non-Colinear holdout), the win-rate breakdown
+    table and its appendix version.
 
     Win-rate headline uses unified holdout (the most general case).
 
-    Parameters
-    ----------
-    results : list of dicts from pipeline
-    win_threshold : NC% above this value gets \\win{} in the win-rate table
+    Args:
+        results: result dicts from the pipeline.
+        win_threshold: NC% above this value gets \\win{} in the win-rate table.
 
-    Returns
-    -------
-    str : concatenated LaTeX table code
+    Returns:
+        The concatenated LaTeX table code.
     """
     df = build_summary_df(results)
     winners = get_winners_summary(results)
@@ -535,7 +531,7 @@ def display_aggregated_stats(
     return latex
 
 
-def get_winners_summary(results: List[Dict]) -> pd.DataFrame:
+def get_winners_summary(results: list[dict[str, object]]) -> pd.DataFrame:
     """
     Return a compact DataFrame showing the winner (Colinear vs Non-Colinear)
     for each (Dataset, Holdout Type, Epoch Mode, Law) combination.
