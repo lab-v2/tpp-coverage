@@ -597,7 +597,7 @@ def plot_raw_wins_combined_per_dataset_ci(
 # ─────────────────────────────────────────────────────────────────────────
 # Plots
 # ─────────────────────────────────────────────────────────────────────────
-def _percent_ylim(ax, top=100.0):
+def _percent_ylim(ax: plt.Axes, top: float = 100.0) -> None:
     """Frame a win-percentage y axis at (0, top), widened to any plotted point outside it.
 
     A percentage lies in [0, 100], so the frame is unchanged for one; `top` above 100 leaves

@@ -77,7 +77,7 @@ def _apply_ylim(ax, y_min: Optional[float], y_max: Optional[float]):
         ax.set_ylim(new_min, new_max)
 
 
-def _coverage_xlim(ax):
+def _coverage_xlim(ax: plt.Axes) -> None:
     """Frame a coverage-fraction x axis at (-0.02, 1.05), widened to any plotted point outside it.
 
     Coverage fractions lie in [0, 1], so the frame is unchanged for them; a column plotted on x
