@@ -10,6 +10,7 @@ import yaml
 from conftest import REPO
 
 README = (REPO / "README.md").read_text()
+DIAGRAM = (REPO / "images" / "pipeline" / "pipeline.mmd").read_text()
 
 TITLE = "Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation"
 AUTHORS = [
@@ -55,7 +56,7 @@ def test_logos_of_the_three_institutions() -> None:
 
 
 def test_diagram_labels_are_plain_words() -> None:
-    diagram = _block("mermaid")
+    diagram = DIAGRAM
     assert re.search(r"^flowchart\b", diagram, re.M)
     labels = re.findall(r'\(\[?"([^"]+)"\]?\)|\["([^"]+)"\]', diagram)
     labels = [a or b for a, b in labels]
@@ -66,7 +67,7 @@ def test_diagram_labels_are_plain_words() -> None:
 
 
 def test_diagram_edges_only_join_declared_nodes() -> None:
-    diagram = _block("mermaid")
+    diagram = DIAGRAM
     declared = set(re.findall(r"\b(\w+)[\[(]\S", diagram))
     used = set(re.findall(r"(\w+)(?:\[[^\]]*\]|\(\[[^\]]*\]\))?\s*-\.?->", diagram))
     used |= set(re.findall(r"(?:-\.?->|==>|\.->)\s*(\w+)", diagram))
@@ -96,3 +97,13 @@ def test_citation_cff_agrees_with_the_readme() -> None:
     for people in (cff["authors"], cff["preferred-citation"]["authors"]):
         assert [f"{a['given-names']} {a['family-names']}" for a in people] == AUTHORS
     assert f"arXiv:{ARXIV_ID}" in {i["value"] for i in cff["identifiers"]}
+
+
+def test_diagram_is_an_image_rendered_from_its_source() -> None:
+    """GitHub's mobile app shows a Mermaid block as source, so the README embeds the rendered PNG."""
+    import hashlib
+
+    assert "```mermaid" not in README, "embed images/pipeline/pipeline.png, not a Mermaid block"
+    assert 'src="images/pipeline/pipeline.png"' in README
+    stamp = (REPO / "images" / "pipeline" / "pipeline.png.sha256").read_text().strip()
+    assert stamp == hashlib.sha256(DIAGRAM.encode()).hexdigest(), "re-run images/pipeline/render.sh"

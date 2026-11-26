@@ -102,7 +102,7 @@ def step_running(job: str, fragment: str) -> dict[str, object]:
 @pytest.mark.parametrize("job", ["tests", "paper"])
 def test_each_job_selects_from_mains_map_on_a_pull_request(job: str) -> None:
     """Both jobs fetch main's map artifacts and run the selector; neither waits on the other."""
-    fetch = step_running(job, "tests/affected.py fetch affected-map.json")
+    fetch = step_running(job, 'tests/affected.py fetch "$RUNNER_TEMP/affected-map.json"')
     assert fetch["if"] == "github.event_name == 'pull_request'"
     assert '--base "$BASE"' in fetch["run"]  # the newest map at an ancestor of the base
     pick = step_running(job, "tests/affected.py select")
@@ -137,7 +137,10 @@ def test_the_paper_gate_runs_on_a_pull_request_only_when_its_inputs_changed() ->
 def test_main_runs_everything_traced_and_keeps_each_part_of_the_map(
     job: str, part: str, artifact: str
 ) -> None:
-    build = step_running(job, f"tests/affected.py build --part {part} {artifact}.json")
+    # Outside the checkout: the privacy test scans the work tree, and a map there failed it.
+    build = step_running(
+        job, f'tests/affected.py build --part {part} "$RUNNER_TEMP/{artifact}.json"'
+    )
     want = "github.event_name == 'push'"
     assert build["if"] == (
         want + " || steps.pick.outputs.mode == 'full'" if job == "tests" else want
@@ -147,7 +150,7 @@ def test_main_runs_everything_traced_and_keeps_each_part_of_the_map(
     assert upload["if"] == want
     assert upload["with"] == {
         "name": artifact,
-        "path": f"{artifact}.json",
+        "path": f"${{{{ runner.temp }}}}/{artifact}.json",
         "if-no-files-found": "error",
     }
     assert steps.index(upload) > steps.index(build)  # a failed build keeps no map

@@ -79,31 +79,11 @@ reproduces the released results bit for bit (about 3 minutes on 480 threads; `te
 
 # Repository structure
 
-```mermaid
-%%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 30, "rankSpacing": 50, "padding": 14}, "themeVariables": {"fontFamily": "Inter, -apple-system, Segoe UI, Helvetica, sans-serif", "fontSize": "15px", "lineColor": "#94A3B8", "clusterBkg": "transparent", "clusterBorder": "#94A3B8", "titleColor": "#94A3B8", "edgeLabelBackground": "transparent"}}}%%
-flowchart TB
-    subgraph TRAIN["TRAIN &nbsp;·&nbsp; GPU"]
-        direction LR
-        A("Download<br/>5 corpora") --> B("Generate the<br/>N × D grid") --> C("Train<br/>1,900 models")
-    end
-    subgraph ANALYSE["ANALYSE &nbsp;·&nbsp; CPU"]
-        direction LR
-        D("Extract<br/>losses") --> E("Fit 4<br/>scaling laws") --> F("Tables<br/>and figures")
-    end
-    H[("Public data<br/>on HuggingFace")]
-    G("Camera-ready<br/>analyses")
-    TRAIN ==> ANALYSE
-    H -.-> ANALYSE
-    H -.-> G
-    classDef train fill:#F76900,stroke:#FFB27A,stroke-width:1px,color:#FFFFFF
-    classDef analyse fill:#1F2A5C,stroke:#7C8DD6,stroke-width:1px,color:#FFFFFF
-    classDef data fill:#334155,stroke:#94A3B8,stroke-width:1px,color:#FFFFFF
-    classDef extra fill:#475569,stroke:#94A3B8,stroke-width:1px,color:#FFFFFF
-    class A,B,C train
-    class D,E,F analyse
-    class H data
-    class G extra
-```
+<p align="center">
+<img alt="The pipeline: download 5 corpora, generate the N x D grid and train 1,900 models on GPU; then extract losses, fit 4 scaling laws and make tables and figures on CPU. The public data on HuggingFace feeds the analysis and the camera-ready analyses." src="images/pipeline/pipeline.png" width="760">
+</p>
+
+The diagram's source is [`images/pipeline/pipeline.mmd`](images/pipeline/pipeline.mmd); `images/pipeline/render.sh` renders it.
 
 ## Layout
 

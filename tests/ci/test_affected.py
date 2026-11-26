@@ -249,6 +249,21 @@ def test_the_parser_reads_split_calls_relative_paths_and_listings(repo: Path) ->
     assert dirs == {"data"}
 
 
+def test_a_url_or_command_string_never_enters_the_map(repo: Path) -> None:
+    """A test cloning from `file:///<repo>` names the host's own path; the map is public."""
+    r = str(repo)
+    log = repo.parent / "t.strace"
+    log.write_text(
+        f'11 execve("/usr/bin/git", ["git", "clone", "file://{r}/.git"], 0x0 /* 1 var */) = 0\n'
+        f'11 newfstatat(AT_FDCWD<{r}>, "file:{r}/x", 0x1, 0) = -1 ENOENT\n'
+        f"11 newfstatat(AT_FDCWD<{r}>, \"git-upload-pack '{r}/t'\", 0x1, 0) = -1 ENOENT\n"
+        f'11 openat(AT_FDCWD<{r}>, "src/a.py", O_RDONLY) = 3<{r}/src/a.py>\n'
+    )
+    files, probes, dirs = affected.parse_trace(log)
+    assert files == {"src/a.py"}
+    assert not [p for p in probes | files | dirs if r.lstrip("/") in p or ":" in p], probes
+
+
 def test_pytest_probing_the_git_directory_is_not_a_git_read(repo: Path) -> None:
     """pytest stats `.git` and `.git/pyvenv.cfg` looking for virtualenvs; git never ran."""
     r = str(repo)

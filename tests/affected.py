@@ -108,6 +108,12 @@ def _unescape(s: str) -> str:
     return _ESC.sub(one, s.encode("utf-8", "surrogateescape")).decode("utf-8", "surrogateescape")
 
 
+# A string argument joined to the working directory is not always a path: a test that runs
+# `git clone file:///abs/...` names a URL holding the host's own path, which must never reach the
+# map (it is a public artifact). A URL scheme, a space or a quote marks such a string.
+_NOT_A_PATH = re.compile(r"(^|/)[A-Za-z][\w+.-]*:|\s|['\"]")
+
+
 def _roots() -> tuple[tuple[str, ...], tuple[str, ...]]:
     """(the repository root's spellings, the git directories), all resolved."""
     return _roots_of(str(REPO))
@@ -147,7 +153,9 @@ def _inside(path: str) -> str | None:
                 parts = PurePosixPath(rel).parts
                 if parts[0] == ".git":
                     return GIT
-                return None if IGNORED_PARTS & set(parts) else rel
+                if IGNORED_PARTS & set(parts) or _NOT_A_PATH.search(rel):
+                    return None
+                return rel
     return None
 
 
