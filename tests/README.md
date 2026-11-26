@@ -13,7 +13,7 @@ component of the same name; `conftest.py` holds the shared paths and helpers.
 | `camera_ready/` | `camera_ready/`: both analyses rerun against their committed outputs |
 | `cluster/` | `cluster/`: the task generator, the queue scripts and the audit |
 | `ci/` | `.github/`: the workflows and the merge rule |
-| `website/` | `website/`: one section per talk slide, showing and citing only what the deck does |
+| `website/` | `website/`: one section per talk slide, each bullet stating the deck's numbers, formulas, citations and names; references, authors and arXiv ids as the deck and `CITATION.cff` give them; every image present |
 | `repository/` | The whole tree: README, links, entry points, vocabulary, privacy |
 
 The suite checks law recovery on synthetic data, every entry point's `--help`, that the

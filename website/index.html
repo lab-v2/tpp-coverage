@@ -83,7 +83,8 @@
 
     <h2 class="title is-3">Scaling laws</h2>
     <ul>
-      <li>Laws: Chinchilla (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>), Kaplan (<a href="#ref-kaplan">Kaplan et al., 2020</a>), Droppo-Elibol (<a href="#ref-droppo">Droppo and Elibol, 2021</a>) and repeated-data (<a href="#ref-muennighoff">Muennighoff et al., 2025</a>); also <a href="#ref-hestness">Hestness et al. (2017)</a>, <a href="#ref-henighan">Henighan et al. (2020)</a> and broken laws (<a href="#ref-caballero">Caballero et al., 2023</a>).</li>
+      <li>Laws: Chinchilla (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>), Kaplan (<a href="#ref-kaplan">Kaplan et al., 2020</a>), Droppo-Elibol (<a href="#ref-droppo">Droppo and Elibol, 2021</a>) and repeated-data (<a href="#ref-muennighoff">Muennighoff et al., 2025</a>).</li>
+      <li>Also: <a href="#ref-hestness">Hestness et al. (2017)</a>, <a href="#ref-henighan">Henighan et al. (2020)</a> and broken laws (<a href="#ref-caballero">Caballero et al., 2023</a>).</li>
       <li>The Chinchilla law (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>): loss floor $E$, scale coefficients $A, B$, exponents $\alpha, \beta$:</li>
     </ul>
     <p>$$\hat{L}(N, D) = E + \underbrace{\dfrac{A}{N^{\alpha}}}_{\text{model}} + \underbrace{\dfrac{B}{D^{\beta}}}_{\text{data}}.$$</p>
@@ -140,8 +141,9 @@
 
     <h2 class="title is-3">TPP-diversity threshold</h2>
     <p>For $K$ rays with ratios $k_1 &lt; \dots &lt; k_K$, a target condition number $\kappa_{\mathrm{target}}$ and effective exponent $\beta_{\mathrm{eff}}$ ($= \beta$ for Chinchilla), to leading order $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever</p>
-    <p>$$\boldsymbol{V_K \;\geq\; \tau_K}, \qquad V_K = \dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}} - \Bigl(\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{\beta_{\mathrm{eff}}}}\Bigr)^{2}, \qquad \tau_K = \dfrac{\bigl(K + \sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}}.$$</p>
-    <p>$V_K$ is the spread of the ratios and $\tau_K$ the threshold it must reach.</p>
+    <p>$$\boldsymbol{V_K \;\geq\; \tau_K},$$</p>
+    <p>where the spread of the ratios, and the threshold it must reach, are:</p>
+    <p>$$V_K = \dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}} - \Bigl(\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{\beta_{\mathrm{eff}}}}\Bigr)^{2}, \qquad \tau_K = \dfrac{\bigl(K + \sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}}.$$</p>
 
     <h2 class="title is-3">Designs compared: CO and NC</h2>
     <ul>
