@@ -12,6 +12,7 @@ own README.
 | [ANALYSIS](ANALYSIS.md) | Fitting the laws and writing the tables |
 | [VISUALIZATIONS](VISUALIZATIONS.md) | The figures |
 | [NGRAM_KL](NGRAM_KL.md) | The n-gram KL divergence between train and validation splits |
+| [PUBLIC_CHECKPOINTS_TESTS](PUBLIC_CHECKPOINTS_TESTS.md) | What the public-checkpoint reanalysis's tests check, building its tables from a rerun, and its dose-response intervals |
 | [KNOWN_BEHAVIOURS](KNOWN_BEHAVIOURS.md) | What changes a reproduced number: padding, BF16, GPU count, seed, released runs, model sizes, run names, cached fits, drivers |
 
 ## Full pipeline

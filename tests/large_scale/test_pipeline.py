@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 import json
 
 import numpy as np
@@ -44,8 +45,10 @@ class TestUpstreamBootstrap:
             assert hasattr(upstream, name), name
 
     def test_split_bucketer_is_reused_from_the_package(self) -> None:
-        assert "organise_runs" in upstream.__all__
-        assert "PreparedData" in upstream.__all__
+        package_data = importlib.import_module("scaling_laws.data")
+        assert upstream.organise_runs is package_data._organise
+        assert upstream.PreparedData is package_data.PreparedData
+        assert {"organise_runs", "PreparedData"} <= set(upstream.__all__)
 
 
 class TestConfig:

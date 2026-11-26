@@ -77,7 +77,7 @@ reinvented.
    ratios included), not false failures, so a fail under endpoints-mode is a genuine fail
    while an endpoints-mode pass carries this caveat. AMENDED 2026-11-03 (Amendments 5): the
    simulation behind the camera-ready appendix shows the claim above is too strong;
-   endpoints mode usually over-credits a design, and the reverse is rare (56 of 200,000
+   endpoints mode usually over-credits a design, and the reverse is rare (0.028%, 56 of 200,000
    random crossed grids), but it happens. Endpoints-mode rows are therefore
    counted and disclosed separately among the passes. The k_list_source column records which
    recovery mode was used: exact / axes-derived / endpoints / reconstruction (the last for

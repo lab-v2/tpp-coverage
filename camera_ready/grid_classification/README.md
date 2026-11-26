@@ -2,9 +2,9 @@
 
 [README](../../README.md)
 
-Applies the paper's design criterion (Proposition 2: a design is well conditioned, Regime B,
-when V_K >= tau_K) to every published bivariate L(N, D) scaling-law design whose list of
-tokens-per-parameter ratios can be recovered. Selection was fixed before any design was
+Applies the paper's design criterion to every published bivariate L(N, D) scaling-law design whose
+list of tokens-per-parameter ratios can be recovered. The criterion is Proposition 2: a design is
+well conditioned (Regime B) when V_K >= tau_K. Selection was fixed before any design was
 classified; the protocol is in [`CRITERIA.md`](CRITERIA.md).
 
 ```bash
