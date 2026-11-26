@@ -73,41 +73,41 @@ DATASET_PATHS = {
         "subdir": "wikipedia",
         "train_tokens": "train_tokens.bin",
         "train_lengths": "train_lengths.bin",
-        "val_tokens":    "val_tokens.bin",
-        "val_lengths":   "val_lengths.bin",
-        "split_method":  "shuffled",
+        "val_tokens": "val_tokens.bin",
+        "val_lengths": "val_lengths.bin",
+        "split_method": "shuffled",
     },
     "redpajama": {
         "subdir": "redpajama",
         "train_tokens": "train_tokens.bin",
         "train_lengths": "train_lengths.bin",
-        "val_tokens":    "val_tokens.bin",
-        "val_lengths":   "val_lengths.bin",
-        "split_method":  "shuffled",
+        "val_tokens": "val_tokens.bin",
+        "val_lengths": "val_lengths.bin",
+        "split_method": "shuffled",
     },
     "pes2o": {
         "subdir": "pes2o",
         "train_tokens": "train_tokens.bin",
         "train_lengths": "train_lengths.bin",
-        "val_tokens":    "val_tokens.bin",
-        "val_lengths":   "val_lengths.bin",
-        "split_method":  "shuffled",
+        "val_tokens": "val_tokens.bin",
+        "val_lengths": "val_lengths.bin",
+        "split_method": "shuffled",
     },
     "cosmopedia": {
         "subdir": "cosmopedia",
         "train_tokens": "train_tokens.bin",
         "train_lengths": "train_lengths.bin",
-        "val_tokens":    "val_tokens.bin",
-        "val_lengths":   "val_lengths.bin",
-        "split_method":  "shuffled",
+        "val_tokens": "val_tokens.bin",
+        "val_lengths": "val_lengths.bin",
+        "split_method": "shuffled",
     },
     "c4": {
         "subdir": "c4",
         "train_tokens": "train_tokens.bin",
         "train_lengths": "train_lengths.bin",
-        "val_tokens":    "val_tokens.bin",
-        "val_lengths":   "val_lengths.bin",
-        "split_method":  "shuffled",
+        "val_tokens": "val_tokens.bin",
+        "val_lengths": "val_lengths.bin",
+        "split_method": "shuffled",
     },
 }
 
@@ -116,12 +116,13 @@ DATASET_PATHS = {
 # Loading
 # ============================================================================
 
+
 def load_real_tokens(tokens_path, lengths_path, max_seq_len, token_budget=None):
     """
     Memory-map the binary files and return a flat array of real (non-padded) token IDs.
     """
-    tokens_mmap = np.memmap(tokens_path, dtype=np.uint32, mode='r')
-    lengths_mmap = np.memmap(lengths_path, dtype=np.uint16, mode='r')
+    tokens_mmap = np.memmap(tokens_path, dtype=np.uint32, mode="r")
+    lengths_mmap = np.memmap(lengths_path, dtype=np.uint16, mode="r")
 
     num_sequences = len(lengths_mmap)
     total_padded = len(tokens_mmap)
@@ -150,6 +151,7 @@ def load_real_tokens(tokens_path, lengths_path, max_seq_len, token_budget=None):
 # ============================================================================
 # Chunked n-gram counting (multiprocessing within a single job)
 # ============================================================================
+
 
 def count_ngrams_chunk(args):
     """
@@ -209,14 +211,23 @@ def parallel_ngram_count(tokens, n, num_workers):
 # KL and cosine
 # ============================================================================
 
+
 def compute_kl_cosine(counter_a, counter_b):
     all_keys = set(counter_a.keys()) | set(counter_b.keys())
     num_types = len(all_keys)
 
     if num_types == 0:
-        return {"sym_kl": 0.0, "kl_ab": 0.0, "kl_ba": 0.0, "cosine": 1.0,
-                "types_a": 0, "types_b": 0, "types_union": 0,
-                "total_a": 0, "total_b": 0}
+        return {
+            "sym_kl": 0.0,
+            "kl_ab": 0.0,
+            "kl_ba": 0.0,
+            "cosine": 1.0,
+            "types_a": 0,
+            "types_b": 0,
+            "types_union": 0,
+            "total_a": 0,
+            "total_b": 0,
+        }
 
     total_a = sum(counter_a.values())
     total_b = sum(counter_b.values())
@@ -236,15 +247,22 @@ def compute_kl_cosine(counter_a, counter_b):
     cosine = float(np.dot(freq_a, freq_b) / (norm_a * norm_b)) if norm_a and norm_b else 0.0
 
     return {
-        "sym_kl": sym_kl, "kl_ab": kl_pq, "kl_ba": kl_qp, "cosine": cosine,
-        "types_a": len(counter_a), "types_b": len(counter_b),
-        "types_union": num_types, "total_a": total_a, "total_b": total_b,
+        "sym_kl": sym_kl,
+        "kl_ab": kl_pq,
+        "kl_ba": kl_qp,
+        "cosine": cosine,
+        "types_a": len(counter_a),
+        "types_b": len(counter_b),
+        "types_union": num_types,
+        "total_a": total_a,
+        "total_b": total_b,
     }
 
 
 # ============================================================================
 # ATOMIC UNIT: single (dataset, n) job
 # ============================================================================
+
 
 def run_single_ngram(dataset_name, n, base_dir, output_dir, num_workers, token_budget=None):
     """
@@ -258,8 +276,8 @@ def run_single_ngram(dataset_name, n, base_dir, output_dir, num_workers, token_b
     ds_dir = os.path.join(base_dir, cfg["subdir"])
     train_tok_path = os.path.join(ds_dir, cfg["train_tokens"])
     train_len_path = os.path.join(ds_dir, cfg["train_lengths"])
-    val_tok_path   = os.path.join(ds_dir, cfg["val_tokens"])
-    val_len_path   = os.path.join(ds_dir, cfg["val_lengths"])
+    val_tok_path = os.path.join(ds_dir, cfg["val_tokens"])
+    val_len_path = os.path.join(ds_dir, cfg["val_lengths"])
 
     for p in [train_tok_path, train_len_path, val_tok_path, val_len_path]:
         if not os.path.exists(p):
@@ -269,26 +287,32 @@ def run_single_ngram(dataset_name, n, base_dir, output_dir, num_workers, token_b
     # Load tokens
     t0 = time.time()
     train_tokens = load_real_tokens(train_tok_path, train_len_path, MAX_SEQ_LEN, token_budget)
-    print(f"  [{dataset_name}|n={n}] Train: {len(train_tokens):,} tokens ({time.time()-t0:.1f}s)")
+    print(f"  [{dataset_name}|n={n}] Train: {len(train_tokens):,} tokens ({time.time() - t0:.1f}s)")
 
     t0 = time.time()
     val_tokens = load_real_tokens(val_tok_path, val_len_path, MAX_SEQ_LEN, token_budget)
-    print(f"  [{dataset_name}|n={n}] Val: {len(val_tokens):,} tokens ({time.time()-t0:.1f}s)")
+    print(f"  [{dataset_name}|n={n}] Val: {len(val_tokens):,} tokens ({time.time() - t0:.1f}s)")
 
     # Count n-grams
     t0 = time.time()
     train_counts = parallel_ngram_count(train_tokens, n, num_workers)
-    print(f"  [{dataset_name}|n={n}] Train {n}-grams: {len(train_counts):,} types ({time.time()-t0:.1f}s)")
+    print(
+        f"  [{dataset_name}|n={n}] Train {n}-grams: {len(train_counts):,} types ({time.time() - t0:.1f}s)"
+    )
 
     t0 = time.time()
     val_counts = parallel_ngram_count(val_tokens, n, num_workers)
-    print(f"  [{dataset_name}|n={n}] Val {n}-grams: {len(val_counts):,} types ({time.time()-t0:.1f}s)")
+    print(
+        f"  [{dataset_name}|n={n}] Val {n}-grams: {len(val_counts):,} types ({time.time() - t0:.1f}s)"
+    )
 
     # Compute metrics
     t0 = time.time()
     metrics = compute_kl_cosine(train_counts, val_counts)
-    print(f"  [{dataset_name}|n={n}] symKL={metrics['sym_kl']:.6f}  "
-          f"cosine={metrics['cosine']:.6f} ({time.time()-t0:.1f}s)")
+    print(
+        f"  [{dataset_name}|n={n}] symKL={metrics['sym_kl']:.6f}  "
+        f"cosine={metrics['cosine']:.6f} ({time.time() - t0:.1f}s)"
+    )
 
     result = {
         "dataset": dataset_name,
@@ -320,6 +344,7 @@ def run_single_ngram(dataset_name, n, base_dir, output_dir, num_workers, token_b
 # Launch modes
 # ============================================================================
 
+
 def launch_subprocesses(jobs, max_parallel, extra_args):
     """
     Launch a list of (dataset, n) jobs as independent subprocesses.
@@ -349,10 +374,14 @@ def launch_subprocesses(jobs, max_parallel, extra_args):
         while pending and len(active) < max_parallel:
             ds, n = pending.pop(0)
             cmd = [
-                sys.executable, __file__,
-                "--mode", "single",
-                "--dataset", ds,
-                "--ngram", str(n),
+                sys.executable,
+                __file__,
+                "--mode",
+                "single",
+                "--dataset",
+                ds,
+                "--ngram",
+                str(n),
             ] + extra_args
             print(f"  Launching: {ds} n={n}")
             p = subprocess.Popen(cmd)
@@ -369,10 +398,18 @@ def run_all(args):
     ngrams = args.ngrams or list(range(1, MAX_NGRAM + 1))
     datasets = args.datasets or list(DATASET_PATHS.keys())
     jobs = [(ds, n) for ds in datasets for n in ngrams]
-    print(f"Launching {len(jobs)} jobs (datasets={datasets}, ngrams={ngrams}, max {args.max_parallel} concurrent)...")
+    print(
+        f"Launching {len(jobs)} jobs (datasets={datasets}, ngrams={ngrams}, max {args.max_parallel} concurrent)..."
+    )
 
-    extra = ["--base-dir", args.base_dir, "--output-dir", args.output_dir,
-             "--workers", str(args.workers)]
+    extra = [
+        "--base-dir",
+        args.base_dir,
+        "--output-dir",
+        args.output_dir,
+        "--workers",
+        str(args.workers),
+    ]
     if args.token_budget:
         extra += ["--token-budget", str(args.token_budget)]
 
@@ -394,8 +431,14 @@ def run_dataset(args):
     jobs = [(args.dataset, n) for n in ngrams]
     print(f"Launching {len(jobs)} n-gram jobs for {args.dataset} (ngrams={ngrams})...")
 
-    extra = ["--base-dir", args.base_dir, "--output-dir", args.output_dir,
-             "--workers", str(args.workers)]
+    extra = [
+        "--base-dir",
+        args.base_dir,
+        "--output-dir",
+        args.output_dir,
+        "--workers",
+        str(args.workers),
+    ]
     if args.token_budget:
         extra += ["--token-budget", str(args.token_budget)]
 
@@ -406,10 +449,14 @@ def run_dataset(args):
 # Aggregate -> LaTeX
 # ============================================================================
 
+
 def aggregate_results(output_dir, table_max_n=3):
     datasets_display = {
-        "wikipedia": "Wikipedia", "redpajama": "Red Pajama",
-        "cosmopedia": "Cosmopedia", "pes2o": "peS2o", "c4": "C4",
+        "wikipedia": "Wikipedia",
+        "redpajama": "Red Pajama",
+        "cosmopedia": "Cosmopedia",
+        "pes2o": "peS2o",
+        "c4": "C4",
     }
     split_display = {"shuffled": "Shuffled", "left_right": "Left/Right"}
 
@@ -425,11 +472,13 @@ def aggregate_results(output_dir, table_max_n=3):
                 print(f"  WARNING: Missing {path}")
 
     # Console summary
-    print(f"\n{'='*100}")
+    print(f"\n{'=' * 100}")
     print("  N-GRAM KL DIVERGENCE SUMMARY (train vs val)")
-    print(f"{'='*100}")
-    header = (f"{'Dataset':<14} {'Split':<12} {'n':>3}  {'symKL':>12} {'cosine':>10} "
-              f"{'types(union)':>14} {'train_tok':>14} {'val_tok':>14}")
+    print(f"{'=' * 100}")
+    header = (
+        f"{'Dataset':<14} {'Split':<12} {'n':>3}  {'symKL':>12} {'cosine':>10} "
+        f"{'types(union)':>14} {'train_tok':>14} {'val_tok':>14}"
+    )
     print(header)
     print("-" * 100)
 
@@ -439,20 +488,26 @@ def aggregate_results(output_dir, table_max_n=3):
             if r is None:
                 continue
             split = split_display.get(r.get("split_method", ""), "?")
-            print(f"{datasets_display[ds_name]:<14} {split:<12} {n:>3}  "
-                  f"{r['sym_kl']:>12.6f} {r['cosine']:>10.6f} "
-                  f"{r['unique_types_union']:>14,} "
-                  f"{r['total_train']:>14,} {r['total_val']:>14,}")
+            print(
+                f"{datasets_display[ds_name]:<14} {split:<12} {n:>3}  "
+                f"{r['sym_kl']:>12.6f} {r['cosine']:>10.6f} "
+                f"{r['unique_types_union']:>14,} "
+                f"{r['total_train']:>14,} {r['total_val']:>14,}"
+            )
         print("-" * 100)
 
     # LaTeX table
     latex = []
     latex.append(r"\begin{table}[t]")
     latex.append(r"\centering")
-    latex.append(r"\caption{Symmetric KL divergence and cosine similarity between train and validation "
-                 r"$n$-gram distributions ($n=1,\ldots," + str(table_max_n) + r"$). Wikipedia, Red Pajama, peS2o, and C4 use "
-                 r"shuffled-permutation splits; Cosmopedia uses a left/right sequential split "
-                 r"(synthetic data with no inherent ordering bias). All splits target 1.3B tokens per side.}")
+    latex.append(
+        r"\caption{Symmetric KL divergence and cosine similarity between train and validation "
+        r"$n$-gram distributions ($n=1,\ldots,"
+        + str(table_max_n)
+        + r"$). Wikipedia, Red Pajama, peS2o, and C4 use "
+        r"shuffled-permutation splits; Cosmopedia uses a left/right sequential split "
+        r"(synthetic data with no inherent ordering bias). All splits target 1.3B tokens per side.}"
+    )
     latex.append(r"\label{tab:ngram_kl}")
     latex.append(r"\small")
     latex.append(r"\begin{tabular}{ll" + "r" * table_max_n + "}")
@@ -476,7 +531,8 @@ def aggregate_results(output_dir, table_max_n=3):
 
         latex.append(
             f"\\multirow{{2}}{{*}}{{{display} ({split})}} & Sym.~KL & "
-            + " & ".join(kl_vals) + r" \\"
+            + " & ".join(kl_vals)
+            + r" \\"
         )
         latex.append(" & Cosine & " + " & ".join(cos_vals) + r" \\")
 
@@ -500,45 +556,80 @@ def aggregate_results(output_dir, table_max_n=3):
 # CLI
 # ============================================================================
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Parallel n-gram KL divergence (each dataset x n-gram = its own process)"
     )
-    parser.add_argument("--mode", required=True,
-                        choices=["single", "run-dataset", "run-all", "aggregate"],
-                        help="single: one (dataset,n) job; run-dataset: all n for one dataset; "
-                             "run-all: all 25 jobs; aggregate: build LaTeX")
-    parser.add_argument("--dataset", choices=list(DATASET_PATHS.keys()),
-                        help="Dataset name (for single / run-dataset)")
-    parser.add_argument("--datasets", nargs="+", choices=list(DATASET_PATHS.keys()),
-                        default=None,
-                        help="Datasets to run (for run-all). "
-                             "E.g. --datasets wikipedia c4. Default: all.")
-    parser.add_argument("--ngram", type=int, choices=range(1, MAX_NGRAM + 1),
-                        help="N-gram order (for single mode)")
-    parser.add_argument("--ngrams", type=int, nargs="+",
-                        choices=range(1, MAX_NGRAM + 1), default=None,
-                        help="N-gram orders to run (for run-all / run-dataset). "
-                             "E.g. --ngrams 1 2 3. Default: all 1-5.")
-    parser.add_argument("--base-dir", default=os.environ.get("DATA_DIR", "."),
-                        help="Root dir containing dataset subdirectories "
-                             "(defaults to $DATA_DIR if set, else current dir)")
-    parser.add_argument("--output-dir", default="./ngram_results",
-                        help="Where to write per-job JSON results and LaTeX table")
-    parser.add_argument("--workers", type=int, default=max(1, cpu_count() // 4),
-                        help="Workers for within-job parallel counting")
-    parser.add_argument("--max-parallel", type=int, default=8,
-                        help="Max concurrent subprocesses for run-all / run-dataset")
-    parser.add_argument("--token-budget", type=int, default=None,
-                        help="Cap tokens loaded per split (for testing)")
+    parser.add_argument(
+        "--mode",
+        required=True,
+        choices=["single", "run-dataset", "run-all", "aggregate"],
+        help="single: one (dataset,n) job; run-dataset: all n for one dataset; "
+        "run-all: all 25 jobs; aggregate: build LaTeX",
+    )
+    parser.add_argument(
+        "--dataset",
+        choices=list(DATASET_PATHS.keys()),
+        help="Dataset name (for single / run-dataset)",
+    )
+    parser.add_argument(
+        "--datasets",
+        nargs="+",
+        choices=list(DATASET_PATHS.keys()),
+        default=None,
+        help="Datasets to run (for run-all). E.g. --datasets wikipedia c4. Default: all.",
+    )
+    parser.add_argument(
+        "--ngram", type=int, choices=range(1, MAX_NGRAM + 1), help="N-gram order (for single mode)"
+    )
+    parser.add_argument(
+        "--ngrams",
+        type=int,
+        nargs="+",
+        choices=range(1, MAX_NGRAM + 1),
+        default=None,
+        help="N-gram orders to run (for run-all / run-dataset). "
+        "E.g. --ngrams 1 2 3. Default: all 1-5.",
+    )
+    parser.add_argument(
+        "--base-dir",
+        default=os.environ.get("DATA_DIR", "."),
+        help="Root dir containing dataset subdirectories "
+        "(defaults to $DATA_DIR if set, else current dir)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default="./ngram_results",
+        help="Where to write per-job JSON results and LaTeX table",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=max(1, cpu_count() // 4),
+        help="Workers for within-job parallel counting",
+    )
+    parser.add_argument(
+        "--max-parallel",
+        type=int,
+        default=8,
+        help="Max concurrent subprocesses for run-all / run-dataset",
+    )
+    parser.add_argument(
+        "--token-budget", type=int, default=None, help="Cap tokens loaded per split (for testing)"
+    )
     args = parser.parse_args()
 
     if args.mode == "single":
         if not args.dataset or not args.ngram:
             parser.error("--dataset and --ngram required for --mode single")
         run_single_ngram(
-            args.dataset, args.ngram, args.base_dir, args.output_dir,
-            args.workers, args.token_budget,
+            args.dataset,
+            args.ngram,
+            args.base_dir,
+            args.output_dir,
+            args.workers,
+            args.token_budget,
         )
 
     elif args.mode == "run-dataset":

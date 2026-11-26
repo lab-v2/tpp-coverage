@@ -45,25 +45,25 @@ SPECIAL_DATASETS = {
 # Parametric-Epoch only uses the special "Epoch-Expanded" mode that exposes
 # (N, U_D, R, L) instead of collapsing epochs.
 LAW_MODES = {
-    "Chinchilla":       ["final", "first", "second"],
-    "Kaplan":           ["final", "first", "second"],
-    "Droppo-Elibol":    ["final", "first", "second"],
+    "Chinchilla": ["final", "first", "second"],
+    "Kaplan": ["final", "first", "second"],
+    "Droppo-Elibol": ["final", "first", "second"],
     "Parametric-Epoch": ["Epoch-Expanded"],
 }
 
 # Parameter names per law - used for named param columns
 # (matches generate_appendix_tables.py LAW_TABLE_CONFIG)
 LAW_PARAM_NAMES = {
-    "Kaplan":           ["N_c", "D_c", "alpha_N", "alpha_D"],
-    "Chinchilla":       ["E", "A", "alpha", "B", "beta"],
-    "Droppo-Elibol":    ["L_inf", "N_c", "D_c", "alpha_N", "alpha_D", "alpha"],
+    "Kaplan": ["N_c", "D_c", "alpha_N", "alpha_D"],
+    "Chinchilla": ["E", "A", "alpha", "B", "beta"],
+    "Droppo-Elibol": ["L_inf", "N_c", "D_c", "alpha_N", "alpha_D", "alpha"],
     "Parametric-Epoch": ["A", "alpha", "B", "beta", "E", "R_star_D", "R_star_N"],
 }
 
-DEFAULT_N_SEEDS    = 30
+DEFAULT_N_SEEDS = 30
 DEFAULT_N_RESTARTS = 100
-DEFAULT_BASE_SEED  = 0
-SEED_STRIDE        = 137  # BF16 uses stride 137 per appendix
+DEFAULT_BASE_SEED = 0
+SEED_STRIDE = 137  # BF16 uses stride 137 per appendix
 
 
 # ============================================================
@@ -72,6 +72,7 @@ SEED_STRIDE        = 137  # BF16 uses stride 137 per appendix
 # Parametric-Epoch is NOT here - handled directly in the worker
 # via prepare_epoch_expanded + fit_parametric_epoch.
 # ============================================================
+
 
 def _get_seed_fitters():
     """Build seed-aware fitters for the three (N, D, L)-shape laws."""
@@ -84,6 +85,7 @@ def _get_seed_fitters():
 
     def _fit_kaplan_seed(N, D, L, n_restarts=300, seed=42):
         bounds = [(1e3, 1e14), (1e3, 1e14), (0.01, 2.0), (0.01, 2.0)]
+
         def sampler(rng, L):
             return [
                 10 ** rng.uniform(5, 12),
@@ -91,10 +93,12 @@ def _get_seed_fitters():
                 rng.uniform(0.05, 1.5),
                 rng.uniform(0.05, 1.5),
             ]
+
         return _fit_generic(kaplan_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
     def _fit_chinchilla_seed(N, D, L, n_restarts=300, seed=42):
         bounds = [(0.0, 10.0), (1e-2, 1e10), (0.01, 2.0), (1e-2, 1e10), (0.01, 2.0)]
+
         def sampler(rng, L):
             return [
                 rng.uniform(0.0, min(L) * 0.9),
@@ -103,14 +107,19 @@ def _get_seed_fitters():
                 10 ** rng.uniform(0, 8),
                 rng.uniform(0.1, 1.5),
             ]
+
         return _fit_generic(chinchilla_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
     def _fit_droppo_elibol_seed(N, D, L, n_restarts=300, seed=42):
         bounds = [
             (1e-6, 10.0),
-            (1e3, 1e14), (1e3, 1e14),
-            (0.01, 2.0), (0.01, 2.0), (0.01, 2.0),
+            (1e3, 1e14),
+            (1e3, 1e14),
+            (0.01, 2.0),
+            (0.01, 2.0),
+            (0.01, 2.0),
         ]
+
         def sampler(rng, L):
             return [
                 rng.uniform(0.01, min(L) * 0.8),
@@ -120,11 +129,12 @@ def _get_seed_fitters():
                 rng.uniform(0.05, 1.5),
                 rng.uniform(0.05, 1.5),
             ]
+
         return _fit_generic(droppo_elibol_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
     return {
-        "Kaplan":        (_fit_kaplan_seed, kaplan_loss),
-        "Chinchilla":    (_fit_chinchilla_seed, chinchilla_loss),
+        "Kaplan": (_fit_kaplan_seed, kaplan_loss),
+        "Chinchilla": (_fit_chinchilla_seed, chinchilla_loss),
         "Droppo-Elibol": (_fit_droppo_elibol_seed, droppo_elibol_loss),
     }
 
@@ -133,6 +143,7 @@ def _get_seed_fitters():
 # Worker: Full Coverage (one combo)
 # ============================================================
 
+
 def _run_full_coverage_combo(args):
     """Worker for one (dataset, law, mode) combo.
 
@@ -140,8 +151,7 @@ def _run_full_coverage_combo(args):
       - Standard laws: prepare_arrays(mode=mode) → (N, D, L) → fitter
       - Parametric-Epoch: prepare_epoch_expanded() → (N, U_D, R, L) → fit_parametric_epoch
     """
-    (dataset_name, csv_path, law_name, mode,
-     n_seeds, n_restarts, base_seed, save_dir) = args
+    (dataset_name, csv_path, law_name, mode, n_seeds, n_restarts, base_seed, save_dir) = args
 
     from scaling_laws.data import load_and_prepare, prepare_arrays, prepare_epoch_expanded
 
@@ -162,7 +172,7 @@ def _run_full_coverage_combo(args):
         print(f"  [FAIL] {tag}: load error: {e}")
         return []
 
-    is_pe = (law_name == "Parametric-Epoch")
+    is_pe = law_name == "Parametric-Epoch"
     rows = []
 
     if is_pe:
@@ -203,8 +213,12 @@ def _run_full_coverage_combo(args):
                 actual_seed = base_seed + seed_idx * SEED_STRIDE
                 try:
                     params_dict, loss, success = fit_parametric_epoch(
-                        N_arr, UD_arr, R_arr, L_arr,
-                        n_restarts=n_restarts, seed=actual_seed,
+                        N_arr,
+                        UD_arr,
+                        R_arr,
+                        L_arr,
+                        n_restarts=n_restarts,
+                        seed=actual_seed,
                     )
                     if params_dict is None:
                         continue
@@ -222,11 +236,16 @@ def _run_full_coverage_combo(args):
                 # Train metrics
                 try:
                     pred_tr = parametric_epoch_loss(
-                        N_arr, UD_arr, R_arr,
-                        params_dict["A"], params_dict["alpha"],
-                        params_dict["B"], params_dict["beta"],
+                        N_arr,
+                        UD_arr,
+                        R_arr,
+                        params_dict["A"],
+                        params_dict["alpha"],
+                        params_dict["B"],
+                        params_dict["beta"],
                         params_dict["E"],
-                        params_dict["R_star_D"], params_dict["R_star_N"],
+                        params_dict["R_star_D"],
+                        params_dict["R_star_N"],
                     )
                     row["r2_train"] = float(r2_score(L_arr, pred_tr))
                     row["rmse_train"] = float(np.sqrt(mean_squared_error(L_arr, pred_tr)))
@@ -237,11 +256,16 @@ def _run_full_coverage_combo(args):
                 for hname, (hN, hUD, hR, hL) in holdout_arrays.items():
                     try:
                         pred_h = parametric_epoch_loss(
-                            hN, hUD, hR,
-                            params_dict["A"], params_dict["alpha"],
-                            params_dict["B"], params_dict["beta"],
+                            hN,
+                            hUD,
+                            hR,
+                            params_dict["A"],
+                            params_dict["alpha"],
+                            params_dict["B"],
+                            params_dict["beta"],
                             params_dict["E"],
-                            params_dict["R_star_D"], params_dict["R_star_N"],
+                            params_dict["R_star_D"],
+                            params_dict["R_star_N"],
                         )
                         row[f"r2_{hname}"] = float(r2_score(hL, pred_h))
                         row[f"rmse_{hname}"] = float(np.sqrt(mean_squared_error(hL, pred_h)))
@@ -292,7 +316,9 @@ def _run_full_coverage_combo(args):
                 actual_seed = base_seed + seed_idx * SEED_STRIDE
                 try:
                     params, sse, success = fit_fn(
-                        N_arr, D_arr, L_arr,
+                        N_arr,
+                        D_arr,
+                        L_arr,
                         n_restarts=n_restarts,
                         seed=actual_seed,
                     )
@@ -348,13 +374,14 @@ def _run_full_coverage_combo(args):
 # Stats helpers and table builders
 # ============================================================
 
+
 def _wilson_ci(k, n, z=1.96):
     if n == 0:
         return 0, 0, 0
     p_hat = k / n
-    denom = 1 + z ** 2 / n
-    center = (p_hat + z ** 2 / (2 * n)) / denom
-    margin = z * np.sqrt(p_hat * (1 - p_hat) / n + z ** 2 / (4 * n ** 2)) / denom
+    denom = 1 + z**2 / n
+    center = (p_hat + z**2 / (2 * n)) / denom
+    margin = z * np.sqrt(p_hat * (1 - p_hat) / n + z**2 / (4 * n**2)) / denom
     return p_hat * 100, (center - margin) * 100, (center + margin) * 100
 
 
@@ -364,9 +391,9 @@ def build_tables(df, save_dir, label):
     # SUMMARY TABLE
     # Internal split key → ("CSV label", "LaTeX label")
     SPLIT_LABELS = {
-        "train":       ("Train",      r"Train ($\mathcal{D}$)"),
-        "unified":     ("Holdout",    r"Holdout ($\mathcal{H}$)"),
-        "colinear":    ("Holdout-CO", r"Holdout--CO ($\mathcal{H}_{\mathrm{col}}$)"),
+        "train": ("Train", r"Train ($\mathcal{D}$)"),
+        "unified": ("Holdout", r"Holdout ($\mathcal{H}$)"),
+        "colinear": ("Holdout-CO", r"Holdout--CO ($\mathcal{H}_{\mathrm{col}}$)"),
         "noncolinear": ("Holdout-NC", r"Holdout--NC ($\mathcal{H}_{\mathrm{nc}}$)"),
     }
 
@@ -392,26 +419,30 @@ def build_tables(df, save_dir, label):
             r2_ci_half = 1.96 * r2_stds.mean() / np.sqrt(mean_n)
             rmse_ci_half = 1.96 * rmse_stds.mean() / np.sqrt(mean_n)
 
-            summary_rows.append({
-                "Split": csv_label,
-                "Split_tex": tex_label,
-                "Design": design,
-                "R2_Mean": float(r2_means.mean()),
-                "R2_CI_lo": float(r2_means.mean() - r2_ci_half),
-                "R2_CI_hi": float(r2_means.mean() + r2_ci_half),
-                "R2_Median": float(r2_means.median()),
-                "R2_Std": float(r2_means.std()),
-                "R2_Sigma": float(r2_stds.mean()),
-                "RMSE_Mean": float(rmse_means.mean()),
-                "RMSE_CI_lo": float(rmse_means.mean() - rmse_ci_half),
-                "RMSE_CI_hi": float(rmse_means.mean() + rmse_ci_half),
-                "RMSE_Median": float(rmse_means.median()),
-                "RMSE_Std": float(rmse_means.std()),
-            })
+            summary_rows.append(
+                {
+                    "Split": csv_label,
+                    "Split_tex": tex_label,
+                    "Design": design,
+                    "R2_Mean": float(r2_means.mean()),
+                    "R2_CI_lo": float(r2_means.mean() - r2_ci_half),
+                    "R2_CI_hi": float(r2_means.mean() + r2_ci_half),
+                    "R2_Median": float(r2_means.median()),
+                    "R2_Std": float(r2_means.std()),
+                    "R2_Sigma": float(r2_stds.mean()),
+                    "RMSE_Mean": float(rmse_means.mean()),
+                    "RMSE_CI_lo": float(rmse_means.mean() - rmse_ci_half),
+                    "RMSE_CI_hi": float(rmse_means.mean() + rmse_ci_half),
+                    "RMSE_Median": float(rmse_means.median()),
+                    "RMSE_Std": float(rmse_means.std()),
+                }
+            )
 
     summary = pd.DataFrame(summary_rows)
     # CSV gets clean labels (no LaTeX label column)
-    summary.drop(columns=["Split_tex"]).to_csv(os.path.join(save_dir, f"summary_{label}.csv"), index=False)
+    summary.drop(columns=["Split_tex"]).to_csv(
+        os.path.join(save_dir, f"summary_{label}.csv"), index=False
+    )
 
     best = {}
     for tex_label in summary["Split_tex"].unique():
@@ -420,7 +451,8 @@ def build_tables(df, save_dir, label):
 
     tex_lines = [
         r"\begin{table*}[!htbp]",
-        r"\small", r"\centering",
+        r"\small",
+        r"\centering",
         r"\setlength{\tabcolsep}{3pt}",
         rf"\caption{{$R^2$ and RMSE summary for {label} across training designs.",
         r"$\sigma$: seed-to-seed optimizer std (30 seeds). 95\% CI: confidence interval on the mean.",
@@ -438,7 +470,7 @@ def build_tables(df, save_dir, label):
     for _, row in summary.iterrows():
         tex_label = row["Split_tex"]
         design = row["Design"]
-        is_best = (best.get(tex_label) == design)
+        is_best = best.get(tex_label) == design
 
         def _w(val, fmt=".4f"):
             s = f"{val:{fmt}}"
@@ -469,7 +501,11 @@ def build_tables(df, save_dir, label):
     print(f"\n  Wrote {summary_path}")
     print(tex_summary)
     print(f"\n  {label} R² summary:")
-    print(summary[["Split", "Design", "R2_Mean", "R2_Sigma", "R2_Median"]].round(4).to_string(index=False))
+    print(
+        summary[["Split", "Design", "R2_Mean", "R2_Sigma", "R2_Median"]]
+        .round(4)
+        .to_string(index=False)
+    )
 
     # WINRATE TABLE
     wins_rows = []
@@ -483,11 +519,15 @@ def build_tables(df, save_dir, label):
         if len(paired_co) == 0:
             continue
         nc_wins = int((paired_nc > paired_co).sum())
-        wins_rows.append({
-            "Law": law, "Mode": mode,
-            "NC_wins": nc_wins, "N_paired": len(paired_co),
-            "NC_pct": nc_wins / len(paired_co) * 100,
-        })
+        wins_rows.append(
+            {
+                "Law": law,
+                "Mode": mode,
+                "NC_wins": nc_wins,
+                "N_paired": len(paired_co),
+                "NC_pct": nc_wins / len(paired_co) * 100,
+            }
+        )
 
     wins_df = pd.DataFrame(wins_rows)
     wins_df.to_csv(os.path.join(save_dir, f"winrate_{label}.csv"), index=False)
@@ -498,8 +538,10 @@ def build_tables(df, save_dir, label):
     total_n = int(wins_df["N_paired"].sum())
     overall_pct, overall_lo, overall_hi = _wilson_ci(total_nc, total_n)
 
-    print(f"\n  {label} NC win rate (unified): {total_nc}/{total_n} "
-          f"({overall_pct:.1f}% [{overall_lo:.1f}%, {overall_hi:.1f}%])")
+    print(
+        f"\n  {label} NC win rate (unified): {total_nc}/{total_n} "
+        f"({overall_pct:.1f}% [{overall_lo:.1f}%, {overall_hi:.1f}%])"
+    )
 
     slices = {}
     for col in ["Law", "Mode"]:
@@ -514,7 +556,8 @@ def build_tables(df, save_dir, label):
 
     tex_lines = [
         r"\begin{table*}[!htbp]",
-        r"\small", r"\centering",
+        r"\small",
+        r"\centering",
         r"\setlength{\tabcolsep}{4pt}",
         rf"\caption{{Win rate breakdown (NC vs.\ CO design) on unified holdout for {label} "
         rf"with seed-paired comparisons. Overall NC win rate: {overall_pct:.1f}\% "
@@ -578,8 +621,8 @@ def build_holdout_split_winrate(df, save_dir, label="appendix"):
     per-dataset breakdown that run_analysis.py produces.
     """
     SPLIT_NAMES = {
-        "unified":     r"$\mathcal{H}$",
-        "colinear":    r"$\mathcal{H}_{\mathrm{col}}$",
+        "unified": r"$\mathcal{H}$",
+        "colinear": r"$\mathcal{H}_{\mathrm{col}}$",
         "noncolinear": r"$\mathcal{H}_{\mathrm{nc}}$",
     }
 
@@ -605,24 +648,32 @@ def build_holdout_split_winrate(df, save_dir, label="appendix"):
             nw, np_ = _pair_wins(group, r2_col)
             nc_total += nw
             n_total += np_
-        rows.append({
-            "split": split,
-            "tex": SPLIT_NAMES[split],
-            "nc_wins": nc_total,
-            "co_wins": n_total - nc_total,
-            "total": n_total,
-            "pct": (nc_total / n_total * 100) if n_total else 0.0,
-        })
+        rows.append(
+            {
+                "split": split,
+                "tex": SPLIT_NAMES[split],
+                "nc_wins": nc_total,
+                "co_wins": n_total - nc_total,
+                "total": n_total,
+                "pct": (nc_total / n_total * 100) if n_total else 0.0,
+            }
+        )
 
     # CSV
-    pd.DataFrame([{
-        "Holdout_Split": r["split"],
-        "NC_Wins": r["nc_wins"],
-        "CO_Wins": r["co_wins"],
-        "Total": r["total"],
-        "NC_Pct": round(r["pct"], 2),
-    } for r in rows]).to_csv(
-        os.path.join(save_dir, f"winrate_by_holdout_split_{label}.csv"), index=False,
+    pd.DataFrame(
+        [
+            {
+                "Holdout_Split": r["split"],
+                "NC_Wins": r["nc_wins"],
+                "CO_Wins": r["co_wins"],
+                "Total": r["total"],
+                "NC_Pct": round(r["pct"], 2),
+            }
+            for r in rows
+        ]
+    ).to_csv(
+        os.path.join(save_dir, f"winrate_by_holdout_split_{label}.csv"),
+        index=False,
     )
 
     # LaTeX
@@ -639,8 +690,7 @@ def build_holdout_split_winrate(df, save_dir, label="appendix"):
     ]
     for r in rows:
         tex_lines.append(
-            f"{r['tex']} & {r['nc_wins']} & {r['co_wins']} & "
-            f"{r['total']} & {r['pct']:.1f}\\% \\\\"
+            f"{r['tex']} & {r['nc_wins']} & {r['co_wins']} & {r['total']} & {r['pct']:.1f}\\% \\\\"
         )
     tex_lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
 
@@ -656,12 +706,18 @@ def build_holdout_split_winrate(df, save_dir, label="appendix"):
 # Main
 # ============================================================
 
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Full-coverage analysis for the BF16 special Wikipedia dataset")
+        description="Full-coverage analysis for the BF16 special Wikipedia dataset"
+    )
     parser.add_argument("--data-dir", required=True)
-    parser.add_argument("--dataset", choices=["bf16"], default="bf16",
-                       help="Special dataset to run (only bf16 is supported)")
+    parser.add_argument(
+        "--dataset",
+        choices=["bf16"],
+        default="bf16",
+        help="Special dataset to run (only bf16 is supported)",
+    )
     parser.add_argument("--n-workers", type=int, default=os.cpu_count())
     parser.add_argument("--n-seeds", type=int, default=DEFAULT_N_SEEDS)
     parser.add_argument("--n-restarts", type=int, default=DEFAULT_N_RESTARTS)
@@ -674,6 +730,7 @@ def main():
 
     if args.clear_cache:
         import glob
+
         removed = 0
         for f in glob.glob(os.path.join(args.output_dir, "*.parquet")):
             os.remove(f)
@@ -687,19 +744,28 @@ def main():
         print(f"\n  ERROR: {csv_path} not found.")
         return
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  {cfg['description']}")
     print(f"  CSV: {csv_path}")
     print(f"  Laws: {cfg['laws']}")
     print(f"  Seed stride: {SEED_STRIDE}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     combos = []
     for law in cfg["laws"]:
         for mode in LAW_MODES.get(law, ["final"]):
-            combos.append((cfg["name"], csv_path, law, mode,
-                          args.n_seeds, args.n_restarts, args.base_seed,
-                          args.output_dir))
+            combos.append(
+                (
+                    cfg["name"],
+                    csv_path,
+                    law,
+                    mode,
+                    args.n_seeds,
+                    args.n_restarts,
+                    args.base_seed,
+                    args.output_dir,
+                )
+            )
 
     print(f"\n  Full coverage: {len(combos)} combos × {args.n_seeds} seeds")
     t0 = time.time()
@@ -712,6 +778,7 @@ def main():
                 all_rows.extend(future.result())
             except Exception as e:
                 import traceback
+
                 traceback.print_exc()
                 print(f"  [ERROR] {e}")
 
@@ -719,7 +786,7 @@ def main():
         df = pd.DataFrame(all_rows)
         parquet_path = os.path.join(args.output_dir, f"full_coverage_{args.dataset}.parquet")
         df.to_parquet(parquet_path, index=False)
-        print(f"\n  Saved: {parquet_path} ({len(df)} rows, {time.time()-t0:.1f}s)")
+        print(f"\n  Saved: {parquet_path} ({len(df)} rows, {time.time() - t0:.1f}s)")
         build_tables(df, args.output_dir, args.dataset)
     else:
         print("\n  No results!")

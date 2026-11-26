@@ -41,9 +41,7 @@ class AnalysisRunner:
     :class:`FullGridFitsSection` must run first. The order here is the contract.
     """
 
-    def __init__(
-        self, config: AnalysisConfig | None = None, workers: int | None = None
-    ) -> None:
+    def __init__(self, config: AnalysisConfig | None = None, workers: int | None = None) -> None:
         self._config = config or AnalysisConfig()
         self._config.ensure_output_dirs()
         self._workers = workers

@@ -20,6 +20,7 @@ def test_no_banned_word_in_names_or_text():
             continue
         text = tree_text(path)
         if text is not None:
-            hits += [f"{name}:{i}" for i, line in enumerate(text.splitlines(), 1)
-                     if pattern.search(line)]
+            hits += [
+                f"{name}:{i}" for i, line in enumerate(text.splitlines(), 1) if pattern.search(line)
+            ]
     assert not hits, hits

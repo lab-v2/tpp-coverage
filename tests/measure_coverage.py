@@ -20,8 +20,9 @@ REPO = Path(__file__).resolve().parents[1]
 
 
 def git(*args: str) -> str:
-    return subprocess.run(["git", "-C", str(REPO), *args], capture_output=True, text=True,
-                          check=True).stdout.strip()
+    return subprocess.run(
+        ["git", "-C", str(REPO), *args], capture_output=True, text=True, check=True
+    ).stdout.strip()
 
 
 def main() -> int:
@@ -33,7 +34,14 @@ def main() -> int:
     out.mkdir(parents=True, exist_ok=True)
     data = out / f".coverage-{short}"
     report = out / f"coverage-{short}-with-gate.json"
-    env_args = ["--cov", f"--cov-report=json:{report}", "-q", "--no-header", "-p", "no:cacheprovider"]
+    env_args = [
+        "--cov",
+        f"--cov-report=json:{report}",
+        "-q",
+        "--no-header",
+        "-p",
+        "no:cacheprovider",
+    ]
     common = [sys.executable, "-m", "pytest", *env_args]
     env = {**os.environ, "COVERAGE_FILE": str(data)}
     for step in (["-n", "auto"], ["-n", "0", "-m", "paper", "--cov-append"]):
@@ -43,7 +51,9 @@ def main() -> int:
     rep = json.loads(report.read_text())
     rep["commit"] = full
     report.write_text(json.dumps(rep))
-    print(f"measure_coverage: {report} ({rep['totals']['percent_covered_display']}% of lines and branches)")
+    print(
+        f"measure_coverage: {report} ({rep['totals']['percent_covered_display']}% of lines and branches)"
+    )
     return 0
 
 

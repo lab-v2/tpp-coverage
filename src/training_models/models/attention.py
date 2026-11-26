@@ -32,9 +32,7 @@ class MultiHeadAttention(nn.Module):
             torch.tril(torch.ones(config.max_seq_len, config.max_seq_len)),
         )
 
-    def forward(
-        self, x: torch.Tensor, attention_mask: torch.Tensor | None = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, attention_mask: torch.Tensor | None = None) -> torch.Tensor:
         batch_size, seq_len, d_model = x.shape
 
         # Project to Q, K, V
@@ -59,9 +57,7 @@ class MultiHeadAttention(nn.Module):
 
         # Apply causal mask (prevent attending to future tokens)
         causal_mask = self.causal_mask[:seq_len, :seq_len]
-        scores = scores.masked_fill(
-            causal_mask == 0, -1e9
-        )  # Use large negative instead of -inf
+        scores = scores.masked_fill(causal_mask == 0, -1e9)  # Use large negative instead of -inf
 
         # Apply attention mask if provided
         if attention_mask is not None:
@@ -77,7 +73,5 @@ class MultiHeadAttention(nn.Module):
         attn_out = torch.matmul(attn_weights, v)
 
         # Concatenate heads and project
-        attn_out = (
-            attn_out.transpose(1, 2).contiguous().view(batch_size, seq_len, d_model)
-        )
+        attn_out = attn_out.transpose(1, 2).contiguous().view(batch_size, seq_len, d_model)
         return self.out_proj(attn_out)

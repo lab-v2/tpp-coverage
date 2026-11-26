@@ -84,9 +84,7 @@ class TestFitting:
         assert fit.exponent_gap == pytest.approx(0.07, abs=0.02)
 
     def test_rejects_designs_with_too_few_points(self) -> None:
-        tiny = FitArrays(
-            n=np.array([1e6, 1e7]), d=np.array([1e8, 1e9]), loss=np.array([3.0, 2.5])
-        )
+        tiny = FitArrays(n=np.array([1e6, 1e7]), d=np.array([1e8, 1e9]), loss=np.array([3.0, 2.5]))
         with pytest.raises(ValueError, match="at least"):
             LawFitter(restarts=5).fit(CHINCHILLA, tiny, seed=0)
 
@@ -94,9 +92,7 @@ class TestFitting:
         with pytest.raises(ValueError, match="restarts must be positive"):
             LawFitter(restarts=0)
 
-    def test_rmse_on_matches_manual_computation(
-        self, synthetic_chinchilla: FitArrays
-    ) -> None:
+    def test_rmse_on_matches_manual_computation(self, synthetic_chinchilla: FitArrays) -> None:
         fit = LawFitter(restarts=30, global_search=False).fit(
             CHINCHILLA, synthetic_chinchilla, seed=3
         )
@@ -106,9 +102,7 @@ class TestFitting:
         )
         assert fit.rmse_on(synthetic_chinchilla) == pytest.approx(expected)
 
-    def test_named_params_line_up_with_param_names(
-        self, synthetic_chinchilla: FitArrays
-    ) -> None:
+    def test_named_params_line_up_with_param_names(self, synthetic_chinchilla: FitArrays) -> None:
         fit = LawFitter(restarts=20, global_search=False).fit(
             CHINCHILLA, synthetic_chinchilla, seed=0
         )
@@ -180,12 +174,8 @@ class TestConditioning:
         with pytest.raises(ValueError, match="2-D"):
             GaussNewtonConditioning(np.ones(5))
 
-    def test_from_fit_refuses_laws_without_an_analytic_jacobian(
-        self, synthetic_chinchilla
-    ) -> None:
-        fit = LawFitter(restarts=10, global_search=False).fit(
-            KAPLAN, synthetic_chinchilla, seed=0
-        )
+    def test_from_fit_refuses_laws_without_an_analytic_jacobian(self, synthetic_chinchilla) -> None:
+        fit = LawFitter(restarts=10, global_search=False).fit(KAPLAN, synthetic_chinchilla, seed=0)
         assert fit is not None
         with pytest.raises(NotImplementedError, match="no analytic Jacobian"):
             GaussNewtonConditioning.from_fit(fit, synthetic_chinchilla)

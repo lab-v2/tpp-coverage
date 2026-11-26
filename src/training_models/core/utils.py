@@ -29,41 +29,41 @@ from training_models.models import ModelConfig
 
 # Round target → architecture spec
 _ROUND_TARGET_TO_ARCHITECTURE: dict[int, dict] = {
-    5_000_000:  dict(d_model=24,  n_layers=24, n_heads=12, d_ff=96),
-    10_000_000: dict(d_model=48,  n_layers=12, n_heads=1,  d_ff=192),
-    14_000_000: dict(d_model=64,  n_layers=24, n_heads=32, d_ff=256),
-    19_000_000: dict(d_model=96,  n_layers=1,  n_heads=1,  d_ff=384),
-    22_000_000: dict(d_model=96,  n_layers=24, n_heads=24, d_ff=384),
-    28_000_000: dict(d_model=128, n_layers=12, n_heads=4,  d_ff=512),
-    32_000_000: dict(d_model=160, n_layers=1,  n_heads=16, d_ff=640),
-    35_000_000: dict(d_model=160, n_layers=8,  n_heads=4,  d_ff=640),
-    40_000_000: dict(d_model=192, n_layers=3,  n_heads=12, d_ff=768),
-    45_000_000: dict(d_model=192, n_layers=16, n_heads=1,  d_ff=768),
+    5_000_000: dict(d_model=24, n_layers=24, n_heads=12, d_ff=96),
+    10_000_000: dict(d_model=48, n_layers=12, n_heads=1, d_ff=192),
+    14_000_000: dict(d_model=64, n_layers=24, n_heads=32, d_ff=256),
+    19_000_000: dict(d_model=96, n_layers=1, n_heads=1, d_ff=384),
+    22_000_000: dict(d_model=96, n_layers=24, n_heads=24, d_ff=384),
+    28_000_000: dict(d_model=128, n_layers=12, n_heads=4, d_ff=512),
+    32_000_000: dict(d_model=160, n_layers=1, n_heads=16, d_ff=640),
+    35_000_000: dict(d_model=160, n_layers=8, n_heads=4, d_ff=640),
+    40_000_000: dict(d_model=192, n_layers=3, n_heads=12, d_ff=768),
+    45_000_000: dict(d_model=192, n_layers=16, n_heads=1, d_ff=768),
     # The four largest (held-out evaluation set) targets are the legacy buggy
     # values that were hardcoded into the original training scripts; they map
     # onto the correct true-count architectures listed below.
-    54_566_912: dict(d_model=256, n_layers=4,  n_heads=32, d_ff=1024),
+    54_566_912: dict(d_model=256, n_layers=4, n_heads=32, d_ff=1024),
     60_884_992: dict(d_model=256, n_layers=12, n_heads=32, d_ff=1024),
     64_044_032: dict(d_model=256, n_layers=16, n_heads=32, d_ff=1024),
-    70_362_112: dict(d_model=256, n_layers=24, n_heads=1,  d_ff=1024),
+    70_362_112: dict(d_model=256, n_layers=24, n_heads=1, d_ff=1024),
 }
 
 # True parameter count → architecture spec (HF filename `m{N}` → architecture)
 _TRUE_N_TO_ARCHITECTURE: dict[int, dict] = {
-    5_035_656:  dict(d_model=24,  n_layers=24, n_heads=12, d_ff=96),
-    10_070_160: dict(d_model=48,  n_layers=12, n_heads=1,  d_ff=192),
-    14_411_456: dict(d_model=64,  n_layers=24, n_heads=32, d_ff=256),
-    19_400_928: dict(d_model=96,  n_layers=1,  n_heads=1,  d_ff=384),
-    22_796_832: dict(d_model=96,  n_layers=24, n_heads=24, d_ff=384),
-    28_819_840: dict(d_model=128, n_layers=12, n_heads=4,  d_ff=512),
-    32_498_720: dict(d_model=160, n_layers=1,  n_heads=16, d_ff=640),
-    35_368_160: dict(d_model=160, n_layers=8,  n_heads=4,  d_ff=640),
-    40_277_184: dict(d_model=192, n_layers=3,  n_heads=12, d_ff=768),
-    47_949_888: dict(d_model=192, n_layers=16, n_heads=1,  d_ff=768),
-    55_538_432: dict(d_model=256, n_layers=4,  n_heads=32, d_ff=1024),
+    5_035_656: dict(d_model=24, n_layers=24, n_heads=12, d_ff=96),
+    10_070_160: dict(d_model=48, n_layers=12, n_heads=1, d_ff=192),
+    14_411_456: dict(d_model=64, n_layers=24, n_heads=32, d_ff=256),
+    19_400_928: dict(d_model=96, n_layers=1, n_heads=1, d_ff=384),
+    22_796_832: dict(d_model=96, n_layers=24, n_heads=24, d_ff=384),
+    28_819_840: dict(d_model=128, n_layers=12, n_heads=4, d_ff=512),
+    32_498_720: dict(d_model=160, n_layers=1, n_heads=16, d_ff=640),
+    35_368_160: dict(d_model=160, n_layers=8, n_heads=4, d_ff=640),
+    40_277_184: dict(d_model=192, n_layers=3, n_heads=12, d_ff=768),
+    47_949_888: dict(d_model=192, n_layers=16, n_heads=1, d_ff=768),
+    55_538_432: dict(d_model=256, n_layers=4, n_heads=32, d_ff=1024),
     63_931_136: dict(d_model=256, n_layers=12, n_heads=32, d_ff=1024),
     68_127_488: dict(d_model=256, n_layers=16, n_heads=32, d_ff=1024),
-    76_520_192: dict(d_model=256, n_layers=24, n_heads=1,  d_ff=1024),
+    76_520_192: dict(d_model=256, n_layers=24, n_heads=1, d_ff=1024),
 }
 
 # Combined lookup: accepts either a round target or a true parameter count.
@@ -92,9 +92,7 @@ def _count_tokens_batch(args: tuple[list[str], str, int]) -> int:
     return total_tokens
 
 
-def count_total_tokens(
-    texts: list[str], tokenizer: tiktoken.Encoding, max_seq_len: int
-) -> int:
+def count_total_tokens(texts: list[str], tokenizer: tiktoken.Encoding, max_seq_len: int) -> int:
     """Count total tokens in a dataset applying max_seq_len truncation per text.
 
     This function counts tokens exactly as they would be used in training,
@@ -159,11 +157,13 @@ def generate_model_configs(
         for t in target_params:
             if t in PUBLISHED_ARCHITECTURES:
                 spec = PUBLISHED_ARCHITECTURES[t]
-                selected.append(ModelConfig(
-                    vocab_size=vocab_size,
-                    max_seq_len=max_seq_len,
-                    **spec,
-                ))
+                selected.append(
+                    ModelConfig(
+                        vocab_size=vocab_size,
+                        max_seq_len=max_seq_len,
+                        **spec,
+                    )
+                )
             else:
                 selected.append(None)
         if all(c is not None for c in selected):
@@ -226,9 +226,7 @@ def generate_model_configs(
     if target_params is not None and len(target_params) > 0:
         used: set[int] = set()
         selected: list[ModelConfig] = []
-        candidate_params = np.array(
-            [c.legacy_param_count for c in candidates], dtype=np.float64
-        )
+        candidate_params = np.array([c.legacy_param_count for c in candidates], dtype=np.float64)
         for t in target_params:
             diffs = np.abs(candidate_params - float(t))
             order = np.argsort(diffs, kind="stable")

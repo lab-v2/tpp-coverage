@@ -80,6 +80,7 @@ def merged_ratios(ks: Sequence[float]) -> list[float]:
 # Screening and window construction
 # ════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass(frozen=True)
 class CellScreen:
     cell: str
@@ -96,11 +97,23 @@ def screen_cell(df: pd.DataFrame, cell: str) -> CellScreen:
     bins = df.assign(b=df["k"].map(ray_bin)).groupby("b")["N"].nunique()
     crossed = int((bins >= MIN_N_PER_BIN).sum())
     if n_N < MIN_DISTINCT_N_CELL:
-        return CellScreen(cell, len(df), n_N, crossed, False,
-                          f"P3: only {n_N} distinct N (< {MIN_DISTINCT_N_CELL})")
+        return CellScreen(
+            cell,
+            len(df),
+            n_N,
+            crossed,
+            False,
+            f"P3: only {n_N} distinct N (< {MIN_DISTINCT_N_CELL})",
+        )
     if crossed < MIN_POPULATED_BINS:
-        return CellScreen(cell, len(df), n_N, crossed, False,
-                          f"P3: only {crossed} k-bins populated at >= {MIN_N_PER_BIN} sizes")
+        return CellScreen(
+            cell,
+            len(df),
+            n_N,
+            crossed,
+            False,
+            f"P3: only {crossed} k-bins populated at >= {MIN_N_PER_BIN} sizes",
+        )
     return CellScreen(cell, len(df), n_N, crossed, True, "included")
 
 
@@ -126,7 +139,7 @@ def build_windows(cell: str, sizes: Sequence[float]) -> list[Window]:
     else:
         return [Window(cell, 0, tuple(ordered))]
     return [
-        Window(cell, i // stride, tuple(ordered[i:i + width]))
+        Window(cell, i // stride, tuple(ordered[i : i + width]))
         for i in range(0, n - width + 1, stride)
     ]
 
@@ -134,6 +147,7 @@ def build_windows(cell: str, sizes: Sequence[float]) -> list[Window]:
 # ════════════════════════════════════════════════════════════════════════════
 # Designs
 # ════════════════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class Split:
@@ -149,8 +163,8 @@ class Split:
         tail = int(round(HOLDOUT_TAIL_FRAC * n))
         if tail < 1 or n - 2 * tail < 5:
             return cls(ranked.iloc[0:0], ranked.iloc[0:0])
-        holdout = pd.concat([ranked.iloc[:tail], ranked.iloc[n - tail:]])
-        return cls(ranked.iloc[tail:n - tail].copy(), holdout)
+        holdout = pd.concat([ranked.iloc[:tail], ranked.iloc[n - tail :]])
+        return cls(ranked.iloc[tail : n - tail].copy(), holdout)
 
 
 @dataclass
@@ -205,19 +219,30 @@ def enumerate_pairs(window: Window, split: Split, n_rays_variants=(1, 2)) -> Ite
             run_tpp_m = {id(r): ray_bin(r["D"] / r["N"]) for r in runs_m}
 
             for seed in SEEDS:
-                bbox_seed = repo.stable_hash(window.cell, window.index, b0, n_rays, seed) & 0x7FFFFFFF
+                bbox_seed = (
+                    repo.stable_hash(window.cell, window.index, b0, n_rays, seed) & 0x7FFFFFFF
+                )
                 nc_runs, *_ = repo.select_nc_bbox(
-                    target_n_points=n, target_tpps=bands, run_tpp=run_tpp,
-                    grid_info=grid_info, bbox_seed=bbox_seed,
+                    target_n_points=n,
+                    target_tpps=bands,
+                    run_tpp=run_tpp,
+                    grid_info=grid_info,
+                    bbox_seed=bbox_seed,
                 )
                 ncm_runs, *_ = repo.select_nc_bbox(
-                    target_n_points=n, target_tpps=bands, run_tpp=run_tpp_m,
-                    grid_info=grid_m, bbox_seed=bbox_seed,
+                    target_n_points=n,
+                    target_tpps=bands,
+                    run_tpp=run_tpp_m,
+                    grid_info=grid_m,
+                    bbox_seed=bbox_seed,
                 )
                 if len(nc_runs) != n or len(ncm_runs) != n:
                     continue
                 yield DesignPair(
-                    window=window, ray=b0, n_rays=n_rays, seed=seed,
+                    window=window,
+                    ray=b0,
+                    n_rays=n_rays,
+                    seed=seed,
                     co_idx=list(co.index),
                     nc_idx=[r["_row"] for r in nc_runs],
                     ncm_idx=[r["_row"] for r in ncm_runs],
@@ -227,6 +252,7 @@ def enumerate_pairs(window: Window, split: Split, n_rays_variants=(1, 2)) -> Ite
 # ════════════════════════════════════════════════════════════════════════════
 # Fitting
 # ════════════════════════════════════════════════════════════════════════════
+
 
 def _rmse(loss_fn, params, sub: pd.DataFrame) -> float:
     if len(sub) == 0 or params is None:
@@ -334,14 +360,20 @@ def _fit_one(job) -> dict | None:
         if onray_ok:
             sub_k = table.loc[keep]
             p_on, _, _ = fit_fn(
-                sub_k["N"].to_numpy(float), sub_k["D"].to_numpy(float), sub_k["loss"].to_numpy(float)
+                sub_k["N"].to_numpy(float),
+                sub_k["D"].to_numpy(float),
+                sub_k["loss"].to_numpy(float),
             )
             row[f"{label}_rmse_onray"] = _rmse(loss_fn, p_on, onray_hold)
         else:
             row[f"{label}_rmse_onray"] = np.nan
 
     def _gap(num: float, den: float) -> float:
-        return float(np.log10(num / den)) if np.isfinite(num) and np.isfinite(den) and den > 0 else np.nan
+        return (
+            float(np.log10(num / den))
+            if np.isfinite(num) and np.isfinite(den) and den > 0
+            else np.nan
+        )
 
     row["gap_offray"] = _gap(row["CO_rmse_offray"], row["NC_rmse_offray"])
     row["gap_offray_ncm"] = _gap(row["CO_rmse_offray"], row["NCM_rmse_offray"])
@@ -354,18 +386,31 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description="Fit budget-matched CO and NC designs on public runs.")
     ap.add_argument("--workers", type=int, default=min(64, os.cpu_count() or 8))
     ap.add_argument("--restarts", type=int, default=N_RESTARTS)
-    ap.add_argument("--farseer-loss", choices=["loss", "loss_smooth", "loss_val"], default="loss",
-                    help="CRITERIA C5 sensitivity variant for the Farseer cell only")
-    ap.add_argument("--runs", default="runs_normalised.csv",
-                    help="normalised run table under artifacts/")
-    ap.add_argument("--corpus", choices=["E", "X", "all"], default="all",
-                    help="CRITERIA A4.2: E = terminal-observation cells only, X = E plus the "
-                         "cells admitted by P2'")
+    ap.add_argument(
+        "--farseer-loss",
+        choices=["loss", "loss_smooth", "loss_val"],
+        default="loss",
+        help="CRITERIA C5 sensitivity variant for the Farseer cell only",
+    )
+    ap.add_argument(
+        "--runs", default="runs_normalised.csv", help="normalised run table under artifacts/"
+    )
+    ap.add_argument(
+        "--corpus",
+        choices=["E", "X", "all"],
+        default="all",
+        help="CRITERIA A4.2: E = terminal-observation cells only, X = E plus the "
+        "cells admitted by P2'",
+    )
     ap.add_argument("--screening", default="screening.csv")
     ap.add_argument("--out", default="results.csv")
-    ap.add_argument("--cells", nargs="+", default=None,
-                    help="fit only these cells (row indices and seeds are unchanged, so the "
-                         "rows equal the matching rows of a full run)")
+    ap.add_argument(
+        "--cells",
+        nargs="+",
+        default=None,
+        help="fit only these cells (row indices and seeds are unchanged, so the "
+        "rows equal the matching rows of a full run)",
+    )
     args = ap.parse_args(argv)
 
     runs = pd.read_csv(ARTIFACTS / args.runs)
@@ -401,8 +446,10 @@ def main(argv: list[str] | None = None) -> None:
     pd.DataFrame([s.__dict__ for s in screens]).to_csv(WORK / args.screening, index=False)
     print("Cells screened:")
     for s in screens:
-        print(f"  {'IN ' if s.included else 'OUT'} {s.cell:36s} pts={s.n_points:5d} "
-              f"#N={s.n_distinct_N:3d} crossed_bins={s.n_crossed_bins:2d}  {s.reason}")
+        print(
+            f"  {'IN ' if s.included else 'OUT'} {s.cell:36s} pts={s.n_points:5d} "
+            f"#N={s.n_distinct_N:3d} crossed_bins={s.n_crossed_bins:2d}  {s.reason}"
+        )
     print(f"\n{len(jobs)} fits queued on {args.workers} workers")
 
     ctx = mp.get_context("fork")
@@ -421,8 +468,10 @@ def main(argv: list[str] | None = None) -> None:
     bad_span = int((span > 2.0 ** out["n_rays"] * 1.001).sum())
     assert bad_span == 0, f"{bad_span} CO designs span more than their ray width"
     assert (out["CO_n_sizes"] >= MIN_DISTINCT_N_IN_DESIGN).all(), "CO design lost its N-lever"
-    print(f"integrity OK: max CO k-span within a 1-ray design = "
-          f"{span[out['n_rays'] == 1].max():.3f} (must be <= 2)")
+    print(
+        f"integrity OK: max CO k-span within a 1-ray design = "
+        f"{span[out['n_rays'] == 1].max():.3f} (must be <= 2)"
+    )
 
     out.to_csv(WORK / args.out, index=False)
     print(f"wrote {args.out}  rows={len(out)}")

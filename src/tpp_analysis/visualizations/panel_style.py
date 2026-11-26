@@ -5,6 +5,7 @@ Central source of truth for fonts, line widths, tick parameters,
 grid colors, legend styling and errorbar darkening so all three
 panels (surface, convergence, isoFLOP) read at the same density.
 """
+
 from matplotlib.legend import Legend
 from matplotlib.container import ErrorbarContainer
 from matplotlib.ticker import ScalarFormatter
@@ -30,13 +31,13 @@ MARKER_SIZE: int = 8
 SPINE_LW: float = 1.5
 
 INTERSECTION_LW: float = 3.5
-INTERSECTION_LS: str = ':'
+INTERSECTION_LS: str = ":"
 INTERSECTION_ALPHA: float = 0.95
 
-GRID_BG_COLOR: str = '#D8D8D8'
+GRID_BG_COLOR: str = "#D8D8D8"
 LEGEND_ALPHA: float = 0.5
 
-GRID_LINE_COLOR: str = '#a8a8a8'
+GRID_LINE_COLOR: str = "#a8a8a8"
 GRID_LINE_WIDTH: float = 1.6
 GRID_LINE_ALPHA: float = 1.0
 
@@ -50,7 +51,7 @@ def _sv_tag(dataset: str, law: str, mode: str) -> str:
 class FixedOrderFormatter(ScalarFormatter):
     """Lock the offset to a fixed power of 10 with integer tick labels."""
 
-    def __init__(self, oom: int = 8, fmt: str = '%d', **kw):
+    def __init__(self, oom: int = 8, fmt: str = "%d", **kw):
         super().__init__(useMathText=False, useOffset=False, **kw)
         self._fixed_oom = oom
         self._fixed_fmt = fmt
@@ -66,24 +67,33 @@ def style_ticks_2d(ax) -> None:
     """Big visible ticks, full bounding box on all four sides, and a
     grid that visually matches the 3-D plot's pane gridlines."""
     ax.tick_params(
-        axis='both', which='major',
-        length=TICK_MAJOR_LEN, width=TICK_MAJOR_WID,
-        labelsize=TICK_LABEL_FS, direction='in',
-        top=True, right=True,
+        axis="both",
+        which="major",
+        length=TICK_MAJOR_LEN,
+        width=TICK_MAJOR_WID,
+        labelsize=TICK_LABEL_FS,
+        direction="in",
+        top=True,
+        right=True,
     )
     ax.tick_params(
-        axis='both', which='minor',
-        length=TICK_MINOR_LEN, width=TICK_MINOR_WID,
-        direction='in', top=True, right=True,
+        axis="both",
+        which="minor",
+        length=TICK_MINOR_LEN,
+        width=TICK_MINOR_WID,
+        direction="in",
+        top=True,
+        right=True,
     )
-    for spine_name in ('top', 'bottom', 'left', 'right'):
+    for spine_name in ("top", "bottom", "left", "right"):
         spine = ax.spines[spine_name]
         spine.set_visible(True)
         spine.set_linewidth(SPINE_LW)
-        spine.set_color('black')
+        spine.set_color("black")
     ax.set_facecolor(GRID_BG_COLOR)
     ax.grid(
-        True, which='major',
+        True,
+        which="major",
         color=GRID_LINE_COLOR,
         linewidth=GRID_LINE_WIDTH,
         alpha=GRID_LINE_ALPHA,
@@ -93,11 +103,11 @@ def style_ticks_2d(ax) -> None:
 
 def style_ticks_3d(ax) -> None:
     """Big visible ticks on a 3-D Axes, with bounding box."""
-    ax.tick_params(axis='x', labelsize=TICK_LABEL_FS, pad=5)
-    ax.tick_params(axis='y', labelsize=TICK_LABEL_FS, pad=5)
-    ax.tick_params(axis='z', labelsize=TICK_LABEL_FS, pad=8)
+    ax.tick_params(axis="x", labelsize=TICK_LABEL_FS, pad=5)
+    ax.tick_params(axis="y", labelsize=TICK_LABEL_FS, pad=5)
+    ax.tick_params(axis="z", labelsize=TICK_LABEL_FS, pad=8)
     for axis in [ax.xaxis, ax.yaxis, ax.zaxis]:
-        axis.pane.set_edgecolor('black')
+        axis.pane.set_edgecolor("black")
         axis.pane.set_alpha(1.0)
         axis.line.set_linewidth(SPINE_LW)
         axis.pane.fill = True
@@ -111,12 +121,12 @@ def _style_legend(legend, alpha: float | None = None) -> None:
     if alpha is None:
         alpha = LEGEND_ALPHA
     frame = legend.get_frame()
-    frame.set_facecolor('white')
-    frame.set_edgecolor('black')
+    frame.set_facecolor("white")
+    frame.set_edgecolor("black")
     frame.set_linewidth(SPINE_LW)
     frame.set_alpha(alpha)
     try:
-        frame.set_boxstyle('square', pad=0.4)
+        frame.set_boxstyle("square", pad=0.4)
     except Exception:
         pass
 
@@ -136,7 +146,9 @@ def _style_all_legends(ax, alpha: float | None = None) -> None:
 
 
 def _darken_errorbars(
-    ax, color: str = 'black', alpha: float = 1.0,
+    ax,
+    color: str = "black",
+    alpha: float = 1.0,
     linewidth: float = 2.0,
 ) -> None:
     """Restyle every existing errorbar so it pops against the

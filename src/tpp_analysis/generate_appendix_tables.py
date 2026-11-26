@@ -26,6 +26,7 @@ Usage:
 
 import os
 import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import argparse
@@ -51,15 +52,15 @@ DS_DISPLAY = {
 #   caption_label: descriptive form for table captions
 HOLDOUT_SPLITS = {
     "unified": {
-        "header":  r"$\mathcal{H}$",
+        "header": r"$\mathcal{H}$",
         "caption": r"Holdout ($\mathcal{H}$)",
     },
     "colinear": {
-        "header":  r"$\mathcal{H}_{\mathrm{col}}$",
+        "header": r"$\mathcal{H}_{\mathrm{col}}$",
         "caption": r"Holdout--CO ($\mathcal{H}_{\mathrm{col}}$)",
     },
     "noncolinear": {
-        "header":  r"$\mathcal{H}_{\mathrm{nc}}$",
+        "header": r"$\mathcal{H}_{\mathrm{nc}}$",
         "caption": r"Holdout--NC ($\mathcal{H}_{\mathrm{nc}}$)",
     },
 }
@@ -74,7 +75,7 @@ LAW_ORDER = ["Parametric-Epoch", "Chinchilla", "Droppo-Elibol", "Kaplan"]
 
 # Per-mode parquet filename (relative to results_dir)
 PARQUET_NAMES = {
-    "main":    "full_coverage_all_seeds.parquet",
+    "main": "full_coverage_all_seeds.parquet",
     "special": "full_coverage_bf16.parquet",
 }
 
@@ -82,13 +83,13 @@ PARQUET_NAMES = {
 RUN_CONFIG = {
     "main": {
         "metrics_out": "appendix_full_metrics.tex",
-        "params_out":  "appendix_fitted_params.tex",
+        "params_out": "appendix_fitted_params.tex",
         "dataset_order": ["Wikipedia", "Cosmopedia", "RedPajama", "Pes2o", "C4"],
         "label_suffix": "",
     },
     "special": {
         "metrics_out": "appendix_full_metrics_bf16.tex",
-        "params_out":  "appendix_fitted_params_bf16.tex",
+        "params_out": "appendix_fitted_params_bf16.tex",
         "dataset_order": ["Wikipedia_BF16"],
         "label_suffix": "-bf16",
     },
@@ -98,6 +99,7 @@ RUN_CONFIG = {
 # ════════════════════════════════════════════════════════════════════════
 # Helpers
 # ════════════════════════════════════════════════════════════════════════
+
 
 def _fmt(val, prec=4):
     if val is None or (isinstance(val, float) and np.isnan(val)):
@@ -127,6 +129,7 @@ def _win(val, prec=4):
 # Per-dataset metric breakdown (Appendix E)
 # ════════════════════════════════════════════════════════════════════════
 
+
 def _fmt_ci(val, std, ci, prec=4):
     """Format a value with tiny σ/CI annotation."""
     if val is None or (isinstance(val, float) and np.isnan(val)):
@@ -136,8 +139,7 @@ def _fmt_ci(val, std, ci, prec=4):
     return base + ann
 
 
-def build_metric_table(df, dataset, split_key, split_header, split_caption,
-                        n_seeds_label=30):
+def build_metric_table(df, dataset, split_key, split_header, split_caption, n_seeds_label=30):
     """
     Build one LaTeX table for a (dataset, holdout_split) pair.
 
@@ -159,17 +161,21 @@ def build_metric_table(df, dataset, split_key, split_header, split_caption,
         return None
 
     # Aggregate across seeds
-    agg = sub.groupby(["mode", "law", "design"]).agg(
-        r2_mean=(r2_col, "mean"),
-        r2_std=(r2_col, "std"),
-        rmse_mean=(rmse_col, "mean"),
-        rmse_std=(rmse_col, "std"),
-        r2_train_mean=("r2_train", "mean"),
-        r2_train_std=("r2_train", "std"),
-        rmse_train_mean=("rmse_train", "mean"),
-        rmse_train_std=("rmse_train", "std"),
-        n_seeds=(r2_col, "count"),
-    ).reset_index()
+    agg = (
+        sub.groupby(["mode", "law", "design"])
+        .agg(
+            r2_mean=(r2_col, "mean"),
+            r2_std=(r2_col, "std"),
+            rmse_mean=(rmse_col, "mean"),
+            rmse_std=(rmse_col, "std"),
+            r2_train_mean=("r2_train", "mean"),
+            r2_train_std=("r2_train", "std"),
+            rmse_train_mean=("rmse_train", "mean"),
+            rmse_train_std=("rmse_train", "std"),
+            n_seeds=(r2_col, "count"),
+        )
+        .reset_index()
+    )
 
     # 95% CI on the mean
     agg["r2_ci"] = 1.96 * agg["r2_std"] / np.sqrt(agg["n_seeds"])
@@ -234,8 +240,12 @@ def build_metric_table(df, dataset, split_key, split_header, split_caption,
                     r2_hold_str = _fmt_ci(r2_val, row["r2_std"], row["r2_ci"])
 
                 # Other cells with CI
-                r2_train_str = _fmt_ci(row["r2_train_mean"], row["r2_train_std"], row["r2_train_ci"])
-                rmse_train_str = _fmt_ci(row["rmse_train_mean"], row["rmse_train_std"], row["rmse_train_ci"])
+                r2_train_str = _fmt_ci(
+                    row["r2_train_mean"], row["r2_train_std"], row["r2_train_ci"]
+                )
+                rmse_train_str = _fmt_ci(
+                    row["rmse_train_mean"], row["rmse_train_std"], row["rmse_train_ci"]
+                )
                 rmse_hold_str = _fmt_ci(row["rmse_mean"], row["rmse_std"], row["rmse_ci"])
 
                 # Mode cell
@@ -259,15 +269,17 @@ def build_metric_table(df, dataset, split_key, split_header, split_caption,
         if mi < len(grouped_modes) - 1:
             lines.append(r"\midrule")
 
-    lines.extend([
-        r"\bottomrule",
-        r"\end{tabular}",
-        r"}",
-        f"\\caption{{{ds_display} --- {split_caption}. "
-        f"Mean across {n_seeds_label} seeds; "
-        r"$\sigma$ = seed-to-seed std, CI = 95\% CI on the mean.}}",
-        r"\end{table}",
-    ])
+    lines.extend(
+        [
+            r"\bottomrule",
+            r"\end{tabular}",
+            r"}",
+            f"\\caption{{{ds_display} --- {split_caption}. "
+            f"Mean across {n_seeds_label} seeds; "
+            r"$\sigma$ = seed-to-seed std, CI = 95\% CI on the mean.}}",
+            r"\end{table}",
+        ]
+    )
 
     return "\n".join(lines)
 
@@ -289,20 +301,41 @@ LAW_TABLE_CONFIG = {
         "mode": "Final",
         "param_cols": ["param_0", "param_1", "param_2", "param_3"],
         "param_headers": ["$N_c$", "$D_c$", r"$\alpha_N$", r"$\alpha_D$"],
-        "extra_cols": [("ratio", r"$\alpha_N/\alpha_D$", lambda r: r["param_2"] / r["param_3"] if r["param_3"] != 0 else float("nan"))],
+        "extra_cols": [
+            (
+                "ratio",
+                r"$\alpha_N/\alpha_D$",
+                lambda r: r["param_2"] / r["param_3"] if r["param_3"] != 0 else float("nan"),
+            )
+        ],
         "caption": r"Kaplan fitted parameters: $L(N,D)=\bigl[(N_c/N)^{\alpha_N/\alpha_D} + D_c/D\bigr]^{\alpha_D}$. Final epoch.",
         "label": "tab:kaplan-params",
     },
     "Droppo-Elibol": {
         "mode": "Final",
         "param_cols": ["param_0", "param_1", "param_2", "param_3", "param_4", "param_5"],
-        "param_headers": [r"$L_\infty$", "$N_C$", "$D_C$", r"$\alpha_N$", r"$\alpha_D$", r"$\alpha$"],
+        "param_headers": [
+            r"$L_\infty$",
+            "$N_C$",
+            "$D_C$",
+            r"$\alpha_N$",
+            r"$\alpha_D$",
+            r"$\alpha$",
+        ],
         "caption": r"Droppo--Elibol fitted parameters. Final epoch.",
         "label": "tab:droppo-params",
     },
     "Parametric-Epoch": {
         "mode": "Epoch-Expanded",
-        "param_cols": ["param_A", "param_alpha", "param_B", "param_beta", "param_E", "param_R_star_D", "param_R_star_N"],
+        "param_cols": [
+            "param_A",
+            "param_alpha",
+            "param_B",
+            "param_beta",
+            "param_E",
+            "param_R_star_D",
+            "param_R_star_N",
+        ],
         "param_headers": ["$A$", r"$\alpha$", "$B$", r"$\beta$", "$E$", "$R^*_D$", "$R^*_N$"],
         "caption": r"Parametric-Epoch fitted parameters. Epoch-Expanded mode.",
         "label": "tab:epoch-params",
@@ -310,8 +343,7 @@ LAW_TABLE_CONFIG = {
 }
 
 
-def build_param_table_per_law(df, law_name, dataset_order, label_suffix="",
-                                seed=0):
+def build_param_table_per_law(df, law_name, dataset_order, label_suffix="", seed=0):
     """
     Build a fitted-parameters table for one law across all datasets.
     Matches the paper's Appendix F format (Tables 41-44).
@@ -408,12 +440,14 @@ def build_param_table_per_law(df, law_name, dataset_order, label_suffix="",
         if di < len(dataset_order) - 1:
             lines.append(r"\midrule")
 
-    lines.extend([
-        r"\bottomrule",
-        r"\end{tabular}%",
-        r"}",
-        r"\end{table}",
-    ])
+    lines.extend(
+        [
+            r"\bottomrule",
+            r"\end{tabular}%",
+            r"}",
+            r"\end{table}",
+        ]
+    )
 
     return "\n".join(lines)
 
@@ -422,19 +456,30 @@ def build_param_table_per_law(df, law_name, dataset_order, label_suffix="",
 # Main
 # ════════════════════════════════════════════════════════════════════════
 
+
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate appendix tables from full_coverage parquet")
-    parser.add_argument("results_dir",
-                        help="Directory containing the input parquet "
-                             "(full_coverage_all_seeds.parquet for --main, "
-                             "full_coverage_bf16.parquet for --special)")
-    parser.add_argument("--special", action="store_true",
-                        help="Run on the BF16 special analysis output "
-                             "(reads full_coverage_bf16.parquet, writes "
-                             "*_bf16.tex)")
-    parser.add_argument("--param-seed", type=int, default=0,
-                        help="Seed to use for fitted parameter tables (default: 0)")
+        description="Generate appendix tables from full_coverage parquet"
+    )
+    parser.add_argument(
+        "results_dir",
+        help="Directory containing the input parquet "
+        "(full_coverage_all_seeds.parquet for --main, "
+        "full_coverage_bf16.parquet for --special)",
+    )
+    parser.add_argument(
+        "--special",
+        action="store_true",
+        help="Run on the BF16 special analysis output "
+        "(reads full_coverage_bf16.parquet, writes "
+        "*_bf16.tex)",
+    )
+    parser.add_argument(
+        "--param-seed",
+        type=int,
+        default=0,
+        help="Seed to use for fitted parameter tables (default: 0)",
+    )
     args = parser.parse_args()
 
     run_mode = "special" if args.special else "main"
@@ -445,8 +490,7 @@ def main():
     if not os.path.exists(parquet_path):
         print(f"Error: {parquet_path} not found")
         if run_mode == "main":
-            print("  Did you mean --special? "
-                  "(reads full_coverage_bf16.parquet)")
+            print("  Did you mean --special? (reads full_coverage_bf16.parquet)")
         sys.exit(1)
 
     df = pd.read_parquet(parquet_path)
@@ -454,12 +498,16 @@ def main():
     print(f"  Datasets: {sorted(df['dataset'].unique())}")
     print(f"  Laws: {sorted(df['law'].unique())}")
     print(f"  Modes: {sorted(df['mode'].unique())}")
-    n_seeds = df['seed'].nunique()
+    n_seeds = df["seed"].nunique()
     print(f"  Seeds: {n_seeds}")
 
     # Normalize mode capitalization for display
-    mode_map = {"final": "Final", "first": "First", "second": "Second",
-                "Epoch-Expanded": "Epoch-Expanded"}
+    mode_map = {
+        "final": "Final",
+        "first": "First",
+        "second": "Second",
+        "Epoch-Expanded": "Epoch-Expanded",
+    }
     df["mode"] = df["mode"].map(lambda m: mode_map.get(m, m))
 
     # Pick datasets to render: configured order, restricted to what's
@@ -475,7 +523,9 @@ def main():
     for dataset in dataset_order:
         for split_key, labels in HOLDOUT_SPLITS.items():
             tex = build_metric_table(
-                df, dataset, split_key,
+                df,
+                dataset,
+                split_key,
                 split_header=labels["header"],
                 split_caption=labels["caption"],
                 n_seeds_label=n_seeds,
@@ -492,7 +542,8 @@ def main():
     all_param_tables = []
     for law in ["Chinchilla", "Kaplan", "Droppo-Elibol", "Parametric-Epoch"]:
         tex = build_param_table_per_law(
-            df, law,
+            df,
+            law,
             dataset_order=dataset_order,
             label_suffix=cfg["label_suffix"],
             seed=args.param_seed,

@@ -77,9 +77,7 @@ def load_metrics_from_npz(npz_path: str) -> dict:
 
     metrics = {
         "batch_losses": data["batch_losses"].tolist() if "batch_losses" in data else [],
-        "learning_rates": (
-            data["learning_rates"].tolist() if "learning_rates" in data else []
-        ),
+        "learning_rates": (data["learning_rates"].tolist() if "learning_rates" in data else []),
         "batch_times": data["batch_times"].tolist() if "batch_times" in data else [],
         "epoch_times": data["epoch_times"].tolist() if "epoch_times" in data else [],
         "steps": data["steps"].tolist() if "steps" in data else [],
@@ -151,20 +149,11 @@ def main():
         "--dataset",
         type=str,
         default=DEFAULT_DATASET_NAME,
-        choices=[
-            "cosmopedia",
-            "fineweb",
-            "wikipedia",
-            "pes2o",
-            "redpajama",
-            "c4"
-        ],
+        choices=["cosmopedia", "fineweb", "wikipedia", "pes2o", "redpajama", "c4"],
     )
     parser.add_argument("--architecture", type=str, default=DEFAULT_ARCHITECTURE)
     parser.add_argument("--val-tokens", type=int, help="Tokens for validation")
-    parser.add_argument(
-        "--skip-val", action="store_true", help="Skip validation during training"
-    )
+    parser.add_argument("--skip-val", action="store_true", help="Skip validation during training")
     parser.add_argument(
         "--use-train-as-val",
         action="store_true",
@@ -214,14 +203,26 @@ def main():
         default=False,
         help="Enable BF16 training (model.bfloat16(), no GradScaler needed)",
     )
-    parser.add_argument("--score-padding", action="store_true",
-                        help="score padded positions in the loss, as the released runs did "
-                             "(default: padding is masked out)")
-    parser.add_argument("--shape", default=None, help="d_model,n_layers,n_heads,d_ff; overrides --model-size's search")
-    parser.add_argument("--optimizer", default="adamw",
-                        choices=["adamw", "adam", "sgd", "lion", "adafactor"])
-    parser.add_argument("--schedule", default="cosine", choices=["cosine", "wsd", "constant"],
-                        help="LR after warmup: cosine (protocol), warmup-stable-decay, constant")
+    parser.add_argument(
+        "--score-padding",
+        action="store_true",
+        help="score padded positions in the loss, as the released runs did "
+        "(default: padding is masked out)",
+    )
+    parser.add_argument(
+        "--shape",
+        default=None,
+        help="d_model,n_layers,n_heads,d_ff; overrides --model-size's search",
+    )
+    parser.add_argument(
+        "--optimizer", default="adamw", choices=["adamw", "adam", "sgd", "lion", "adafactor"]
+    )
+    parser.add_argument(
+        "--schedule",
+        default="cosine",
+        choices=["cosine", "wsd", "constant"],
+        help="LR after warmup: cosine (protocol), warmup-stable-decay, constant",
+    )
     parser.add_argument(
         "--grad-accum-steps",
         type=int,
@@ -280,7 +281,7 @@ def main():
         print_info(f"Skip Validation: {args.skip_val}")
         print_info(f"Use Train as Val (holdout): {args.use_train_as_val}")
         if not args.skip_val and args.val_tokens is not None:
-            print_info(f"Val Token Limit: {args.val_tokens/1e6:.1f}M")
+            print_info(f"Val Token Limit: {args.val_tokens / 1e6:.1f}M")
         print_info(f"Model sizes: {args.model_size}")
         print_info(f"Learning rates: {args.learning_rate}")
         print_info(f"Batch size: {args.batch_size}")
@@ -305,8 +306,15 @@ def main():
         # head and one to three layers.
         d, L, h, f = (int(v) for v in args.shape.split(","))
         from training_models.models.config import ModelConfig
-        config = ModelConfig(vocab_size=vocab_size, max_seq_len=args.max_seq_len, n_layers=L, n_heads=h,
-                             d_model=d, d_ff=f)
+
+        config = ModelConfig(
+            vocab_size=vocab_size,
+            max_seq_len=args.max_seq_len,
+            n_layers=L,
+            n_heads=h,
+            d_model=d,
+            d_ff=f,
+        )
     else:
         config = generate_model_configs(
             num_configs=1,
@@ -355,9 +363,7 @@ def main():
 
             if lengths is not None:
                 cumsum = np.cumsum(lengths)
-                est_examples = (
-                    int(np.searchsorted(cumsum, total_tokens_target, side="right")) + 1
-                )
+                est_examples = int(np.searchsorted(cumsum, total_tokens_target, side="right")) + 1
                 est_examples = min(est_examples, len(train_data))
                 actual_tokens = int(cumsum[est_examples - 1])
                 print_info(
@@ -368,9 +374,7 @@ def main():
                 avg_tokens = trainer._estimate_average_tokens_per_example(
                     data=train_data, tokenizer=tokenizer, max_seq_len=args.max_seq_len
                 )
-                est_examples = max(
-                    1, int(total_tokens_target // max(int(avg_tokens), 1))
-                )
+                est_examples = max(1, int(total_tokens_target // max(int(avg_tokens), 1)))
                 est_examples = min(est_examples, len(train_data))
 
         if world_size > 1:
@@ -397,8 +401,7 @@ def main():
         log_interval=10,
         architecture=args.architecture,
         val_tokens_limit=args.val_tokens,
-        skip_val=args.skip_val
-        or args.use_train_as_val,  # Skip val if using holdout mode
+        skip_val=args.skip_val or args.use_train_as_val,  # Skip val if using holdout mode
         resume_checkpoint_path=resume_checkpoint_path,
         resume_metrics_path=resume_metrics_path,
         prior_metrics=prior_metrics,

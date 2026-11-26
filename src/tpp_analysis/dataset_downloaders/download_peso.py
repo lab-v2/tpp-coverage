@@ -100,10 +100,10 @@ def process_split(
     doc_indices_used = []
     pos = start_pos
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"{split_name.upper()}: Walking shuffled indices from position {start_pos:,}")
-    print(f"  Target: {target_tokens:,} tokens ({target_tokens/1e9:.3f}B)")
-    print(f"{'='*70}")
+    print(f"  Target: {target_tokens:,} tokens ({target_tokens / 1e9:.3f}B)")
+    print(f"{'=' * 70}")
 
     t0 = time.time()
 
@@ -137,9 +137,9 @@ def process_split(
                 elapsed = time.time() - t0
                 pbar.set_postfix(
                     {
-                        "tokens": f"{total_tokens/1e9:.3f}B",
+                        "tokens": f"{total_tokens / 1e9:.3f}B",
                         "chunks": f"{total_chunks:,}",
-                        "doc/s": f"{docs_processed/elapsed:.0f}",
+                        "doc/s": f"{docs_processed / elapsed:.0f}",
                     }
                 )
 
@@ -147,12 +147,12 @@ def process_split(
 
     elapsed = time.time() - t0
 
-    print(f"\n✓ {split_name.capitalize()} complete ({elapsed/60:.1f} min):")
+    print(f"\n✓ {split_name.capitalize()} complete ({elapsed / 60:.1f} min):")
     print(f"  Shuffled positions: [{start_pos:,}, {pos:,})")
     print(f"  Documents: {docs_processed:,}")
     print(f"  Chunks:    {total_chunks:,}")
-    print(f"  Tokens:    {total_tokens:,} ({total_tokens/1e9:.3f}B)")
-    print(f"  Avg tok/doc: {total_tokens/docs_processed:.1f}")
+    print(f"  Tokens:    {total_tokens:,} ({total_tokens / 1e9:.3f}B)")
+    print(f"  Avg tok/doc: {total_tokens / docs_processed:.1f}")
     print(f"  Files: {tokens_bin_path}")
     print(f"         {lengths_bin_path}")
 
@@ -203,14 +203,16 @@ def main():
         if data_dir:
             cache_dir = os.path.join(data_dir, "pes2o")
         else:
-            cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "corpora", "pes2o")
+            cache_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "corpora", "pes2o"
+            )
 
     os.makedirs(cache_dir, exist_ok=True)
 
     print("peS2o Train + Val Pipeline (SHUFFLED)")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Version:        {args.version}")
-    print(f"Target/split:   {args.target_tokens:,} ({args.target_tokens/1e9:.2f}B)")
+    print(f"Target/split:   {args.target_tokens:,} ({args.target_tokens / 1e9:.2f}B)")
     print(f"max_seq_len:    {args.max_seq_len}")
     print(f"Seed:           {args.seed}")
     print(f"Output dir:     {cache_dir}")
@@ -225,18 +227,14 @@ def main():
 
     # ── Load dataset ──
     print(f"\nLoading peS2o {args.version} dataset (random access mode)...")
-    dataset = load_dataset(
-        "allenai/peS2o", args.version, split="train", trust_remote_code=True
-    )
+    dataset = load_dataset("allenai/peS2o", args.version, split="train", trust_remote_code=True)
     total_docs = len(dataset)
     print(f"Loaded {total_docs:,} documents")
 
     # Quick source distribution check
     from collections import Counter
 
-    source_sample = Counter(
-        dataset[i]["source"] for i in range(min(10_000, total_docs))
-    )
+    source_sample = Counter(dataset[i]["source"] for i in range(min(10_000, total_docs)))
     print(f"Source distribution (first 10k): {dict(source_sample)}")
 
     # ── Generate shuffled permutation ──
@@ -281,9 +279,9 @@ def main():
     )
 
     # ── Overlap verification ──
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("OVERLAP VERIFICATION")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     train_set = set(train_doc_indices)
     val_set = set(val_doc_indices)
     overlap = train_set & val_set
@@ -336,9 +334,7 @@ def main():
             "chunks": val_chunks,
             "tokens": val_tokens,
             "avg_tokens_per_doc": avg_tok_val,
-            "avg_chunks_per_doc": (
-                val_chunks / len(val_doc_indices) if val_doc_indices else 0
-            ),
+            "avg_chunks_per_doc": (val_chunks / len(val_doc_indices) if val_doc_indices else 0),
         },
         "unused": {
             "shuffled_positions": f"[{val_end_pos}, {total_docs})",
@@ -349,9 +345,7 @@ def main():
             "val_mean_tok_per_doc": avg_tok_val,
             "delta_mean": avg_tok_val - avg_tok_train,
             "delta_pct": (
-                (avg_tok_val - avg_tok_train) / avg_tok_train * 100
-                if avg_tok_train > 0
-                else 0
+                (avg_tok_val - avg_tok_train) / avg_tok_train * 100 if avg_tok_train > 0 else 0
             ),
         },
     }
@@ -361,20 +355,20 @@ def main():
         json.dump(split_config, f, indent=2)
 
     # ── Summary ──
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("COMPLETE!")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print(f"  Dataset:  peS2o {args.version}")
     print(f"  Seed:     {args.seed}")
     print(
         f"  Train:    {len(train_doc_indices):,} docs, "
         f"{train_chunks:,} chunks, "
-        f"{train_tokens:,} tokens ({train_tokens/1e9:.3f}B)"
+        f"{train_tokens:,} tokens ({train_tokens / 1e9:.3f}B)"
     )
     print(
         f"  Val:      {len(val_doc_indices):,} docs, "
         f"{val_chunks:,} chunks, "
-        f"{val_tokens:,} tokens ({val_tokens/1e9:.3f}B)"
+        f"{val_tokens:,} tokens ({val_tokens / 1e9:.3f}B)"
     )
     print(f"  Unused:   {unused_docs:,} docs")
     print(f"  Overlap:  {len(overlap)} ✓")
@@ -392,7 +386,7 @@ def main():
     print(f"  {train_indices_path}")
     print(f"  {val_indices_path}")
     print(f"  {config_path}")
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
 
 
 if __name__ == "__main__":

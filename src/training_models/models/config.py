@@ -1,12 +1,14 @@
 """
 Model configuration for transformer models.
 """
+
 from dataclasses import dataclass
 
 
 @dataclass
 class ModelConfig:
     """Configuration for a transformer model."""
+
     vocab_size: int
     max_seq_len: int
     n_layers: int

@@ -10,6 +10,7 @@ Produces:
 
 Cache prefix: pci_ (parameter CI) - won't collide with old fullcov_ caches.
 """
+
 from __future__ import annotations
 
 import os
@@ -38,15 +39,15 @@ from scaling_laws.laws import (
 
 # Canonical parameter names for each law (order matches fit_fn output)
 PARAM_NAMES: Dict[str, List[str]] = {
-    "Kaplan":        ["N_c", "D_c", "alpha_N", "alpha_D"],
-    "Chinchilla":    ["E", "A", "alpha", "B", "beta"],
+    "Kaplan": ["N_c", "D_c", "alpha_N", "alpha_D"],
+    "Chinchilla": ["E", "A", "alpha", "B", "beta"],
     "Droppo-Elibol": ["L_inf", "N_c", "D_c", "alpha_N", "alpha_D", "alpha"],
 }
 
 # LaTeX-friendly names for tables
 PARAM_NAMES_LATEX: Dict[str, List[str]] = {
-    "Kaplan":        [r"$N_c$", r"$D_c$", r"$\alpha_N$", r"$\alpha_D$"],
-    "Chinchilla":    [r"$E$", r"$A$", r"$\alpha$", r"$B$", r"$\beta$"],
+    "Kaplan": [r"$N_c$", r"$D_c$", r"$\alpha_N$", r"$\alpha_D$"],
+    "Chinchilla": [r"$E$", r"$A$", r"$\alpha$", r"$B$", r"$\beta$"],
     "Droppo-Elibol": [r"$L_\infty$", r"$N_c$", r"$D_c$", r"$\alpha_N$", r"$\alpha_D$", r"$\alpha$"],
 }
 
@@ -58,8 +59,10 @@ MAX_PARAMS = max(len(v) for v in PARAM_NAMES.values())
 # Seed-aware fit wrappers (same bounds/samplers as laws.py)
 # ════════════════════════════════════════════════════════════════
 
+
 def _fit_kaplan_seed(N, D, L, n_restarts=300, seed=42):
     bounds = [(1e3, 1e14), (1e3, 1e14), (0.01, 2.0), (0.01, 2.0)]
+
     def sampler(rng, L):
         return [
             10 ** rng.uniform(5, 12),
@@ -67,11 +70,13 @@ def _fit_kaplan_seed(N, D, L, n_restarts=300, seed=42):
             rng.uniform(0.05, 1.5),
             rng.uniform(0.05, 1.5),
         ]
+
     return _fit_generic(kaplan_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
 
 def _fit_chinchilla_seed(N, D, L, n_restarts=300, seed=42):
     bounds = [(0.0, 10.0), (1e-2, 1e10), (0.01, 2.0), (1e-2, 1e10), (0.01, 2.0)]
+
     def sampler(rng, L):
         return [
             rng.uniform(0.0, min(L) * 0.9),
@@ -80,15 +85,20 @@ def _fit_chinchilla_seed(N, D, L, n_restarts=300, seed=42):
             10 ** rng.uniform(0, 8),
             rng.uniform(0.1, 1.5),
         ]
+
     return _fit_generic(chinchilla_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
 
 def _fit_droppo_elibol_seed(N, D, L, n_restarts=300, seed=42):
     bounds = [
         (1e-6, 10.0),
-        (1e3, 1e14), (1e3, 1e14),
-        (0.01, 2.0), (0.01, 2.0), (0.01, 2.0),
+        (1e3, 1e14),
+        (1e3, 1e14),
+        (0.01, 2.0),
+        (0.01, 2.0),
+        (0.01, 2.0),
     ]
+
     def sampler(rng, L):
         return [
             rng.uniform(0.01, min(L) * 0.8),
@@ -98,13 +108,14 @@ def _fit_droppo_elibol_seed(N, D, L, n_restarts=300, seed=42):
             rng.uniform(0.05, 1.5),
             rng.uniform(0.05, 1.5),
         ]
+
     return _fit_generic(droppo_elibol_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
 
 # Map law names to seed-aware fitters and loss functions
 _SEED_FITTERS = {
-    "Kaplan":        (_fit_kaplan_seed, kaplan_loss),
-    "Chinchilla":    (_fit_chinchilla_seed, chinchilla_loss),
+    "Kaplan": (_fit_kaplan_seed, kaplan_loss),
+    "Chinchilla": (_fit_chinchilla_seed, chinchilla_loss),
     "Droppo-Elibol": (_fit_droppo_elibol_seed, droppo_elibol_loss),
 }
 
@@ -112,6 +123,7 @@ _SEED_FITTERS = {
 # ════════════════════════════════════════════════════════════════
 # Core: run full coverage with multiple seeds
 # ════════════════════════════════════════════════════════════════
+
 
 def run_full_coverage_seeds(
     train_list,
@@ -149,7 +161,9 @@ def run_full_coverage_seeds(
 
         try:
             params, sse, success = fit_fn(
-                N_tr, D_tr, L_tr,
+                N_tr,
+                D_tr,
+                L_tr,
                 n_restarts=n_restarts,
                 seed=seed,
             )
@@ -187,6 +201,7 @@ def run_full_coverage_seeds(
 # ════════════════════════════════════════════════════════════════
 # Run all combos
 # ════════════════════════════════════════════════════════════════
+
 
 def run_all_full_coverage(
     prepared,
@@ -242,12 +257,18 @@ def run_all_full_coverage(
                     }
 
                     if verbose:
-                        print(f"  {tag} | {n_seeds} seeds × {n_restarts} restarts ...",
-                              end=" ", flush=True)
+                        print(
+                            f"  {tag} | {n_seeds} seeds × {n_restarts} restarts ...",
+                            end=" ",
+                            flush=True,
+                        )
 
                     t0 = time.time()
                     seed_rows = run_full_coverage_seeds(
-                        train_source, holdouts, law_name, mode,
+                        train_source,
+                        holdouts,
+                        law_name,
+                        mode,
                         n_seeds=n_seeds,
                         n_restarts=n_restarts,
                         base_seed=base_seed,
@@ -265,11 +286,12 @@ def run_all_full_coverage(
                     if verbose:
                         ok = len(seed_rows)
                         if ok > 0:
-                            r2s = [r["r2_unified"] for r in seed_rows
-                                   if "r2_unified" in r]
+                            r2s = [r["r2_unified"] for r in seed_rows if "r2_unified" in r]
                             if r2s:
-                                print(f"R²={np.mean(r2s):.4f} ± {np.std(r2s):.4f} "
-                                      f"({ok}/{n_seeds} ok) [{elapsed:.0f}s]")
+                                print(
+                                    f"R²={np.mean(r2s):.4f} ± {np.std(r2s):.4f} "
+                                    f"({ok}/{n_seeds} ok) [{elapsed:.0f}s]"
+                                )
                             else:
                                 print(f"({ok}/{n_seeds} ok) [{elapsed:.0f}s]")
                         else:
@@ -288,6 +310,7 @@ def run_all_full_coverage(
 # Summary table (Table 3 replacement)
 # ════════════════════════════════════════════════════════════════
 
+
 def build_summary_table(df):
     """
     Build summary table aggregated across all datasets × laws × modes.
@@ -297,9 +320,9 @@ def build_summary_table(df):
       - RMSE Mean, σ, CI95, Median, Std
     """
     split_map = {
-        "train":       "Train",
-        "unified":     "Unified",
-        "colinear":    "CO",
+        "train": "Train",
+        "unified": "Unified",
+        "colinear": "CO",
         "noncolinear": "NC",
     }
 
@@ -327,20 +350,22 @@ def build_summary_table(df):
             r2_ci95 = combo_r2_stds.mean() * 1.96 / np.sqrt(mean_n_seeds)
             rmse_ci95 = combo_rmse_stds.mean() * 1.96 / np.sqrt(mean_n_seeds)
 
-            rows.append({
-                "Split": split_label,
-                "Design": design,
-                "R² Mean": combo_r2_means.mean(),
-                "R² σ": combo_r2_stds.mean(),
-                "R² CI95": r2_ci95,
-                "R² Median": combo_r2_means.median(),
-                "R² Std": combo_r2_means.std(),
-                "RMSE Mean": combo_rmse_means.mean(),
-                "RMSE σ": combo_rmse_stds.mean(),
-                "RMSE CI95": rmse_ci95,
-                "RMSE Median": combo_rmse_means.median(),
-                "RMSE Std": combo_rmse_means.std(),
-            })
+            rows.append(
+                {
+                    "Split": split_label,
+                    "Design": design,
+                    "R² Mean": combo_r2_means.mean(),
+                    "R² σ": combo_r2_stds.mean(),
+                    "R² CI95": r2_ci95,
+                    "R² Median": combo_r2_means.median(),
+                    "R² Std": combo_r2_means.std(),
+                    "RMSE Mean": combo_rmse_means.mean(),
+                    "RMSE σ": combo_rmse_stds.mean(),
+                    "RMSE CI95": rmse_ci95,
+                    "RMSE Median": combo_rmse_means.median(),
+                    "RMSE Std": combo_rmse_means.std(),
+                }
+            )
 
     return pd.DataFrame(rows)
 
@@ -348,6 +373,7 @@ def build_summary_table(df):
 # ════════════════════════════════════════════════════════════════
 # Per-combo table (Appendix detail)
 # ════════════════════════════════════════════════════════════════
+
 
 def build_per_combo_table(df):
     """
@@ -357,9 +383,7 @@ def build_per_combo_table(df):
     split_keys = ["train", "unified", "colinear", "noncolinear"]
     rows = []
 
-    for (ds, law, mode, design), grp in df.groupby(
-        ["dataset", "law", "mode", "design"]
-    ):
+    for (ds, law, mode, design), grp in df.groupby(["dataset", "law", "mode", "design"]):
         row = {
             "Dataset": ds,
             "Law": law,
@@ -396,6 +420,7 @@ def build_per_combo_table(df):
 # Win rate table (Table 4 replacement)
 # ════════════════════════════════════════════════════════════════
 
+
 def build_winrate_table(df):
     """
     Seed-paired win rates: at each seed, compare CO vs NC R².
@@ -408,11 +433,19 @@ def build_winrate_table(df):
 
     per_combo_rows = []
 
-    for (ds, law, mode) in df.groupby(["dataset", "law", "mode"]).groups:
-        co = df[(df["dataset"] == ds) & (df["law"] == law) &
-                (df["mode"] == mode) & (df["design"] == "CO")].sort_values("seed")
-        nc = df[(df["dataset"] == ds) & (df["law"] == law) &
-                (df["mode"] == mode) & (df["design"] == "NC")].sort_values("seed")
+    for ds, law, mode in df.groupby(["dataset", "law", "mode"]).groups:
+        co = df[
+            (df["dataset"] == ds)
+            & (df["law"] == law)
+            & (df["mode"] == mode)
+            & (df["design"] == "CO")
+        ].sort_values("seed")
+        nc = df[
+            (df["dataset"] == ds)
+            & (df["law"] == law)
+            & (df["mode"] == mode)
+            & (df["design"] == "NC")
+        ].sort_values("seed")
 
         if co.empty or nc.empty:
             continue
@@ -442,18 +475,20 @@ def build_winrate_table(df):
             co_wins = int(np.sum(co_v > nc_v))
             adv = nc_v - co_v
 
-            per_combo_rows.append({
-                "Dataset": ds,
-                "Law": law,
-                "Mode": mode,
-                "Split": split_labels[sk],
-                "NC_wins": nc_wins,
-                "CO_wins": co_wins,
-                "N_paired": n,
-                "NC_win_pct": nc_wins / n * 100,
-                "Mean_NC_advantage": adv.mean(),
-                "Std_NC_advantage": adv.std(),
-            })
+            per_combo_rows.append(
+                {
+                    "Dataset": ds,
+                    "Law": law,
+                    "Mode": mode,
+                    "Split": split_labels[sk],
+                    "NC_wins": nc_wins,
+                    "CO_wins": co_wins,
+                    "N_paired": n,
+                    "NC_win_pct": nc_wins / n * 100,
+                    "Mean_NC_advantage": adv.mean(),
+                    "Std_NC_advantage": adv.std(),
+                }
+            )
 
     per_combo_df = pd.DataFrame(per_combo_rows)
 
@@ -465,9 +500,9 @@ def build_winrate_table(df):
         if n == 0:
             return 0, 0, 0
         p_hat = k / n
-        denom = 1 + z ** 2 / n
-        center = (p_hat + z ** 2 / (2 * n)) / denom
-        margin = z * np.sqrt(p_hat * (1 - p_hat) / n + z ** 2 / (4 * n ** 2)) / denom
+        denom = 1 + z**2 / n
+        center = (p_hat + z**2 / (2 * n)) / denom
+        margin = z * np.sqrt(p_hat * (1 - p_hat) / n + z**2 / (4 * n**2)) / denom
         return p_hat * 100, (center - margin) * 100, (center + margin) * 100
 
     for slice_name, col in [
@@ -480,29 +515,33 @@ def build_winrate_table(df):
             nc_w = int(grp["NC_wins"].sum())
             total = int(grp["N_paired"].sum())
             pct, lo, hi = _wilson(nc_w, total)
-            agg_rows.append({
-                "Slice": slice_name,
-                "Value": val,
-                "NC_wins": nc_w,
-                "Total": total,
-                "NC_pct": pct,
-                "CI_lo_95": lo,
-                "CI_hi_95": hi,
-            })
+            agg_rows.append(
+                {
+                    "Slice": slice_name,
+                    "Value": val,
+                    "NC_wins": nc_w,
+                    "Total": total,
+                    "NC_pct": pct,
+                    "CI_lo_95": lo,
+                    "CI_hi_95": hi,
+                }
+            )
 
     # Overall
     nc_total = int(per_combo_df["NC_wins"].sum())
     n_total = int(per_combo_df["N_paired"].sum())
     pct, lo, hi = _wilson(nc_total, n_total)
-    agg_rows.append({
-        "Slice": "Overall",
-        "Value": "All",
-        "NC_wins": nc_total,
-        "Total": n_total,
-        "NC_pct": pct,
-        "CI_lo_95": lo,
-        "CI_hi_95": hi,
-    })
+    agg_rows.append(
+        {
+            "Slice": "Overall",
+            "Value": "All",
+            "NC_wins": nc_total,
+            "Total": n_total,
+            "NC_pct": pct,
+            "CI_lo_95": lo,
+            "CI_hi_95": hi,
+        }
+    )
 
     agg_df = pd.DataFrame(agg_rows)
     return per_combo_df, agg_df
@@ -511,6 +550,7 @@ def build_winrate_table(df):
 # ════════════════════════════════════════════════════════════════
 # Parameter CI table (NEW - Appendix)
 # ════════════════════════════════════════════════════════════════
+
 
 def build_param_ci_table(df):
     """
@@ -523,9 +563,7 @@ def build_param_ci_table(df):
     """
     rows = []
 
-    for (ds, law, mode, design), grp in df.groupby(
-        ["dataset", "law", "mode", "design"]
-    ):
+    for (ds, law, mode, design), grp in df.groupby(["dataset", "law", "mode", "design"]):
         pnames = PARAM_NAMES.get(law, [])
         _n_seeds = len(grp)
 
@@ -543,24 +581,26 @@ def build_param_ci_table(df):
             n = len(vals)
             ci95 = 1.96 * std_val / np.sqrt(n)
 
-            rows.append({
-                "Dataset": ds,
-                "Law": law,
-                "Mode": mode,
-                "Design": design,
-                "Param": pname,
-                "Param_idx": pi,
-                "N_seeds": n,
-                "Mean": mean_val,
-                "Std": std_val,
-                "CI95_lo": mean_val - ci95,
-                "CI95_hi": mean_val + ci95,
-                "P2.5": vals.quantile(0.025),
-                "P97.5": vals.quantile(0.975),
-                "P5": vals.quantile(0.05),
-                "P95": vals.quantile(0.95),
-                "Median": vals.median(),
-            })
+            rows.append(
+                {
+                    "Dataset": ds,
+                    "Law": law,
+                    "Mode": mode,
+                    "Design": design,
+                    "Param": pname,
+                    "Param_idx": pi,
+                    "N_seeds": n,
+                    "Mean": mean_val,
+                    "Std": std_val,
+                    "CI95_lo": mean_val - ci95,
+                    "CI95_hi": mean_val + ci95,
+                    "P2.5": vals.quantile(0.025),
+                    "P97.5": vals.quantile(0.975),
+                    "P5": vals.quantile(0.05),
+                    "P95": vals.quantile(0.95),
+                    "Median": vals.median(),
+                }
+            )
 
     return pd.DataFrame(rows)
 
@@ -580,18 +620,20 @@ def build_param_ci_summary(df):
     for (law, design, param, pidx), grp in param_df.groupby(
         ["Law", "Design", "Param", "Param_idx"]
     ):
-        rows.append({
-            "Law": law,
-            "Design": design,
-            "Param": param,
-            "Param_idx": pidx,
-            "Mean (across combos)": grp["Mean"].mean(),
-            "Std (across combos)": grp["Std"].mean(),
-            "Mean CI95 width": (grp["CI95_hi"] - grp["CI95_lo"]).mean(),
-            "Mean P2.5": grp["P2.5"].mean(),
-            "Mean P97.5": grp["P97.5"].mean(),
-            "N_combos": len(grp),
-        })
+        rows.append(
+            {
+                "Law": law,
+                "Design": design,
+                "Param": param,
+                "Param_idx": pidx,
+                "Mean (across combos)": grp["Mean"].mean(),
+                "Std (across combos)": grp["Std"].mean(),
+                "Mean CI95 width": (grp["CI95_hi"] - grp["CI95_lo"]).mean(),
+                "Mean P2.5": grp["P2.5"].mean(),
+                "Mean P97.5": grp["P97.5"].mean(),
+                "N_combos": len(grp),
+            }
+        )
 
     result = pd.DataFrame(rows).sort_values(["Law", "Design", "Param_idx"])
     return result
@@ -600,6 +642,7 @@ def build_param_ci_summary(df):
 # ════════════════════════════════════════════════════════════════
 # LaTeX generators
 # ════════════════════════════════════════════════════════════════
+
 
 def summary_to_latex(summary_df):
     """Generate LaTeX for the summary table (Table 3 replacement)."""
@@ -643,12 +686,8 @@ def summary_to_latex(summary_df):
         rmse_med = row["RMSE Median"]
         rmse_std = row["RMSE Std"]
 
-        r2_str = (
-            rf"{r2_mean:.4f}{{\tiny\,$\sigma$={r2_sig:.3f}, CI={r2_ci:.3f}}}"
-        )
-        rmse_str = (
-            rf"{rmse_mean:.4f}{{\tiny\,$\sigma$={rmse_sig:.3f}, CI={rmse_ci:.3f}}}"
-        )
+        r2_str = rf"{r2_mean:.4f}{{\tiny\,$\sigma$={r2_sig:.3f}, CI={r2_ci:.3f}}}"
+        rmse_str = rf"{rmse_mean:.4f}{{\tiny\,$\sigma$={rmse_sig:.3f}, CI={rmse_ci:.3f}}}"
 
         lines.append(
             rf" & {design}  & {r2_str} & {r2_med:.4f} & {r2_std:.4f} "
@@ -778,11 +817,11 @@ def _param_ci_latex_condensed(summary_df):
         def _fmt(v):
             if abs(v) >= 1e4:
                 exp = int(np.floor(np.log10(abs(v))))
-                mantissa = v / 10 ** exp
+                mantissa = v / 10**exp
                 return rf"{mantissa:.2f}\times10^{{{exp}}}"
             elif abs(v) < 0.001 and v != 0:
                 exp = int(np.floor(np.log10(abs(v))))
-                mantissa = v / 10 ** exp
+                mantissa = v / 10**exp
                 return rf"{mantissa:.2f}\times10^{{{exp}}}"
             else:
                 return f"{v:.4f}"
@@ -831,11 +870,11 @@ def _param_ci_latex_full(param_df):
         def _fmt(v):
             if abs(v) >= 1e4:
                 exp = int(np.floor(np.log10(abs(v))))
-                mantissa = v / 10 ** exp
+                mantissa = v / 10**exp
                 return rf"{mantissa:.2f}\times10^{{{exp}}}"
             elif abs(v) < 0.001 and v != 0:
                 exp = int(np.floor(np.log10(abs(v))))
-                mantissa = v / 10 ** exp
+                mantissa = v / 10**exp
                 return rf"{mantissa:.2f}\times10^{{{exp}}}"
             else:
                 return f"{v:.4f}"

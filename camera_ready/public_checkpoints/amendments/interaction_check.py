@@ -38,10 +38,22 @@ def readings(corpus: str, df: pd.DataFrame) -> list[dict]:
     rows = []
     for spec, t in READINGS:
         e = eng.estimate_combo(np.random.default_rng(20260802), BIG, np.array([1.0, t, 0.0]))
-        rows.append(dict(corpus=corpus, spec=spec, N_centre=10 ** ctr, N_at=10 ** (ctr + t),
-                         beta=e.value, lo=e.lo, hi=e.hi, pct=EST.pct(e.value),
-                         pct_lo=EST.pct(e.lo), pct_hi=EST.pct(e.hi), n_pairs=e.n_obs,
-                         n_windows=e.n_clusters))
+        rows.append(
+            dict(
+                corpus=corpus,
+                spec=spec,
+                N_centre=10**ctr,
+                N_at=10 ** (ctr + t),
+                beta=e.value,
+                lo=e.lo,
+                hi=e.hi,
+                pct=EST.pct(e.value),
+                pct_lo=EST.pct(e.lo),
+                pct_hi=EST.pct(e.hi),
+                n_pairs=e.n_obs,
+                n_windows=e.n_clusters,
+            )
+        )
     return rows
 
 
@@ -54,8 +66,9 @@ def main(argv: list[str] | None = None) -> None:
     args = ap.parse_args(argv)
 
     corpora = {"E": args.results} if args.skip_x else {"E": args.results, "X": args.results_x}
-    out = pd.DataFrame([r for corpus, path in corpora.items()
-                        for r in readings(corpus, EST.prepare(WORK / path))])
+    out = pd.DataFrame(
+        [r for corpus, path in corpora.items() for r in readings(corpus, EST.prepare(WORK / path))]
+    )
     with pd.option_context("display.width", 200):
         print(out.to_string(index=False))
     out.to_csv(WORK / args.out, index=False)

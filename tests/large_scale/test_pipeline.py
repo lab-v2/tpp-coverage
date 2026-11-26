@@ -21,8 +21,10 @@ class TestUpstreamBootstrap:
 
     def test_defaults_to_this_repositorys_code_and_records_it_relative(self) -> None:
         assert upstream.package_dir_label() == "src/tpp_analysis"
-        assert upstream.package_dir_label(upstream.Path("/elsewhere/src/tpp_analysis")) == \
-            "/elsewhere/src/tpp_analysis"
+        assert (
+            upstream.package_dir_label(upstream.Path("/elsewhere/src/tpp_analysis"))
+            == "/elsewhere/src/tpp_analysis"
+        )
 
     def test_missing_checkout_raises_actionable_error(self, monkeypatch, tmp_path) -> None:
         # A path under tmp_path is absent on every host; a fixed /nonexistent can exist unreadable.
@@ -62,7 +64,8 @@ class TestConfig:
 
     def test_output_dirs_are_created(self, tmp_path, config) -> None:
         cfg = AnalysisConfig(
-            results_dir=tmp_path / "r", figures_dir=tmp_path / "f",
+            results_dir=tmp_path / "r",
+            figures_dir=tmp_path / "f",
             metrics_csv=config.metrics_csv,
         )
         cfg.ensure_output_dirs()
@@ -98,8 +101,12 @@ class TestCli:
 
         from tpp_large_scale.config import LARGE_SCALE_DIR
 
-        out = subprocess.run([sys.executable, str(LARGE_SCALE_DIR / "scripts" / "run_analysis.py"),
-                              "--help"], capture_output=True, text=True, check=True).stdout
+        out = subprocess.run(
+            [sys.executable, str(LARGE_SCALE_DIR / "scripts" / "run_analysis.py"), "--help"],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
         assert "--check-only" in out and "--workers" in out
 
     def test_missing_data_file_exits_nonzero(self, tmp_path) -> None:
@@ -122,8 +129,15 @@ class TestResultsDocument:
 
     def test_top_level_keys(self, results) -> None:
         expected = {
-            "grid", "upstream_parity", "full_grid_fits", "full_grid_tpp", "co_rays",
-            "equal_n_control", "co_vs_nc_holdout", "robustness", "formal_validation",
+            "grid",
+            "upstream_parity",
+            "full_grid_fits",
+            "full_grid_tpp",
+            "co_rays",
+            "equal_n_control",
+            "co_vs_nc_holdout",
+            "robustness",
+            "formal_validation",
         }
         assert expected <= set(results)
 
@@ -133,8 +147,12 @@ class TestResultsDocument:
 
     def test_all_robustness_checks_present(self, results) -> None:
         expected = {
-            "drop_small_N", "median_envelope", "fair_co_vs_nc", "chin_E_fixed_0p1",
-            "random_2d_5pt_kappaAB", "winrate_significance",
+            "drop_small_N",
+            "median_envelope",
+            "fair_co_vs_nc",
+            "chin_E_fixed_0p1",
+            "random_2d_5pt_kappaAB",
+            "winrate_significance",
         }
         assert set(results["robustness"]) == expected
 
@@ -200,10 +218,14 @@ class TestFrontierSplit:
 
         split = frontier_split(grid)
         assert set(split.counts()) == {
-            "colinear_train", "colinear_holdout",
-            "noncolinear_train", "noncolinear_holdout",
+            "colinear_train",
+            "colinear_holdout",
+            "noncolinear_train",
+            "noncolinear_holdout",
         }
         assert organise_runs([]) == {
-            "colinear_train": [], "colinear_holdout": [],
-            "noncolinear_train": [], "noncolinear_holdout": [],
+            "colinear_train": [],
+            "colinear_holdout": [],
+            "noncolinear_train": [],
+            "noncolinear_holdout": [],
         }

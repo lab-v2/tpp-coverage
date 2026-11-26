@@ -81,6 +81,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from hf_dataset import REPO_ID  # noqa: E402
+
 MAIN_DATASETS = ["wikipedia", "cosmopedia", "redpajama", "pes2o", "c4"]
 
 # These are the analysis-output directories on HF. Pulled when --include-results or --results-only
@@ -95,10 +96,13 @@ RESULTS_DIRS = [
 ]
 
 
-def download(repo_dir: str, datasets: list[str] | None = None,
-             include_checkpoints: bool = False,
-             include_special: bool = False,
-             include_prelim: bool = False):
+def download(
+    repo_dir: str,
+    datasets: list[str] | None = None,
+    include_checkpoints: bool = False,
+    include_special: bool = False,
+    include_prelim: bool = False,
+):
     """Download from HuggingFace.
 
     Tier flags layer additive partitions onto the download:
@@ -143,12 +147,16 @@ def download(repo_dir: str, datasets: list[str] | None = None,
     # i.e. we are NOT already downloading the entire repo).
     if patterns is not None:
         if include_special:
-            patterns.append("wikipedia_bf16/**" if include_checkpoints
-                            else "training_metrics/wikipedia_bf16/**")
+            patterns.append(
+                "wikipedia_bf16/**" if include_checkpoints else "training_metrics/wikipedia_bf16/**"
+            )
             print("  + including wikipedia_bf16 (BF16 replication)")
         if include_prelim:
-            patterns.append("wikipedia_bigtpp/**" if include_checkpoints
-                            else "training_metrics/wikipedia_bigtpp/**")
+            patterns.append(
+                "wikipedia_bigtpp/**"
+                if include_checkpoints
+                else "training_metrics/wikipedia_bigtpp/**"
+            )
             print("  + including wikipedia_bigtpp (BigTPP preliminary)")
         kwargs["allow_patterns"] = patterns
 
@@ -194,8 +202,10 @@ def download_results(dest_root: str = "."):
             skipped.append(d)
             continue
         if os.path.exists(dst):
-            print(f"  WARN  {d}/ already exists locally; merging from HF "
-                  f"(existing files will be overwritten where names collide)")
+            print(
+                f"  WARN  {d}/ already exists locally; merging from HF "
+                f"(existing files will be overwritten where names collide)"
+            )
             # Walk and copy file-by-file so we don't blow away anything
             # that's only local (e.g. user's own intermediates).
             for root, _, files in os.walk(src):
@@ -203,8 +213,7 @@ def download_results(dest_root: str = "."):
                 target = os.path.join(dst, rel) if rel != "." else dst
                 os.makedirs(target, exist_ok=True)
                 for f in files:
-                    shutil.copy2(os.path.join(root, f),
-                                 os.path.join(target, f))
+                    shutil.copy2(os.path.join(root, f), os.path.join(target, f))
         else:
             shutil.move(src, dst)
         promoted.append(d)
@@ -216,16 +225,15 @@ def download_results(dest_root: str = "."):
     except Exception:
         pass
 
-    print(f"\n  Promoted {len(promoted)} result directories into "
-          f"{os.path.abspath(dest_root)}/")
+    print(f"\n  Promoted {len(promoted)} result directories into {os.path.abspath(dest_root)}/")
     if skipped:
         print(f"  Skipped (not on HF): {', '.join(skipped)}")
     print()
 
 
-def extract(repo_dir: str, output_dir: str,
-            include_special: bool = False,
-            include_prelim: bool = False):
+def extract(
+    repo_dir: str, output_dir: str, include_special: bool = False, include_prelim: bool = False
+):
     """Extract loss CSVs from downloaded metrics."""
     from get_results.get_results import extract_from_hf
 
@@ -277,39 +285,69 @@ Examples:
     python download_and_extract.py --include-results
         """,
     )
-    parser.add_argument("--repo-dir", default="colinear_scaling_models",
-                       help="Where to download / find the repo (default: ./colinear_scaling_models)")
-    parser.add_argument("-o", "--output-dir", default="extracted_losses",
-                       help="Output directory for CSVs (default: extracted_losses)")
-    parser.add_argument("--skip-download", action="store_true",
-                       help="Skip download, use existing repo directory")
-    parser.add_argument("--datasets", nargs="+", choices=MAIN_DATASETS, default=None,
-                       help="Only download/extract specific main datasets "
-                            "(does not affect --include-special / --include-prelim)")
-    parser.add_argument("--include-checkpoints", action="store_true",
-                       help="Also download model checkpoints (~100s GB). "
-                            "Default downloads only metrics (~100s MB).")
-    parser.add_argument("--include-special", action="store_true",
-                       help="Also download/extract BF16 replication (wikipedia_bf16)")
-    parser.add_argument("--include-prelim", action="store_true",
-                       help="Also download/extract BigTPP preliminary "
-                            "experiment (wikipedia_bigtpp)")
-    parser.add_argument("--include-results", action="store_true",
-                       help="Also download the pre-computed analysis result "
-                            "directories (extracted_losses, full_coverage_results, "
-                            "seed_variance_results, subset_bbox_seeds, "
-                            "special_results, prelim_bigtpp_results) and place "
-                            "them at the project root, to check tables and "
-                            "figures without re-running the fits.")
-    parser.add_argument("--results-only", action="store_true",
-                       help="Download ONLY the pre-computed result directories "
-                            "(implies --include-results) and skip metrics "
-                            "download + extraction. Fastest path to paper's "
-                            "numbers.")
-    parser.add_argument("--results-dest", default=".",
-                       help="Where to drop the result directories with "
-                            "--include-results / --results-only "
-                            "(default: project root)")
+    parser.add_argument(
+        "--repo-dir",
+        default="colinear_scaling_models",
+        help="Where to download / find the repo (default: ./colinear_scaling_models)",
+    )
+    parser.add_argument(
+        "-o",
+        "--output-dir",
+        default="extracted_losses",
+        help="Output directory for CSVs (default: extracted_losses)",
+    )
+    parser.add_argument(
+        "--skip-download", action="store_true", help="Skip download, use existing repo directory"
+    )
+    parser.add_argument(
+        "--datasets",
+        nargs="+",
+        choices=MAIN_DATASETS,
+        default=None,
+        help="Only download/extract specific main datasets "
+        "(does not affect --include-special / --include-prelim)",
+    )
+    parser.add_argument(
+        "--include-checkpoints",
+        action="store_true",
+        help="Also download model checkpoints (~100s GB). "
+        "Default downloads only metrics (~100s MB).",
+    )
+    parser.add_argument(
+        "--include-special",
+        action="store_true",
+        help="Also download/extract BF16 replication (wikipedia_bf16)",
+    )
+    parser.add_argument(
+        "--include-prelim",
+        action="store_true",
+        help="Also download/extract BigTPP preliminary experiment (wikipedia_bigtpp)",
+    )
+    parser.add_argument(
+        "--include-results",
+        action="store_true",
+        help="Also download the pre-computed analysis result "
+        "directories (extracted_losses, full_coverage_results, "
+        "seed_variance_results, subset_bbox_seeds, "
+        "special_results, prelim_bigtpp_results) and place "
+        "them at the project root, to check tables and "
+        "figures without re-running the fits.",
+    )
+    parser.add_argument(
+        "--results-only",
+        action="store_true",
+        help="Download ONLY the pre-computed result directories "
+        "(implies --include-results) and skip metrics "
+        "download + extraction. Fastest path to paper's "
+        "numbers.",
+    )
+    parser.add_argument(
+        "--results-dest",
+        default=".",
+        help="Where to drop the result directories with "
+        "--include-results / --results-only "
+        "(default: project root)",
+    )
     args = parser.parse_args()
 
     if args.results_only:
@@ -319,9 +357,12 @@ Examples:
     print("=" * 60)
     print("Scaling Law Reproducibility - Download & Extract")
     tiers = ["main"]
-    if args.include_special: tiers.append("special(BF16)")
-    if args.include_prelim:  tiers.append("prelim(BigTPP)")
-    if args.include_results: tiers.append("results")
+    if args.include_special:
+        tiers.append("special(BF16)")
+    if args.include_prelim:
+        tiers.append("prelim(BigTPP)")
+    if args.include_results:
+        tiers.append("results")
     print(f"Tiers: {' + '.join(tiers)}")
     if args.results_only:
         print("Mode: --results-only (skipping metrics + extract)")
@@ -332,10 +373,11 @@ Examples:
         download_results(dest_root=args.results_dest)
 
     if args.results_only:
-        print("\nDone. Result directories are in place at "
-              f"{os.path.abspath(args.results_dest)}/")
-        print("You can now run notebooks / fitting verification without "
-              "re-doing any of the analysis pipeline.")
+        print(f"\nDone. Result directories are in place at {os.path.abspath(args.results_dest)}/")
+        print(
+            "You can now run notebooks / fitting verification without "
+            "re-doing any of the analysis pipeline."
+        )
         return
 
     # --- Standard metrics + extract path -------------------------------

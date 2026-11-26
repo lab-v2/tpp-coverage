@@ -56,8 +56,10 @@ def median_table(jobs: list[tuple], keys: Sequence[str], workers: int) -> pd.Dat
     """
     with mp.get_context("fork").Pool(min(workers, len(jobs))) as pool:  # one job per row
         results = pool.map(EST._median_job, jobs, chunksize=1)
-    rows = [dict(zip(keys, tag), n_cells=len(groups), **stats)
-            for (_, _, groups, _), (tag, stats) in zip(jobs, results)]
+    rows = [
+        dict(zip(keys, tag), n_cells=len(groups), **stats)
+        for (_, _, groups, _), (tag, stats) in zip(jobs, results)
+    ]
     out = pd.DataFrame(rows)
     out["kappa"] = out["kappa"].astype(int)
     out["excludes_zero"] = (out["lo_cl"] > 0) | (out["hi_cl"] < 0)
@@ -73,13 +75,20 @@ def band_jobs(df: pd.DataFrame, corpus: str) -> list[tuple]:
             for stratum in EST.STRATA:
                 sub = df[(cells == cell) & (df["stratum"] == stratum)]
                 if len(sub):
-                    jobs.append(EST.median_task((corpus, kappa, cell, stratum), sub, GAP,
-                                                f"r2|{corpus}|{kappa}|{cell}|{stratum}"))
+                    jobs.append(
+                        EST.median_task(
+                            (corpus, kappa, cell, stratum),
+                            sub,
+                            GAP,
+                            f"r2|{corpus}|{kappa}|{cell}|{stratum}",
+                        )
+                    )
     return jobs
 
 
-def regime_cli(argv: list[str] | None, doc: str, out: str, jobs_for: JobBuilder,
-            keys: Sequence[str]) -> None:
+def regime_cli(
+    argv: list[str] | None, doc: str, out: str, jobs_for: JobBuilder, keys: Sequence[str]
+) -> None:
     """The command line both regime scripts share: read, build the jobs, run, write `out`."""
     ap = argparse.ArgumentParser(description=doc.split("\n\n")[0])
     ap.add_argument("--results", default="results_E_seeds512.csv")
@@ -98,8 +107,13 @@ def regime_cli(argv: list[str] | None, doc: str, out: str, jobs_for: JobBuilder,
 
 
 def main(argv: list[str] | None = None) -> None:
-    regime_cli(argv, __doc__, "regime_by_band_ci.csv", band_jobs,
-            ["corpus", "kappa", "regime_cell", "stratum"])
+    regime_cli(
+        argv,
+        __doc__,
+        "regime_by_band_ci.csv",
+        band_jobs,
+        ["corpus", "kappa", "regime_cell", "stratum"],
+    )
 
 
 if __name__ == "__main__":

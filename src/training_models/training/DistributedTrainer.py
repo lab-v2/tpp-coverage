@@ -140,7 +140,6 @@ def create_deterministic_generator(seed: int = DEFAULT_SEED) -> torch.Generator:
     return g
 
 
-
 class Lion(optim.Optimizer):
     """Lion (Chen et al. 2023, "Symbolic Discovery of Optimization Algorithms"): the sign of an
     interpolated momentum, decoupled weight decay. Not in torch 2.5, so written here."""
@@ -166,8 +165,9 @@ class Lion(optim.Optimizer):
         return loss
 
 
-def shift_for_next_token(input_ids: torch.Tensor, attention_mask: torch.Tensor,
-                         mask_padding: bool = True):
+def shift_for_next_token(
+    input_ids: torch.Tensor, attention_mask: torch.Tensor, mask_padding: bool = True
+):
     """Inputs, labels and mask for next-token prediction, with padding masked out of the loss.
 
     Labels at padded positions are set to -100, which ``nn.CrossEntropyLoss`` ignores, so the
@@ -182,8 +182,9 @@ def shift_for_next_token(input_ids: torch.Tensor, attention_mask: torch.Tensor,
     return input_ids[:, :-1].contiguous(), labels, attention_mask[:, :-1].contiguous()
 
 
-def accumulation_group(micro_idx: int, grad_accum_steps: int, num_micro_batches: int,
-                       batch_size: int, n_examples: int) -> tuple[int, int]:
+def accumulation_group(
+    micro_idx: int, grad_accum_steps: int, num_micro_batches: int, batch_size: int, n_examples: int
+) -> tuple[int, int]:
     """(micro-batches, examples) in the optimizer step that micro-batch ``micro_idx`` belongs to.
 
     ``batch_size`` is the per-step batch and ``n_examples`` the length of the epoch's sampler.
@@ -229,6 +230,7 @@ def schedule_factor(schedule: str, step: int, decay_steps: int) -> float:
         return 1.0 if frac < 0.8 else 1.0 - 0.9 * (frac - 0.8) / 0.2
     raise ValueError(f"unknown schedule {schedule!r}; expected one of {SCHEDULES}")
 
+
 class DistributedTrainer(BaseTrainer):
     """Distributed training implementation using PyTorch DDP with full features."""
 
@@ -271,37 +273,29 @@ class DistributedTrainer(BaseTrainer):
         dataset_name = dataset_name.lower()
 
         if dataset_name == "cosmopedia":
-            train_dataset, val_dataset = (
-                PretokenizedLoader.load_cosmo_dataset_pretokenized(
-                    max_seq_len, skip_val
-                )
+            train_dataset, val_dataset = PretokenizedLoader.load_cosmo_dataset_pretokenized(
+                max_seq_len, skip_val
             )
         elif dataset_name == "wikipedia":
-            train_dataset, val_dataset = (
-                PretokenizedLoader.load_wiki_dataset_pretokenized(max_seq_len, skip_val)
+            train_dataset, val_dataset = PretokenizedLoader.load_wiki_dataset_pretokenized(
+                max_seq_len, skip_val
             )
         elif dataset_name == "pes2o":
-            train_dataset, val_dataset = (
-                PretokenizedLoader.load_pes2o_dataset_pretokenized(
-                    max_seq_len, skip_val
-                )
+            train_dataset, val_dataset = PretokenizedLoader.load_pes2o_dataset_pretokenized(
+                max_seq_len, skip_val
             )
         elif dataset_name == "redpajama":
-            train_dataset, val_dataset = (
-                PretokenizedLoader.load_redpajama_dataset_pretokenized(
-                    max_seq_len, skip_val
-                )
+            train_dataset, val_dataset = PretokenizedLoader.load_redpajama_dataset_pretokenized(
+                max_seq_len, skip_val
             )
         elif dataset_name == "c4":
-            train_dataset, val_dataset = (
-                PretokenizedLoader.load_c4_dataset_pretokenized(
-                    max_seq_len, skip_val
-                )
+            train_dataset, val_dataset = PretokenizedLoader.load_c4_dataset_pretokenized(
+                max_seq_len, skip_val
             )
         elif dataset_name == "fineweb":
             # FineWeb, pre-tokenized like the other corpora into $DATA_DIR/fineweb
-            train_dataset, val_dataset = (
-                PretokenizedLoader.load_fineweb_dataset_pretokenized(max_seq_len, skip_val)
+            train_dataset, val_dataset = PretokenizedLoader.load_fineweb_dataset_pretokenized(
+                max_seq_len, skip_val
             )
 
         return train_dataset, val_dataset
@@ -344,8 +338,7 @@ class DistributedTrainer(BaseTrainer):
         world_size_env = int(os.environ.get("WORLD_SIZE", 1))
         if grad_accum_steps > 1:
             assert batch_size % grad_accum_steps == 0, (
-                f"batch_size {batch_size} not divisible by "
-                f"grad_accum_steps {grad_accum_steps}"
+                f"batch_size {batch_size} not divisible by grad_accum_steps {grad_accum_steps}"
             )
             # DDP-compatible: the per-rank micro weighting (n_micro / n_group) composes with
             # DDP's mean reduction to the exact protocol gradient (DistributedSampler pads
@@ -383,16 +376,11 @@ class DistributedTrainer(BaseTrainer):
         if rank == 0:
             print_info(f"Determinism enabled with seed={seed}")
             print_info(f"  - Precision: {'BF16' if use_bf16 else 'FP32'}")
-            print_info(
-                f"  - CUBLAS_WORKSPACE_CONFIG={os.environ.get('CUBLAS_WORKSPACE_CONFIG')}"
-            )
+            print_info(f"  - CUBLAS_WORKSPACE_CONFIG={os.environ.get('CUBLAS_WORKSPACE_CONFIG')}")
             print_info(
                 f"  - torch.backends.cudnn.deterministic={torch.backends.cudnn.deterministic}"
             )
-            print_info(
-                f"  - torch.backends.cudnn.benchmark={torch.backends.cudnn.benchmark}"
-            )
-
+            print_info(f"  - torch.backends.cudnn.benchmark={torch.backends.cudnn.benchmark}")
 
         if not dist.is_initialized():
             raise RuntimeError(
@@ -414,16 +402,14 @@ class DistributedTrainer(BaseTrainer):
         if rank == 0:
             print_section("Running Distributed Training")
             print_info("Training setup:")
-            print_info(
-                f"  - Trainer: {self.get_gpu_scheme()} (world_size={world_size})"
-            )
+            print_info(f"  - Trainer: {self.get_gpu_scheme()} (world_size={world_size})")
             print_info(f"  - Epochs: {start_epoch} -> {epochs}")
             print_info(f"  - Batch size: {batch_size} per GPU")
             print_info(f"  - Learning rate: {lr}")
             print_info(f"  - Dataset: {dataset_name}")
             print_info(f"  - Skip Validation: {skip_val}")
             if not skip_val:
-                print_info(f"  - Val Token Limit: {val_tokens_limit/1e6:.1f}M")
+                print_info(f"  - Val Token Limit: {val_tokens_limit / 1e6:.1f}M")
             print_info(f"  - Model params: {model_config.total_params}")
             print_info(f"  - Shared NVMe dir: {shared_dir}")
             print_info(f"  - Keep checkpoints: {keep_checkpoints}")
@@ -455,7 +441,6 @@ class DistributedTrainer(BaseTrainer):
             raise ValueError("Val Data could not be loaded, val data requested")
 
         if tokens is not None and rank == 0:
-
             if isinstance(
                 train_data, PretokenizedDataset
             ):  # cosmopedia; everything needs to be pretokenized here on out
@@ -483,7 +468,9 @@ class DistributedTrainer(BaseTrainer):
         if checkpoint_prefix is None:
             lr_str = f"{lr:.10f}".rstrip("0").rstrip(".").replace(".", "-")
             token_str = f"_token{int(tokens)}"
-            base_prefix = f"{dataset_name}_m{model_config.total_params}{token_str}_lr{lr_str}_distributed"
+            base_prefix = (
+                f"{dataset_name}_m{model_config.total_params}{token_str}_lr{lr_str}_distributed"
+            )
 
             # Prepend custom output_prefix if provided
             if output_prefix:
@@ -498,9 +485,7 @@ class DistributedTrainer(BaseTrainer):
             if rank == 0:
                 print_info(f"  - New checkpoint prefix: {checkpoint_prefix}")
 
-        model = create_model(
-            model_config=model_config, architecture=architecture, use_fp8=False
-        )
+        model = create_model(model_config=model_config, architecture=architecture, use_fp8=False)
 
         # Load model weights if resuming (before .bfloat16() so dtypes match checkpoint)
         if resume_checkpoint_path is not None:
@@ -626,9 +611,7 @@ class DistributedTrainer(BaseTrainer):
 
         else:
             underlying_data = data.dataset
-            indices = (
-                data.indices if hasattr(data, "indices") else list(range(len(data)))
-            )
+            indices = data.indices if hasattr(data, "indices") else list(range(len(data)))
             limit = min(len(indices), sample_size)
             lengths_sample = underlying_data.lengths_data[indices[:limit]]
             return float(lengths_sample.mean())
@@ -678,9 +661,7 @@ class DistributedTrainer(BaseTrainer):
             # Save to shared NVMe
             shared_metrics_dir = os.path.join(shared_dir, "training_metrics")
             os.makedirs(shared_metrics_dir, exist_ok=True)
-            shared_path = os.path.join(
-                shared_metrics_dir, f"{checkpoint_prefix}_initial.json"
-            )
+            shared_path = os.path.join(shared_metrics_dir, f"{checkpoint_prefix}_initial.json")
             tmp_path = shared_path + ".tmp"
             with open(tmp_path, "w") as f:
                 json.dump(metadata, f, indent=2)
@@ -712,9 +693,7 @@ class DistributedTrainer(BaseTrainer):
         except Exception:
             pass
 
-    def _save_intermediate_metrics(
-        self, checkpoint_prefix: str, metrics: dict, global_step: int
-    ):
+    def _save_intermediate_metrics(self, checkpoint_prefix: str, metrics: dict, global_step: int):
         """Save intermediate metrics backup (overwrites same file for crash recovery)."""
         try:
             os.makedirs("training_metrics", exist_ok=True)
@@ -722,9 +701,7 @@ class DistributedTrainer(BaseTrainer):
 
             data_to_save = {k: np.array(v) for k, v in metrics.items() if v}
             data_to_save["last_step"] = np.array(global_step)
-            data_to_save["backup_timestamp"] = np.array(
-                datetime.now().isoformat(), dtype=object
-            )
+            data_to_save["backup_timestamp"] = np.array(datetime.now().isoformat(), dtype=object)
 
             # np.savez auto-appends .npz, so use a base name without extension
             tmp_base = f"training_metrics/{checkpoint_prefix}_intermediate_tmp"
@@ -771,9 +748,7 @@ class DistributedTrainer(BaseTrainer):
             "epochs": epochs,
             "batch_size": batch_size,
             "weight_decay": weight_decay,
-            "global_batch_tokens": (
-                int(np.mean(tokens_per_batch)) if tokens_per_batch else None
-            ),
+            "global_batch_tokens": (int(np.mean(tokens_per_batch)) if tokens_per_batch else None),
             # Determinism config
             "seed": seed,
             "deterministic": True,
@@ -847,21 +822,15 @@ class DistributedTrainer(BaseTrainer):
 
         # Load optimizer/scheduler state if resuming
         if resume_checkpoint is not None:
-            checkpoint = torch.load(
-                resume_checkpoint, map_location="cpu", weights_only=False
-            )
+            checkpoint = torch.load(resume_checkpoint, map_location="cpu", weights_only=False)
             if "optimizer_state_dict" in checkpoint:
                 optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
                 if rank == 0:
                     print_info("Restored optimizer state")
             if "warmup_scheduler_state_dict" in checkpoint:
-                warmup_scheduler.load_state_dict(
-                    checkpoint["warmup_scheduler_state_dict"]
-                )
+                warmup_scheduler.load_state_dict(checkpoint["warmup_scheduler_state_dict"])
             if "cosine_scheduler_state_dict" in checkpoint:
-                cosine_scheduler.load_state_dict(
-                    checkpoint["cosine_scheduler_state_dict"]
-                )
+                cosine_scheduler.load_state_dict(checkpoint["cosine_scheduler_state_dict"])
         if use_bf16:
             if rank == 0:
                 print_info("BF16 training enabled (no GradScaler needed)")
@@ -875,12 +844,8 @@ class DistributedTrainer(BaseTrainer):
                     "epoch_times": list(prior_metrics.get("epoch_times", [])),
                     "steps": list(prior_metrics.get("steps", [])),
                     "tokens_per_batch": list(prior_metrics.get("tokens_per_batch", [])),
-                    "cumulative_tokens": list(
-                        prior_metrics.get("cumulative_tokens", [])
-                    ),
-                    "epoch_train_losses": list(
-                        prior_metrics.get("epoch_train_losses", [])
-                    ),
+                    "cumulative_tokens": list(prior_metrics.get("cumulative_tokens", [])),
+                    "epoch_train_losses": list(prior_metrics.get("epoch_train_losses", [])),
                     "val_losses": list(prior_metrics.get("val_losses", [])),
                 }
                 print_info(
@@ -910,9 +875,7 @@ class DistributedTrainer(BaseTrainer):
         current_step = global_step
 
         total_tokens_seen = initial_tokens // world_size if initial_tokens else 0
-        cumulative_train_time = (
-            sum(prior_metrics.get("epoch_times", [])) if prior_metrics else 0.0
-        )
+        cumulative_train_time = sum(prior_metrics.get("epoch_times", [])) if prior_metrics else 0.0
 
         if rank == 0:
             print_info(
@@ -943,7 +906,7 @@ class DistributedTrainer(BaseTrainer):
             num_batches = 0
             epoch_start = time.time()
 
-            desc = f"Train e{epoch+1}/{epochs} [R{rank}]"
+            desc = f"Train e{epoch + 1}/{epochs} [R{rank}]"
             train_pbar = tqdm(train_loader, desc=desc, leave=False, disable=(rank != 0))
 
             micro_losses = []
@@ -973,9 +936,7 @@ class DistributedTrainer(BaseTrainer):
                 # numerically stable.
                 # ================================================================
                 outputs = model(input_ids, attention_mask=attention_mask)
-                loss = criterion(
-                    outputs.float().view(-1, outputs.size(-1)), labels.view(-1)
-                )
+                loss = criterion(outputs.float().view(-1, outputs.size(-1)), labels.view(-1))
 
                 # ================================================================
                 # GRAD ACCUMULATION: grad_accum_steps micro-batches form one
@@ -1004,9 +965,7 @@ class DistributedTrainer(BaseTrainer):
                     current_lr = warmup_scheduler.get_last_lr()[0]
                 elif schedule == "cosine":
                     if current_step == warmup_steps:
-                        cosine_scheduler.base_lrs = [
-                            g["lr"] for g in optimizer.param_groups
-                        ]
+                        cosine_scheduler.base_lrs = [g["lr"] for g in optimizer.param_groups]
                     cosine_scheduler.step()
                     current_lr = cosine_scheduler.get_last_lr()[0]
                 else:
@@ -1018,9 +977,9 @@ class DistributedTrainer(BaseTrainer):
                         g["lr"] = current_lr
                 current_step += 1
 
-                batch_loss = sum(
-                    l * n for l, n in zip(micro_losses, micro_sizes)
-                ) / sum(micro_sizes)
+                batch_loss = sum(l * n for l, n in zip(micro_losses, micro_sizes)) / sum(
+                    micro_sizes
+                )
                 total_loss += batch_loss
                 num_batches += 1
 
@@ -1036,7 +995,7 @@ class DistributedTrainer(BaseTrainer):
                         {
                             "loss": f"{batch_loss:.4f}",
                             "lr": f"{current_lr:.2e}",
-                            "tok": f"{(total_tokens_seen * world_size)/1e6:.1f}M",
+                            "tok": f"{(total_tokens_seen * world_size) / 1e6:.1f}M",
                         }
                     )
 
@@ -1061,7 +1020,10 @@ class DistributedTrainer(BaseTrainer):
                                 "sec_per_step": round(time.time() - t0, 4),
                                 "eta_h": round(
                                     (total_steps - current_step)
-                                    * max(time.time() - t0, 1e-9) / 3600.0, 3),
+                                    * max(time.time() - t0, 1e-9)
+                                    / 3600.0,
+                                    3,
+                                ),
                             },
                         )
 
@@ -1115,8 +1077,8 @@ class DistributedTrainer(BaseTrainer):
                     else "Val: skipped"
                 )
                 print(
-                    f"[Epoch {epoch+1}] Train Loss: {global_train_loss:.4f} | {val_str} | "
-                    f"Tokens: {(total_tokens_seen*world_size)/1e6:.1f}M"
+                    f"[Epoch {epoch + 1}] Train Loss: {global_train_loss:.4f} | {val_str} | "
+                    f"Tokens: {(total_tokens_seen * world_size) / 1e6:.1f}M"
                 )
 
                 if checkpoint_prefix:
@@ -1162,9 +1124,7 @@ class DistributedTrainer(BaseTrainer):
                         seed=seed,
                     )
                     print("[Rank 0] Saving intermediate metrics...")
-                    self._save_intermediate_metrics(
-                        checkpoint_prefix, metrics, global_step
-                    )
+                    self._save_intermediate_metrics(checkpoint_prefix, metrics, global_step)
                     print("[Rank 0] All saves complete, hitting barrier...")
             dist.barrier()
         # if writer: writer.close()
@@ -1234,7 +1194,7 @@ class DistributedTrainer(BaseTrainer):
         estimated_tokens_per_batch = batch_size * max_seq_len
         target_batches = int(per_gpu_token_limit / estimated_tokens_per_batch)
         total_batches = min(target_batches, len(val_loader))
-        desc = f"Val e{epoch+1}/{total_epochs} [R{rank}]"
+        desc = f"Val e{epoch + 1}/{total_epochs} [R{rank}]"
         val_pbar = tqdm(
             val_loader, desc=desc, total=total_batches, leave=False, disable=(rank != 0)
         )
@@ -1252,9 +1212,7 @@ class DistributedTrainer(BaseTrainer):
                 )
 
                 outputs = model(input_ids, attention_mask=attention_mask)
-                loss = criterion(
-                    outputs.float().view(-1, outputs.size(-1)), labels.view(-1)
-                )
+                loss = criterion(outputs.float().view(-1, outputs.size(-1)), labels.view(-1))
 
                 val_loss_sum += loss.item()
                 val_batches += 1
@@ -1264,9 +1222,7 @@ class DistributedTrainer(BaseTrainer):
                 if local_tokens_seen >= per_gpu_token_limit:
                     break
 
-        stats = torch.tensor(
-            [val_loss_sum, val_batches], dtype=torch.float32, device=device
-        )
+        stats = torch.tensor([val_loss_sum, val_batches], dtype=torch.float32, device=device)
         dist.all_reduce(stats, op=dist.ReduceOp.SUM)
 
         total_loss_sum = stats[0].item()
@@ -1295,9 +1251,7 @@ class DistributedTrainer(BaseTrainer):
             print(f"Validation error: {e}")
             return False
 
-    def _cleanup_old_checkpoints(
-        self, directory: str, prefix: str, keep_last_n: int = 2
-    ):
+    def _cleanup_old_checkpoints(self, directory: str, prefix: str, keep_last_n: int = 2):
         """Remove old checkpoints, keeping only the last N for this run prefix."""
         pattern = os.path.join(directory, f"{prefix}_epoch*.pt")
         checkpoints = glob.glob(pattern)
@@ -1344,7 +1298,7 @@ class DistributedTrainer(BaseTrainer):
         try:
             os.makedirs("saved_checkpoints", exist_ok=True)
             time_hours = cumulative_time / 3600
-            filename = f"{prefix}_epoch{epoch+1}_bs{batch_size}_seq{config.max_seq_len}_wd{weight_decay}_time{time_hours:.2f}h_completedAt{datetime.now().strftime('%Y%m%d_%H%M%S')}.pt"
+            filename = f"{prefix}_epoch{epoch + 1}_bs{batch_size}_seq{config.max_seq_len}_wd{weight_decay}_time{time_hours:.2f}h_completedAt{datetime.now().strftime('%Y%m%d_%H%M%S')}.pt"
             final_path = os.path.join("saved_checkpoints", filename)
             tmp_path = final_path + ".tmp"
 
@@ -1370,9 +1324,7 @@ class DistributedTrainer(BaseTrainer):
             torch.save(checkpoint_data, tmp_path)
 
             if not self._validate_checkpoint(tmp_path):
-                print(
-                    "[Rank 0] ERROR: Checkpoint validation failed, not replacing old checkpoint"
-                )
+                print("[Rank 0] ERROR: Checkpoint validation failed, not replacing old checkpoint")
                 os.remove(tmp_path)
                 return
 
@@ -1415,7 +1367,7 @@ class DistributedTrainer(BaseTrainer):
         tmp_path = None
         try:
             time_hours = cumulative_time / 3600
-            filename = f"{prefix}_epoch{epoch+1}_bs{batch_size}_seq{config.max_seq_len}_wd{weight_decay}_time{time_hours:.2f}h_completedAt{datetime.now().strftime('%Y%m%d_%H%M%S')}.pt"
+            filename = f"{prefix}_epoch{epoch + 1}_bs{batch_size}_seq{config.max_seq_len}_wd{weight_decay}_time{time_hours:.2f}h_completedAt{datetime.now().strftime('%Y%m%d_%H%M%S')}.pt"
 
             shared_ckpt_dir = os.path.join(shared_dir, "saved_checkpoints")
             os.makedirs(shared_ckpt_dir, exist_ok=True)
@@ -1510,9 +1462,7 @@ class DistributedTrainer(BaseTrainer):
         with open(f"training_metrics/{filename_base}_metadata.json", "w") as f:
             json.dump(metadata, f, indent=2)
 
-        print(
-            f"[Rank 0] Final metrics saved (local): {len(metrics['batch_losses'])} batch records"
-        )
+        print(f"[Rank 0] Final metrics saved (local): {len(metrics['batch_losses'])} batch records")
 
     def _save_metrics_shared(
         self,
@@ -1554,14 +1504,10 @@ class DistributedTrainer(BaseTrainer):
 
             # Final paths
             npz_path = os.path.join(shared_metrics_dir, f"{filename_base}_metrics.npz")
-            json_path = os.path.join(
-                shared_metrics_dir, f"{filename_base}_metadata.json"
-            )
+            json_path = os.path.join(shared_metrics_dir, f"{filename_base}_metadata.json")
 
             # np.savez auto-appends .npz, so use base name without extension
-            tmp_npz_base = os.path.join(
-                shared_metrics_dir, f"{filename_base}_metrics_tmp"
-            )
+            tmp_npz_base = os.path.join(shared_metrics_dir, f"{filename_base}_metrics_tmp")
             np.savez(tmp_npz_base, **data_to_save)
             os.replace(tmp_npz_base + ".npz", npz_path)
 

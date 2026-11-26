@@ -9,8 +9,11 @@ import pytest
 
 from conftest import REPO
 
-DOCS = [p for p in REPO.rglob("*.md")
-        if not {".venv", ".git", "work", ".pytest_cache"} & set(p.relative_to(REPO).parts)]
+DOCS = [
+    p
+    for p in REPO.rglob("*.md")
+    if not {".venv", ".git", "work", ".pytest_cache"} & set(p.relative_to(REPO).parts)
+]
 LINK = re.compile(r"\]\(([^)\s]+)\)")
 
 

@@ -102,7 +102,10 @@ def test_changes_requested_by_a_member_does_not_count_as_approval() -> None:
 
 
 def test_approval_then_changes_requested_by_the_same_member_fails() -> None:
-    reviews = [review("labmate", "MEMBER", "APPROVED"), review("labmate", "MEMBER", "CHANGES_REQUESTED")]
+    reviews = [
+        review("labmate", "MEMBER", "APPROVED"),
+        review("labmate", "MEMBER", "CHANGES_REQUESTED"),
+    ]
     assert not pra.decide(pull("stranger", "NONE"), reviews).allowed
 
 
@@ -122,14 +125,21 @@ def test_approval_of_an_older_commit_does_not_count() -> None:
 
 
 def test_one_member_approval_suffices_beside_a_non_member_rejection() -> None:
-    reviews = [review("friend", "NONE", "CHANGES_REQUESTED"), review("labmate", "MEMBER", "APPROVED")]
+    reviews = [
+        review("friend", "NONE", "CHANGES_REQUESTED"),
+        review("labmate", "MEMBER", "APPROVED"),
+    ]
     assert pra.decide(pull("stranger", "NONE"), reviews).allowed
 
 
 def test_deleted_account_records_are_ignored() -> None:
-    reviews = [{"user": None, "author_association": "MEMBER", "state": "APPROVED", "commit_id": HEAD}]
+    reviews = [
+        {"user": None, "author_association": "MEMBER", "state": "APPROVED", "commit_id": HEAD}
+    ]
     assert not pra.decide(pull("stranger", "NONE"), reviews).allowed
-    assert not pra.decide({"user": None, "author_association": "MEMBER", "head": {"sha": HEAD}}, []).allowed
+    assert not pra.decide(
+        {"user": None, "author_association": "MEMBER", "head": {"sha": HEAD}}, []
+    ).allowed
 
 
 def test_main_reads_the_api_record_not_the_event_copy(

@@ -59,13 +59,13 @@ def test_accumulated_gradient_equals_the_full_batch_gradient(n_examples, batch, 
     x = torch.randn(n_examples, 5)
     y = torch.randint(0, 3, (n_examples,))
     micro = batch // accum
-    micro_batches = [(x[i:i + micro], y[i:i + micro]) for i in range(0, n_examples, micro)]
+    micro_batches = [(x[i : i + micro], y[i : i + micro]) for i in range(0, n_examples, micro)]
 
     model = nn.Linear(5, 3)
     expected = []
     for lo in range(0, n_examples, batch):
         model.zero_grad()
-        nn.CrossEntropyLoss()(model(x[lo:lo + batch]), y[lo:lo + batch]).backward()
+        nn.CrossEntropyLoss()(model(x[lo : lo + batch]), y[lo : lo + batch]).backward()
         expected.append(model.weight.grad.clone())
 
     got, seen = [], 0
@@ -83,9 +83,16 @@ def test_accumulated_gradient_equals_the_full_batch_gradient(n_examples, batch, 
         torch.testing.assert_close(g, e)
 
 
-@pytest.mark.parametrize("name,cls", [("adamw", torch.optim.AdamW), ("adam", torch.optim.AdamW),
-                                      ("sgd", torch.optim.SGD), ("lion", T.Lion),
-                                      ("adafactor", torch.optim.Adafactor)])
+@pytest.mark.parametrize(
+    "name,cls",
+    [
+        ("adamw", torch.optim.AdamW),
+        ("adam", torch.optim.AdamW),
+        ("sgd", torch.optim.SGD),
+        ("lion", T.Lion),
+        ("adafactor", torch.optim.Adafactor),
+    ],
+)
 def test_make_optimizer_steps(name, cls):
     torch.manual_seed(2)
     model = nn.Linear(4, 1)
@@ -124,9 +131,18 @@ def test_schedule_factor():
 
 
 def test_trainer_cli_has_the_new_flags():
-    out = run(["python", REPO / "src/training_models/training/dist_trainer_main.py", "--help"]).stdout
-    for flag in ("--shape", "--optimizer", "--schedule", "--grad-accum-steps", "--seed",
-                 "--score-padding", "fineweb"):
+    out = run(
+        ["python", REPO / "src/training_models/training/dist_trainer_main.py", "--help"]
+    ).stdout
+    for flag in (
+        "--shape",
+        "--optimizer",
+        "--schedule",
+        "--grad-accum-steps",
+        "--seed",
+        "--score-padding",
+        "fineweb",
+    ):
         assert flag in out, flag
 
 

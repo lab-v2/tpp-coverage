@@ -18,6 +18,7 @@
 #     that optimizer randomness is negligible (also valid)
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import numpy as np
@@ -27,7 +28,9 @@ from sklearn.metrics import r2_score
 from scaling_laws.data import prepare_arrays
 from scaling_laws.laws import (
     _fit_generic,
-    kaplan_loss, chinchilla_loss, droppo_elibol_loss,
+    kaplan_loss,
+    chinchilla_loss,
+    droppo_elibol_loss,
 )
 
 
@@ -35,8 +38,10 @@ from scaling_laws.laws import (
 # Seed-aware fit wrappers (same bounds/samplers as laws.py)
 # ════════════════════════════════════════════════════════════════
 
+
 def _fit_kaplan_seed(N, D, L, n_restarts=300, seed=42):
     bounds = [(1e3, 1e14), (1e3, 1e14), (0.01, 2.0), (0.01, 2.0)]
+
     def sampler(rng, L):
         return [
             10 ** rng.uniform(5, 12),
@@ -44,11 +49,13 @@ def _fit_kaplan_seed(N, D, L, n_restarts=300, seed=42):
             rng.uniform(0.05, 1.5),
             rng.uniform(0.05, 1.5),
         ]
+
     return _fit_generic(kaplan_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
 
 def _fit_chinchilla_seed(N, D, L, n_restarts=300, seed=42):
     bounds = [(0.0, 10.0), (1e-2, 1e10), (0.01, 2.0), (1e-2, 1e10), (0.01, 2.0)]
+
     def sampler(rng, L):
         return [
             rng.uniform(0.0, min(L) * 0.9),
@@ -57,15 +64,20 @@ def _fit_chinchilla_seed(N, D, L, n_restarts=300, seed=42):
             10 ** rng.uniform(0, 8),
             rng.uniform(0.1, 1.5),
         ]
+
     return _fit_generic(chinchilla_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
 
 def _fit_droppo_elibol_seed(N, D, L, n_restarts=300, seed=42):
     bounds = [
         (1e-6, min(L) * 0.99),
-        (1e3, 1e14), (1e3, 1e14),
-        (0.01, 2.0), (0.01, 2.0), (0.01, 2.0),
+        (1e3, 1e14),
+        (1e3, 1e14),
+        (0.01, 2.0),
+        (0.01, 2.0),
+        (0.01, 2.0),
     ]
+
     def sampler(rng, L):
         return [
             rng.uniform(0.01, min(L) * 0.8),
@@ -75,6 +87,7 @@ def _fit_droppo_elibol_seed(N, D, L, n_restarts=300, seed=42):
             rng.uniform(0.05, 1.5),
             rng.uniform(0.05, 1.5),
         ]
+
     return _fit_generic(droppo_elibol_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
 
@@ -89,6 +102,7 @@ _SEED_FITTERS = {
 # ════════════════════════════════════════════════════════════════
 # Core: run one step with multiple seeds
 # ════════════════════════════════════════════════════════════════
+
 
 def _run_seeds_one_step(
     law_name,
@@ -125,7 +139,9 @@ def _run_seeds_one_step(
 
         try:
             params, sse, success = fit_fn(
-                N_tr, D_tr, L_tr,
+                N_tr,
+                D_tr,
+                L_tr,
                 n_restarts=n_restarts,
                 seed=seed,
             )
@@ -153,6 +169,7 @@ def _run_seeds_one_step(
 # ════════════════════════════════════════════════════════════════
 # Run across all coverage steps
 # ════════════════════════════════════════════════════════════════
+
 
 def run_seed_variance_convergence(
     data,
@@ -190,8 +207,7 @@ def run_seed_variance_convergence(
     )
 
     if law_name not in _SEED_FITTERS:
-        raise ValueError(f"Unsupported law: {law_name}. "
-                         f"Supported: {list(_SEED_FITTERS.keys())}")
+        raise ValueError(f"Unsupported law: {law_name}. Supported: {list(_SEED_FITTERS.keys())}")
 
     holdouts = {
         "unified": data.unified_holdout,
@@ -222,12 +238,19 @@ def run_seed_variance_convergence(
             coverage = step["coverage_frac"]
 
             if verbose:
-                print(f"  {design_label:14s} | {law_name:16s} | {mode:6s} | "
-                      f"step {si+1:2d}/{n_steps} | cov={coverage:.2f} | "
-                      f"{n_seeds} seeds ...", end=" ", flush=True)
+                print(
+                    f"  {design_label:14s} | {law_name:16s} | {mode:6s} | "
+                    f"step {si + 1:2d}/{n_steps} | cov={coverage:.2f} | "
+                    f"{n_seeds} seeds ...",
+                    end=" ",
+                    flush=True,
+                )
 
             seed_results = _run_seeds_one_step(
-                law_name, step_train, holdouts, mode,
+                law_name,
+                step_train,
+                holdouts,
+                mode,
                 n_seeds=n_seeds,
                 n_restarts=n_restarts,
                 base_seed=base_seed + si * 1000,
@@ -246,33 +269,37 @@ def run_seed_variance_convergence(
                 if len(r2_arr) == 0:
                     continue
 
-                rows.append({
-                    "design": design_label,
-                    "law": law_name,
-                    "mode": mode.capitalize(),
-                    "step": si + 1,
-                    "coverage_frac": coverage,
-                    "holdout_split": split_name,
-                    "r2_mean": np.mean(r2_arr),
-                    "r2_std": np.std(r2_arr),
-                    "r2_p5": np.percentile(r2_arr, 5),
-                    "r2_p25": np.percentile(r2_arr, 25),
-                    "r2_p50": np.percentile(r2_arr, 50),
-                    "r2_p75": np.percentile(r2_arr, 75),
-                    "r2_p95": np.percentile(r2_arr, 95),
-                    "r2_min": np.min(r2_arr),
-                    "r2_max": np.max(r2_arr),
-                    "n_seeds_ok": len(r2_arr),
-                })
+                rows.append(
+                    {
+                        "design": design_label,
+                        "law": law_name,
+                        "mode": mode.capitalize(),
+                        "step": si + 1,
+                        "coverage_frac": coverage,
+                        "holdout_split": split_name,
+                        "r2_mean": np.mean(r2_arr),
+                        "r2_std": np.std(r2_arr),
+                        "r2_p5": np.percentile(r2_arr, 5),
+                        "r2_p25": np.percentile(r2_arr, 25),
+                        "r2_p50": np.percentile(r2_arr, 50),
+                        "r2_p75": np.percentile(r2_arr, 75),
+                        "r2_p95": np.percentile(r2_arr, 95),
+                        "r2_min": np.min(r2_arr),
+                        "r2_max": np.max(r2_arr),
+                        "n_seeds_ok": len(r2_arr),
+                    }
+                )
 
             # Print quick summary
             if verbose:
                 uni = seed_results.get("unified", np.array([]))
                 uni = uni[~np.isnan(uni)]
                 if len(uni) > 0:
-                    print(f"R²={np.mean(uni):.4f} ± {np.std(uni):.4f} "
-                          f"[{np.min(uni):.4f}, {np.max(uni):.4f}] "
-                          f"({len(uni)}/{n_seeds} ok)")
+                    print(
+                        f"R²={np.mean(uni):.4f} ± {np.std(uni):.4f} "
+                        f"[{np.min(uni):.4f}, {np.max(uni):.4f}] "
+                        f"({len(uni)}/{n_seeds} ok)"
+                    )
                 else:
                     print("done")
 
@@ -283,13 +310,14 @@ def run_seed_variance_convergence(
 # Plotting
 # ════════════════════════════════════════════════════════════════
 
+
 def plot_convergence_with_errorbars(
     sv_df,
     holdout_split="unified",
     ax=None,
     y_min=-0.5,
     y_max=1.05,
-    band_type="percentile",   # "percentile" for p5-p95, "std" for mean±std
+    band_type="percentile",  # "percentile" for p5-p95, "std" for mean±std
     title=None,
     axis_label_fs=25,
     tick_label_fs=20,
@@ -338,7 +366,8 @@ def plot_convergence_with_errorbars(
 
         # Mean line + markers
         ax.plot(
-            x, y,
+            x,
+            y,
             color=color,
             marker=marker,
             markersize=marker_size,
@@ -356,10 +385,11 @@ def plot_convergence_with_errorbars(
             hi = dsub["r2_std"].values
 
         ax.errorbar(
-            x, y,
+            x,
+            y,
             yerr=[lo, hi],
-            fmt='none',
-            ecolor='#333333',
+            fmt="none",
+            ecolor="#333333",
             elinewidth=1.5,
             capsize=6,
             capthick=1.5,
@@ -386,6 +416,7 @@ def plot_convergence_with_errorbars(
 # Convenience: run + plot + save in one call
 # ════════════════════════════════════════════════════════════════
 
+
 def run_and_plot_seed_variance(
     data,
     dataset_name,
@@ -401,10 +432,10 @@ def run_and_plot_seed_variance(
     """One-call: seed variance + plot + optionally save."""
     import matplotlib.pyplot as plt
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  SEED VARIANCE: {dataset_name} / {law_name} / {mode}")
     print(f"  {n_seeds} seeds × {n_restarts} restarts per fit")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     sv_df = run_seed_variance_convergence(
         data,
@@ -424,6 +455,7 @@ def run_and_plot_seed_variance(
 
     if save_dir:
         import os
+
         os.makedirs(save_dir, exist_ok=True)
         tag = f"{dataset_name}_{law_name}_{mode}".replace(" ", "_")
 

@@ -46,15 +46,25 @@ def main(argv: list[str] | None = None) -> None:
 
     pairs = margin_gaps(pd.read_csv(WORK / args.results, usecols=COLUMNS)).reset_index(drop=True)
     rng = C.rng_for("vk_ratio_boot", "ratio_of_medians", "E2")
-    draws = np.array([ratio_of_medians(sub) for sub, _ in C._cluster_draws(pairs, rng, args.n_boot)])
+    draws = np.array(
+        [ratio_of_medians(sub) for sub, _ in C._cluster_draws(pairs, rng, args.n_boot)]
+    )
     lo, hi = np.percentile(draws, [2.5, 97.5])
-    out = pd.DataFrame([{
-        "statistic": f"median ratio {TOP_STRATUM} / below 1B", "scheme": "E2",
-        "n_boot": args.n_boot, "n_pairs": len(pairs),
-        "n_windows": pairs.groupby(C.CLUSTER).ngroups,
-        "ratio_of_medians": ratio_of_medians(pairs), "lo95": lo, "hi95": hi,
-        "share_draws_at_least_1": float(np.mean(draws >= 1)),
-    }])
+    out = pd.DataFrame(
+        [
+            {
+                "statistic": f"median ratio {TOP_STRATUM} / below 1B",
+                "scheme": "E2",
+                "n_boot": args.n_boot,
+                "n_pairs": len(pairs),
+                "n_windows": pairs.groupby(C.CLUSTER).ngroups,
+                "ratio_of_medians": ratio_of_medians(pairs),
+                "lo95": lo,
+                "hi95": hi,
+                "share_draws_at_least_1": float(np.mean(draws >= 1)),
+            }
+        ]
+    )
     print(out.to_string(index=False))
     out.to_csv(WORK / args.out, index=False)
 

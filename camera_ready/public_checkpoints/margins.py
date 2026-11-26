@@ -21,6 +21,7 @@ import pandas as pd
 import analysis as A
 
 from paths import ARTIFACTS, WORK
+
 ARMS = ("CO", "NC", "NCM")
 KEY = ["cell", "window", "ray_bin", "n_rays", "seed"]
 
@@ -47,15 +48,20 @@ def rebuild(runs_file: str = "runs_normalised.csv", corpus: str = "all") -> pd.D
                 continue
             for pair in A.enumerate_pairs(window, split):
                 row = {
-                    "cell": cell, "window": window.index, "ray_bin": pair.ray,
-                    "n_rays": pair.n_rays, "seed": pair.seed,
+                    "cell": cell,
+                    "window": window.index,
+                    "ray_bin": pair.ray,
+                    "n_rays": pair.n_rays,
+                    "seed": pair.seed,
                 }
                 for arm, idx in (("CO", pair.co_idx), ("NC", pair.nc_idx), ("NCM", pair.ncm_idx)):
                     ks = runs.loc[idx, "k"]
                     rats = A.merged_ratios(ks.tolist())
                     row[f"{arm}_K_chk"] = len(rats)
                     row[f"{arm}_V_K_chk"] = float(A.repo.compute_VK(rats, A.BETA_EFF))
-                    row[f"{arm}_tau_K_chk"] = float(A.repo.compute_tauK(rats, A.BETA_EFF, A.KAPPA_TARGET))
+                    row[f"{arm}_tau_K_chk"] = float(
+                        A.repo.compute_tauK(rats, A.BETA_EFF, A.KAPPA_TARGET)
+                    )
                     row[f"{arm}_k_min_chk"] = float(ks.min())
                     row[f"{arm}_k_max_chk"] = float(ks.max())
                     for beta in A.BETA_GRID:
@@ -65,7 +71,9 @@ def rebuild(runs_file: str = "runs_normalised.csv", corpus: str = "all") -> pd.D
 
 
 def main(argv: list[str] | None = None) -> None:
-    ap = argparse.ArgumentParser(description="Identifiability margins for every design in a results table.")
+    ap = argparse.ArgumentParser(
+        description="Identifiability margins for every design in a results table."
+    )
     ap.add_argument("--runs", default="runs_normalised.csv")
     ap.add_argument("--corpus", choices=["E", "X", "all"], default="all")
     ap.add_argument("--results", default="results.csv")
@@ -84,8 +92,10 @@ def main(argv: list[str] | None = None) -> None:
             a = merged[f"{arm}_{col}"].to_numpy(float)
             b = merged[f"{arm}_{col}_chk"].to_numpy(float)
             assert np.allclose(a, b, rtol=1e-9, atol=0), f"{arm}_{col} does not reproduce"
-    print(f"reconstruction verified against results.csv on {len(merged)} design pairs "
-          f"({len(ARMS) * 5} invariants per pair)")
+    print(
+        f"reconstruction verified against results.csv on {len(merged)} design pairs "
+        f"({len(ARMS) * 5} invariants per pair)"
+    )
 
     out = merged[KEY + [f"{a}_m_beta{b}" for a in ARMS for b in A.BETA_GRID]]
     out.to_csv(WORK / args.out, index=False)

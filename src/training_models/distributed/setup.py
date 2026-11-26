@@ -75,9 +75,7 @@ def setup_distributed(rank: int, world_size: int) -> bool:
         wait_time = 0
         while wait_time < max_wait:
             ready_files = [
-                f
-                for f in os.listdir(log_dir)
-                if f.startswith("distributed_sync_ready_")
+                f for f in os.listdir(log_dir) if f.startswith("distributed_sync_ready_")
             ]
             if len(ready_files) >= world_size:
                 break
@@ -85,9 +83,7 @@ def setup_distributed(rank: int, world_size: int) -> bool:
             wait_time += 1
 
         with open(f"{log_dir}/distributed_setup_{rank}.log", "a") as f:
-            f.write(
-                f"Process {rank}: All processes ready, starting Gloo initialization...\n"
-            )
+            f.write(f"Process {rank}: All processes ready, starting Gloo initialization...\n")
             f.flush()
 
         # Use file-based initialization instead of TCP (more reliable for single-node)
@@ -114,9 +110,7 @@ def setup_distributed(rank: int, world_size: int) -> bool:
             backend_used = "nccl"
 
             with open(f"{log_dir}/distributed_setup_{rank}.log", "a") as f:
-                f.write(
-                    f"Process {rank}: NCCL initialized successfully with file-based method\n"
-                )
+                f.write(f"Process {rank}: NCCL initialized successfully with file-based method\n")
                 f.flush()
         except Exception as nccl_error:
             with open(f"{log_dir}/distributed_setup_{rank}.log", "a") as f:
@@ -136,19 +130,13 @@ def setup_distributed(rank: int, world_size: int) -> bool:
             backend_used = "gloo"
 
             with open(f"{log_dir}/distributed_setup_{rank}.log", "a") as f:
-                f.write(
-                    f"Process {rank}: Gloo initialized successfully with file-based method\n"
-                )
+                f.write(f"Process {rank}: Gloo initialized successfully with file-based method\n")
                 f.flush()
 
         with open(f"{log_dir}/distributed_setup_{rank}.log", "a") as f:
-            f.write(
-                f"Process {rank}: {backend_used.upper()} backend initialized successfully\n"
-            )
+            f.write(f"Process {rank}: {backend_used.upper()} backend initialized successfully\n")
             f.flush()
-        print_info(
-            f"Process {rank}: {backend_used.upper()} backend initialized successfully"
-        )
+        print_info(f"Process {rank}: {backend_used.upper()} backend initialized successfully")
 
         # Synchronize all processes
         with open(f"{log_dir}/distributed_setup_{rank}.log", "a") as f:

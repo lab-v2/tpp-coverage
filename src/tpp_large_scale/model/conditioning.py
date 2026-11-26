@@ -92,10 +92,7 @@ def numerical_jacobian(
         forward[index] += step
         backward[index] -= step
         columns.append(
-            (
-                law.loss_fn(arrays.n, arrays.d, *forward)
-                - law.loss_fn(arrays.n, arrays.d, *backward)
-            )
+            (law.loss_fn(arrays.n, arrays.d, *forward) - law.loss_fn(arrays.n, arrays.d, *backward))
             / (2 * step)
         )
     return np.column_stack(columns)
