@@ -12,7 +12,7 @@
 \usepackage{titlesec}
 
 \newcommand{\kAB}{\kappa_{A,B}}
-\newcommand{\Real}{\mathbb{R}}
+\newcommand{\defn}[1]{\textbf{#1}}
 \sisetup{round-mode=places,round-precision=3}
 
 \title{\bfseries Tokens-per-Parameter Coverage at Scale:\\
@@ -28,25 +28,26 @@ A Larger-Model Validation of Scaling-Law Conditioning}
 \begin{abstract}
 \noindent
 We validate the estimation-conditioning theory of the tokens-per-parameter (TPP)
-coverage study on an independent, substantially larger training grid: $461$ language-model
-pretraining runs spanning non-embedding parameter counts from $5.7\times10^{4}$ to
-$3.5\times10^{8}$ (total parameters up to $5\times10^{8}$), token budgets from $10^{8}$ to
-$10^{11}$, trained on C4 over a TPP band of $[20,200]$. Reproducing the paper's full estimation
-pipeline (four-law fits, Gauss-Newton conditioning, the closed-form TPP-diversity threshold,
-and the holdout regime classification), we find three results. First, the near-equality of the
-parameter- and data-scaling exponents \emph{persists} at this larger scale: the exponent gap is
-$\varepsilon=0.085$ for Chinchilla, $0.043$ for Kaplan, and $0.021$ for Droppo-Elibol, matching
-the small-scale values reported in the main text, so the ill-conditioning hazard is real rather
-than an artifact of tiny models. Second, the diverse-TPP two-dimensional design is
+coverage study on an independent training grid of models up to $6.5\times$ larger than the main
+experiments. The grid holds $461$ language-model pretraining runs, trained on C4 over a TPP band
+of $[20,200]$. They span non-embedding parameter counts from $5.7\times10^{4}$ to
+$3.5\times10^{8}$ (total parameters up to $5\times10^{8}$) and token budgets from $10^{8}$ to
+$10^{11}$. We reproduce the paper's full estimation pipeline: four-law fits, Gauss-Newton
+conditioning, the closed-form TPP-diversity threshold, and the holdout regime classification.
+We find three results. First, the near-equality of the parameter- and data-scaling exponents
+\emph{persists} at this larger scale. The exponent gap is $\varepsilon=0.085$ for Chinchilla,
+$0.043$ for Kaplan, and $0.021$ for Droppo-Elibol, matching the small-scale values reported in
+the main text. The ill-conditioning hazard is therefore real and not an artifact of tiny models.
+Second, the diverse-TPP two-dimensional design is
 \emph{well-conditioned} (Regime~B: the TPP-diversity statistic $V_K$ exceeds the threshold
 $\tau_K$ for target condition numbers up to $10^{6}$; the $(A,B)$-block condition number is
 $\kAB=86$). Third, a single-TPP collinear ray drawn from the \emph{same} runs is
 \emph{ill-conditioned} (Regime~A), with $\kAB$ up to $1.9\times10^{7}$, a five-order-of-magnitude
 penalty consistent with the predicted $\kappa=\Theta(\varepsilon^{-2})$ blow-up. A budget-matched
 holdout comparison favors the non-collinear design (median RMSE $0.073$ vs $0.085$; win rate
-$0.67$). Rerunning the paper's estimation pipeline, every formal statement reproduces on this grid:
-the conditioning law $\kAB\propto\varepsilon^{-1.98}$ and the CI inflation
-$\propto\varepsilon^{-1.01}$ match the predicted $\varepsilon^{-2}$ and $\varepsilon^{-1}$, the
+$0.67$). Rerunning the paper's estimation pipeline, every formal statement reproduces on this grid.
+The conditioning law $\kAB\propto\varepsilon^{-1.98}$ and the CI inflation
+$\propto\varepsilon^{-1.01}$ match the predicted $\varepsilon^{-2}$ and $\varepsilon^{-1}$. The
 closed-form diversity threshold and holdout regimes hold, and the isoFLOP invariance is exact.
 These findings confirm, at up to $6.5\times$ larger scale than the main
 experiments ($5$ to $77$M parameters), both the hazard the theory identifies and the design recipe
@@ -56,29 +57,29 @@ it prescribes.
 \section{Introduction and motivation}
 \label{sec:intro}
 
-The companion paper argues that fitting neural scaling laws from runs performed at a single
+The companion paper argues that fitting neural scaling laws from runs at a single
 tokens-per-parameter (TPP) ratio $k$ (the compute-optimal $D=kN$ convention) induces an inherent
-ill-conditioning in the Gauss-Newton least-squares problem: because the parameter-scaling and
-data-scaling exponents are empirically near-equal, the two scale-coefficient columns of the
-Jacobian become near-proportional, the condition number grows as $\Theta(\varepsilon^{-2})$ in
-the exponent gap $\varepsilon$, and the scale coefficients become practically unidentifiable.
-The paper proves this for four scaling-law formalisms, derives a closed-form TPP-diversity
+ill-conditioning in the Gauss-Newton least-squares problem. The parameter-scaling and
+data-scaling exponents are empirically near-equal, so the two scale-coefficient columns of the
+Jacobian become near-proportional. The condition number then grows as $\Theta(\varepsilon^{-2})$
+in the exponent gap $\varepsilon$, and the scale coefficients become practically unidentifiable.
+The paper proves this for four scaling-law formalisms. It derives a closed-form TPP-diversity
 threshold that is necessary and sufficient for well-conditioned estimation, and shows empirically
 that non-collinear (NC) designs beat collinear (CO) ones on held-out data.
 
 The main-text experiments use models of $5$ to $77$M parameters. A natural question is
 whether the phenomenon, and the prescribed remedy, survive at larger scale. This report answers
-that question directly. We take an \emph{independent} grid of language-model pretraining runs, one
-that was designed as a genuine two-dimensional $(N,D)$ sweep with a wide TPP band, and we run the
-paper's entire analysis on it: we fit all four laws, measure the exponent gaps, compute the
-Gauss-Newton conditioning ($\kappa(J^\top J)$ and the $(A,B)$-block $\kAB$), evaluate the
+that question directly. We take an \emph{independent} grid of language-model pretraining runs,
+designed as a genuine two-dimensional $(N,D)$ sweep with a wide TPP band, and run the paper's
+entire analysis on it. We fit all four laws, measure the exponent gaps, and compute the
+Gauss-Newton conditioning ($\kappa(J^\top J)$ and the $(A,B)$-block $\kAB$). We then evaluate the
 TPP-diversity statistic $V_K$ against its threshold $\tau_K$, classify the resulting regime, and
 compare collinear against non-collinear designs on off-manifold holdouts.
 
 The headline is a clean two-sided confirmation. The \emph{hazard} is real at scale: the exponent
 near-equality that drives the degeneracy holds just as tightly for these larger models as for the
 small ones. The \emph{remedy} works at scale: the diverse-TPP two-dimensional design is
-well-conditioned (Regime~B), whereas a single-TPP ray carved from the identical runs is
+well-conditioned (Regime~B). A single-TPP ray carved from the identical runs is, by contrast,
 ill-conditioned (Regime~A) with a six-order-of-magnitude condition-number penalty.
 
 \section{Background: the conditioning theory}
@@ -95,11 +96,11 @@ residuals $r_i=L_i-\hat L(N_i,D_i;\boldsymbol\theta)$ and Jacobian $J_{ij}=\part
 J)_{A,B})$ be the condition number of the $(A,B)$ principal submatrix (the two scale
 coefficients).
 
-\paragraph{Exponent gap.} The law-specific gap is $\varepsilon=|\alpha-\beta|$ for Chinchilla,
+\paragraph{Exponent gap.} The law-specific \defn{exponent gap} is $\varepsilon=|\alpha-\beta|$ for Chinchilla,
 $|\alpha_D-\alpha_N|$ for Kaplan, and $|\gamma_N-\gamma_D|$ with $\gamma_\bullet=\alpha_\bullet/
 \alpha$ for Droppo-Elibol.
 
-\paragraph{Conditioning (Prop.~1).} On a collinear ray $D=kN$ the two scale-coefficient columns
+\paragraph{Conditioning (Prop.~1).} On a \defn{collinear ray} $D=kN$ the two scale-coefficient columns
 satisfy $\mathbf j_B=c\,\mathbf j_A+\boldsymbol\delta$ with $\|\boldsymbol\delta\|=O(\varepsilon)$,
 so as $\varepsilon\to0$, $\lambda_{\max}(J^\top J)=\Theta(1)$, $\lambda_{\min}(J^\top
 J)=\Theta(\varepsilon^{2})$, and
@@ -129,35 +130,46 @@ gives $\mathbb E[\mathrm{RMSE}^{\mathrm{CO}}]/\mathbb E[\mathrm{RMSE}^{\mathrm{N
 \section{Experimental setup: the four-dimensional grid}
 \label{sec:setup}
 
-\paragraph{Data.} We use a four-dimensional $(N,D,\text{lr},\text{wd})$ pretraining grid: model
-sizes $N\in\{5,15.8,50,158,500\}$M total parameters (five decoder-only LLaMA-style transformers,
-$\mathrm{seq}=256$, GPT-2 vocabulary), a global quarter-decade token axis with $19$ levels from
-$10^{8}$ to $10^{11}$, four learning rates matched to $N$, and four weight decays in $[0.05,3.0]$,
-restricted to the $(N,D)$ cells whose design TPP $D/N$ lies in $[20,200]$ (a diagonal band, five
-$D$ per $N$). Of $480$ planned runs, $461$ finished; all are trained on C4. The run metrics are
+The grid, the variables we fit, and what a collinear design means on this grid are set out below.
+
+\paragraph{Data.} We use a four-dimensional $(N,D,\text{lr},\text{wd})$ pretraining grid. Its model
+sizes are $N\in\{5,\allowbreak 15.8,\allowbreak 50,\allowbreak 158,\allowbreak 500\}$M total parameters: five decoder-only LLaMA-style
+transformers, $\mathrm{seq}=256$, GPT-2 vocabulary. Its global quarter-decade token axis has
+$19$ levels from $10^{8}$ to $10^{11}$, and it uses four learning rates matched to $N$ and four
+weight decays in $[0.05,3.0]$. The grid is restricted to the $(N,D)$ cells whose design TPP $D/N$ lies in
+$[20,200]$ (a diagonal band, five $D$ per $N$). Of $480$ planned runs, $461$ finished; all are trained on C4. The run metrics are
 publicly archived.\footnote{Hugging Face dataset \texttt{leibnitz-lab/4d-llm-grid-metrics}.}
 
 \paragraph{Fitting variables.} Following the grid's convention and standard practice, we use the
-\emph{non-embedding} parameter count as the size variable, $N_{\text{ne}}\in\{5.7\times10^{4},
-3.97\times10^{5},1.06\times10^{7},8.51\times10^{7},3.54\times10^{8}\}$; the two smallest models are
-over $97\%$ embeddings, so their non-embedding counts are small. We take $D$ to be the realized
-token count and $L$ the final validation loss. Because each $(N,D)$ cell carries $16$ learning-
-rate/weight-decay runs, we reduce to the compute-optimal \emph{envelope}, the minimum loss per
-$(N,D)$ cell, yielding $29$ envelope points that constitute the scaling-law surface.
+\emph{non-embedding} parameter count $N_{\text{ne}}$ as the size variable:
+\begin{equation*}
+  N_{\text{ne}}\in\{5.7\times10^{4},3.97\times10^{5},1.06\times10^{7},8.51\times10^{7},3.54\times10^{8}\}.
+\end{equation*}
+The two smallest models are over $97\%$ embeddings, so their non-embedding counts are small. The
+data size $D$ is the realized token count, and the loss $L$ is the final validation loss. Each $(N,D)$ cell
+carries $16$ learning-rate/weight-decay runs. We reduce them to the compute-optimal
+\defn{min-loss grid}, the minimum loss per $(N,D)$ cell, which yields the $29$ points that
+constitute the scaling-law surface.
 
-\paragraph{What ``collinear'' means here.} The full envelope is a genuine two-dimensional design
+\paragraph{What ``collinear'' means here.} The min-loss grid is a genuine two-dimensional design
 (non-collinear, NC): the fit-space ratio $k=D/N_{\text{ne}}$ ranges over $[28,1.2\times10^{4}]$
-across $K=29$ distinct values. A \emph{collinear} (CO) subset fixes the design TPP, i.e.\ selects
+across $K=29$ distinct values. A \defn{collinear} (CO) subset fixes the design TPP, i.e.\ selects
 points along a single $D=kN$ ray.
 
 \section{Results}
 \label{sec:results}
 
+We first show that the exponent near-equality persists. We then contrast the conditioning of the
+full grid with that of single-TPP rays, compare the two designs on held-out cells, and test the
+headline claims' sensitivity.
+
 \subsection{The exponent near-equality persists at scale}
 
-Table~\ref{tab:fits} reports the four-law fits on the full envelope. All three static laws
-achieve excellent fit quality ($R^2\ge0.97$, and $\ge0.998$ for Chinchilla and Droppo-Elibol).
-Crucially, the exponent gaps are \emph{small}, matching the main text: $\varepsilon=0.085$
+Table~\ref{tab:fits} reports the four-law fits on the full min-loss grid, with the Chinchilla
+law~\eqref{eq:chin} as the reference form. All three static laws achieve excellent fit quality
+($R^2\ge0.97$, and $\ge0.998$ for Chinchilla and Droppo-Elibol). Figure~\ref{fig:surface} plots
+the surface they fit, smooth and monotone in $N$ and in $D$. The exponent gaps are \emph{small},
+matching the main text: $\varepsilon=0.085$
 (Chinchilla), $0.043$ (Kaplan), $0.021$ (Droppo-Elibol), against the paper's small-scale
 $\approx0.06$, $0.019$, and comparable values. The parameter- and data-scaling exponents are
 near-equal at $3.5\times10^{8}$ non-embedding parameters just as they are at $5$ to $77$M. The
@@ -166,7 +178,7 @@ not a small-model artifact.
 
 \begin{table}[t]
 \centering
-\caption{Four-law fits on the full ($29$-cell) two-dimensional envelope. $\varepsilon$ is the
+\caption{Four-law fits on the full ($29$-cell) two-dimensional min-loss grid. $\varepsilon$ is the
 law-specific exponent gap; smaller means more collinearity-prone. Fit quality is high throughout.}
 \label{tab:fits}
 \begin{tabular}{lccccl}
@@ -184,21 +196,21 @@ Droppo-Elibol  & $\gamma_N{=}0.244,\ \gamma_D{=}0.264$         & $0.021$ & $0.99
 \subsection{The two-dimensional grid is well-conditioned (Regime B)}
 
 Table~\ref{tab:regime} evaluates the TPP-diversity criterion~\eqref{eq:prop2} on the full
-envelope, using the fitted Chinchilla data exponent $\beta_{\mathrm{eff}}=0.038$. The diversity
+min-loss grid, using the fitted Chinchilla data exponent $\beta_{\mathrm{eff}}=0.038$. The diversity
 statistic $V_K=2.69\times10^{-3}$ exceeds the threshold $\tau_K$ for every target condition number
 from $10^{4}$ to $10^{6}$, so the design lands firmly in \textbf{Regime~B}: the fit is
 well-conditioned. Consistently, the measured $(A,B)$-block condition number is $\kAB=86$
 (Table~\ref{tab:cond}), well below any of the targets. The full $5\times5$ Gauss-Newton matrix has
-$\kappa(J^\top J)=1.6\times10^{9}$ raw, and $3.5\times10^{6}$ after column normalization; this
+$\kappa(J^\top J)=1.6\times10^{9}$ raw, and $3.5\times10^{6}$ after column normalization. This
 residual full-matrix sloppiness is the classical amplitude-exponent coupling of power-law fits
-(the pairs $(A,\alpha)$ and $(B,\beta)$ trade off), which afflicts \emph{any} design and lies
+(the pairs $(A,\alpha)$ and $(B,\beta)$ trade off). It afflicts \emph{any} design and lies
 outside the TPP argument. The paper's dominance assumption isolates the $(A,B)$ scale-coefficient
 block, the identifiability-critical quantity that single-TPP training collapses; on this
 two-dimensional grid that block is well-conditioned ($\kAB=86$).
 
 \begin{table}[t]
 \centering
-\caption{TPP-diversity criterion on the full envelope ($K=29$ distinct ratios,
+\caption{TPP-diversity criterion on the full min-loss grid ($K=29$ distinct ratios,
 $\beta_{\mathrm{eff}}=0.038$, $V_K=2.69\times10^{-3}$). $V_K\ge\tau_K$ places the design in the
 well-conditioned Regime~B for all targets.}
 \label{tab:regime}
@@ -218,21 +230,22 @@ $10^{6}$ & $2.63\times10^{-6}$ & yes & B\\
 
 The contrast is stark. Table~\ref{tab:cond} and Figure~\ref{fig:kappa} compare the $(A,B)$-block
 conditioning of the full two-dimensional grid against single-TPP rays extracted from the same
-data. The cleanest ray (design TPP $\approx67$, one envelope point per model size) has
+data. The cleanest ray (design TPP $\approx67$, one min-loss point per model size) has
 $\kAB=1.9\times10^{7}$, over five orders of magnitude worse than the $\kAB=86$ of the full grid.
-This is the $\kappa=\Theta(\varepsilon^{-2})$ mechanism of Prop.~1 realized at scale: strip the
-TPP diversity, and the scale coefficients collapse onto a single sloppy direction. Rays that
-inadvertently retain two nearby TPP sub-levels (design TPP $\approx37$ and $\approx120$ each pick
-up a second ratio) stay well-conditioned ($\kAB\approx74$), which is itself an instance of the
-theory: even a little TPP diversity restores conditioning, exactly as $V_K\ge\tau_K$ predicts. To rule out
-a mere point-count effect, Table~\ref{tab:cond} includes an equal-size control: a
-\emph{well-spread} two-dimensional sample of the same five points is well-conditioned
-($\kAB=58.9$), a factor of $3.1\times10^{5}$ better than the five-point collinear ray. At
-identical sample size, then, it is the TPP \emph{spread} and not the point count that governs
-conditioning. We emphasize that two-dimensionality alone is \emph{not} sufficient: a randomly
-drawn five-point subset usually has poor TPP coverage and is itself ill-conditioned
-(Section~\ref{sec:robust}: median $\kAB\approx3.5\times10^{7}$, with only $24\%$ of random
-two-dimensional quintuples below $10^{4}$). This is the $V_K$ criterion of Prop.~2 in action:
+That penalty is the $\kappa=\Theta(\varepsilon^{-2})$ mechanism of Prop.~1, Eq.~\eqref{eq:prop1},
+realized at scale: strip the TPP diversity, and the scale coefficients collapse onto a single
+sloppy direction. Rays that inadvertently retain two nearby TPP sub-levels (design TPP
+$\approx37$ and $\approx120$ each pick up a second ratio) stay well-conditioned
+($\kAB\approx74$). That recovery is itself an instance of the theory: even a little TPP diversity
+restores conditioning, exactly as $V_K\ge\tau_K$ predicts. To rule out a mere point-count effect,
+Table~\ref{tab:cond} includes an equal-size control. A \emph{well-spread} two-dimensional sample
+of the same five points is well-conditioned ($\kAB=58.9$), a factor of $3.1\times10^{5}$ better
+than the five-point collinear ray. At identical sample size, then, it is the TPP \emph{spread}
+and not the point count that governs conditioning. We emphasize that two-dimensionality alone is
+\emph{not} sufficient. A randomly drawn five-point subset usually has poor TPP coverage and is
+itself ill-conditioned (Section~\ref{sec:robust}: median $\kAB\approx3.5\times10^{7}$, with only
+$24\%$ of random two-dimensional quintuples below $10^{4}$). That finding is the $V_K$ criterion
+of Prop.~2 in action:
 conditioning tracks the variance of $k^{-\beta_{\mathrm{eff}}}$, that is, genuine ratio coverage,
 not the ambient dimension.
 
@@ -266,19 +279,19 @@ grid.}
 
 \subsection{Non-collinear designs predict off-manifold points better}
 
-Table~\ref{tab:holdout} reports a budget-matched holdout comparison: for each trial we fit
+Table~\ref{tab:holdout} reports a budget-matched holdout comparison. In each trial we fit
 Chinchilla on a single-TPP CO ray and on a size-matched non-collinear sample, then evaluate both
 on held-out cells that lie off the CO ray. The non-collinear design wins $67\%$ of trials, and its
 \emph{median} holdout RMSE ($0.073$) is lower than the collinear one's ($0.085$). The mean RMSE is
-inverted and noisier, a small-sample effect: with only five points on a clean ray and a five-
-parameter law, individual NC fits occasionally overfit and blow up, inflating the NC mean while the
-median and the win rate both favor NC. The direction matches Regime~A of Thm.~1; the magnitude is
-muted because the underlying grid is well-conditioned overall, so the CO ill-conditioning must be
-induced by explicitly collapsing to one ratio. The win-rate advantage is statistically significant
-(one-sided binomial $p=1.2\times10^{-2}$; $95\%$ CI $[0.52,0.68]$, excluding $0.5$), and a stricter
-variant that forces \emph{both} designs to extrapolate off a held-out TPP band, rather than letting
-the non-collinear sample interpolate, still favors the non-collinear design ($200$ trials, win rate
-$0.665$, $95\%$ bootstrap CI $[0.60,0.73]$; Section~\ref{sec:robust}).
+inverted and noisier, a small-sample effect. With only five points on a clean ray and a
+five-parameter law, individual NC fits occasionally overfit and blow up. Those fits inflate the NC
+mean, while the median and the win rate both favor NC. The direction matches Regime~A of Thm.~1;
+the magnitude is muted because the underlying grid is well-conditioned overall, so the CO
+ill-conditioning must be induced by explicitly collapsing to one ratio. The win rate exceeds
+chance by a one-sided binomial test ($p=1.2\times10^{-2}$; $95\%$ CI $[0.52,0.68]$, excluding
+$0.5$). A stricter variant forces \emph{both} designs to extrapolate off a held-out TPP band,
+instead of letting the non-collinear sample interpolate. It still favors the non-collinear design
+($200$ trials, win rate $0.665$, $95\%$ bootstrap CI $[0.60,0.73]$; Section~\ref{sec:robust}).
 
 \begin{table}[t]
 \centering
@@ -301,50 +314,51 @@ mean holdout RMSE           & $\mathbf{0.096}$ & $0.129$ (outlier-inflated)\\
 \centering
 \includegraphics[width=0.48\textwidth]{figures/loss_vs_N.png}\hfill
 \includegraphics[width=0.48\textwidth]{figures/loss_vs_D.png}
-\caption{Envelope validation loss against non-embedding $N$ (left, colored by design TPP) and
+\caption{Validation loss of the min-loss grid against non-embedding $N$ (left, colored by design TPP) and
 against tokens $D$ (right, colored by $N$). The surface is smooth and monotone, supporting the
 high-quality power-law fits.}
 \label{fig:surface}
 \end{figure}
 
-\subsection{Robustness checks}
+\subsection{Sensitivity checks}
 \label{sec:robust}
 
 We stress-tested the two headline claims, the exponent gap and the conditioning verdict, against
-the choices a skeptical reader would question; Table~\ref{tab:robust} collects the results.
+the choices a skeptical reader would question; Table~\ref{tab:robust} collects the results (the
+\texttt{robustness} section of \texttt{results/results.json}).
 
-\emph{Exponent gap.} Fixing the irreducible term at a small positive value ($E=0.1$) rather than
-letting it hit its lower bound leaves the gap essentially unchanged ($\varepsilon=0.083$ versus the
+\emph{Exponent gap.} We fix the irreducible term at a small positive value ($E=0.1$) instead of
+letting it hit its lower bound. The gap is then nearly unchanged ($\varepsilon=0.083$ versus the
 headline $0.085$), so the near-equality is not an artifact of the $E\to0$ boundary. The gap is,
 however, sensitive to the loss reduction and to the model range. Dropping the two
 embedding-dominated smallest models (three $N$-levels, $17$ cells) widens the fitted gap to
-$\varepsilon=0.197$; with only three size levels $\alpha$ is weakly constrained, so this is a
-high-variance estimate rather than evidence against near-equality, and the block conditioning stays
-modest ($\kAB=7.5\times10^{3}$). Replacing the compute-optimal \emph{minimum} envelope with a
+$\varepsilon=0.197$. With only three size levels $\alpha$ is weakly constrained, so that value is
+a high-variance estimate and not evidence against near-equality. The block conditioning stays
+modest ($\kAB=7.5\times10^{3}$). Replacing the compute-optimal \emph{minimum} per cell with a
 \emph{median} over the sixteen learning-rate and weight-decay runs per cell degrades the fit badly
-($R^2=0.003$, with $\alpha$ driven to its bound): the median mixes in mistuned and diverged runs
-and does not admit a clean power law, which is exactly why the scaling-law literature fits the loss
-frontier. We therefore treat the min-envelope gap as the principled estimate and report the
+($R^2=0.003$, with $\alpha$ driven to its bound). The median mixes in mistuned and diverged runs
+and does not admit a clean power law. That failure is exactly why the scaling-law literature fits
+the loss frontier. We therefore treat the min-loss gap as the principled estimate and report the
 alternatives as sensitivities, not as competing measurements.
 
 \emph{Conditioning.} The well-conditioned equal-size control of Section~\ref{sec:results} is the
 \emph{best-spread} five-point sample, not a typical one. Over $400$ randomly drawn, genuinely
 two-dimensional five-point subsets, the median $(A,B)$-block condition number is
 $\kAB\approx3.5\times10^{7}$, with only $24\%$ falling below $10^{4}$: being two-dimensional does
-not by itself buy conditioning, coverage does. This is the correct reading of Prop.~2, whose $V_K$
-statistic measures ratio coverage directly, and it sharpens rather than weakens the paper's
-message. The full $29$-cell grid is well-conditioned because it is well-covered by construction;
+not by itself buy conditioning, coverage does. That result is the correct reading of Prop.~2, whose
+$V_K$ statistic measures ratio coverage directly; it sharpens the paper's message and does not
+weaken it. The full $29$-cell grid is well-conditioned because it is well-covered by construction;
 sparse or poorly spread designs, two-dimensional or not, are not.
 
-\emph{Holdout.} The non-collinear win rate is significantly above chance (one-sided binomial
-$p=1.2\times10^{-2}$; $95\%$ CI $[0.52,0.68]$), and the stricter protocol in which both designs
-must extrapolate off a held-out TPP band still favors the non-collinear design ($200$ trials, win
+\emph{Holdout.} The non-collinear win rate exceeds chance by a one-sided binomial test
+($p=1.2\times10^{-2}$; $95\%$ CI $[0.52,0.68]$). The stricter protocol, in which both designs
+must extrapolate off a held-out TPP band, still favors the non-collinear design ($200$ trials, win
 rate $0.665$, $95\%$ bootstrap CI $[0.60,0.73]$).
 
 \begin{table}[t]
 \centering
-\caption{Robustness of the exponent gap and the conditioning verdict to reduction, model range,
-sampling, and holdout protocol. The headline setting is min-envelope Chinchilla
+\caption{Sensitivity of the exponent gap and the conditioning verdict to reduction, model range,
+sampling, and holdout protocol. The headline setting is min-loss Chinchilla
 ($\varepsilon=0.085$, $\kAB=86$).}
 \label{tab:robust}
 \begin{tabular}{llc}
@@ -353,7 +367,7 @@ sampling, and holdout protocol. The headline setting is min-envelope Chinchilla
 \midrule
 Irreducible term     & $E$ fixed ${=}0.1$ (vs $E\!\to\!0$)        & $\varepsilon=0.083$\\
 Model range          & drop $2$ smallest $N$ ($17$ cells)         & $\varepsilon=0.197$,\ $\kAB=8.1\times10^{3}$\\
-Loss reduction       & median over lr/wd (vs min envelope)        & $R^2=0.003$ (fit degenerate)\\
+Loss reduction       & median over lr/wd (vs min-loss)            & $R^2=0.003$ (fit degenerate)\\
 Sampling             & $400$ random 2D five-point subsets         & median $\kAB=3.5\times10^{7}$,\ $24\%{<}10^{4}$\\
 Holdout significance & one-sided binomial on $81/135$             & $p=1.2\times10^{-2}$\\
 Holdout, stricter    & both designs extrapolate off held band     & win rate $0.665$, CI $[0.60,0.73]$\\
@@ -398,7 +412,7 @@ Full-grid $V_K$ vs $\tau_K$; two-ray reduction $R\ge R_{\min}$ &
 Regime~B on the grid; $R_{\min}=2.86$ at $\kappa_{\mathrm{target}}{=}10^{4}$
 (Fig.~\ref{fig:rmin})\\[2pt]
 Thm.~1 (Regime~A): $\mathrm{RMSE}^{\mathrm{NC}}\!<\!\mathrm{RMSE}^{\mathrm{CO}}$ and
-$R^{2\,\mathrm{NC}}\!>\!R^{2\,\mathrm{CO}}$ &
+$(R^2)^{\mathrm{NC}}\!>\!(R^2)^{\mathrm{CO}}$ &
 Budget-matched holdout, median RMSE and $R^2$ &
 median RMSE $0.073$ vs $0.085$; median $R^2$ $0.991$ vs $0.988$ (Table~\ref{tab:holdout})\\[2pt]
 isoFLOP invariance (Def.~4) &
@@ -418,10 +432,10 @@ Jacobian columns $[N^{-\alpha},\,k^{-\beta}N^{-\beta}]$ on the clean single-TPP 
 sizes and evaluate both $\kAB$ and the Fisher-information ratio $\mathrm{CI}(A)/\mathrm{CI}(\psi)$.
 Figure~\ref{fig:eps_scaling} shows the result: on this grid the condition number follows
 $\kAB\propto\varepsilon^{-1.98}$ and the CI ratio follows $\varepsilon^{-1.01}$, matching the
-predicted $-2$ and $-1$ almost exactly. All four laws share this geometry: on a collinear ray each
+predicted $-2$ and $-1$ almost exactly. All four laws share this geometry. On a collinear ray each
 law's two scale-coefficient Jacobian columns satisfy $\mathbf{j}_2=c\,\mathbf{j}_1 N^{\varepsilon}$
-(the paper's Jacobian table), so the $\varepsilon^{-2}$ rate is common and only the per-law gap
-$\varepsilon$ sets the severity. The reduced $\psi$-model, by contrast, has condition number
+(the paper's Jacobian table). The $\varepsilon^{-2}$ rate is therefore common, and only the
+per-law gap $\varepsilon$ sets the severity. The reduced $\psi$-model, by contrast, has condition number
 $257$ (that is, $O(1)$) on the same ray, confirming the identifiability split: the single
 combination $\psi=A+Bk^{-\alpha}$ is well determined while $A$ and $B$ individually are not.
 
@@ -471,10 +485,10 @@ $\beta_{\mathrm{eff}}=0.038$. The full $29$-cell design clears $\tau_K$ for ever
 $10^{6}$ (Table~\ref{tab:regime}, Regime~B). For the two-ray reduction, Figure~\ref{fig:rmin} plots
 $V_2$ and $\tau_2$ against the spread $R=k_2/k_1$ at $\kappa_{\mathrm{target}}=10^{4}$; they cross
 at $R_{\min}=2.86$, the paper's a-priori design diagnostic evaluated on our data. Measured two-band
-designs drawn from the grid are consistent with this direction but noisier: a sparse two-ratio
-design does not reliably reach the target even above $R_{\min}$, which is expected, since $R_{\min}$
-is a leading-order threshold and the robust route to Regime~B is the dense multi-ratio grid rather
-than two sparse rays.
+designs drawn from the grid are consistent with this direction but noisier. A sparse two-ratio
+design does not reliably reach the target even above $R_{\min}$. That shortfall is expected:
+$R_{\min}$ is a leading-order threshold, and the dense multi-ratio grid, not two sparse rays, is
+the route that reaches Regime~B reliably.
 
 \begin{figure}[t]
 \centering
@@ -511,7 +525,7 @@ tracks them.}
 
 Three points stand out. \textbf{(i) The hazard generalizes.} The exponent near-equality that
 underlies the whole argument, $\varepsilon\approx0.02$ to $0.09$ across the three laws, is
-essentially unchanged from the small-model regime to models several times larger (up to $5\times10^{8}$ parameters). The
+nearly unchanged from the small-model regime to models several times larger (up to $5\times10^{8}$ parameters). The
 $\Theta(\varepsilon^{-2})$ sensitivity is therefore not a curiosity of tiny networks.
 \textbf{(ii) The remedy generalizes.} A design with genuine TPP diversity ($K=29$ ratios over a
 $[20,200]$ band) is well-conditioned at this scale, with $\kAB=86$ and $V_K\ge\tau_K$ for targets
@@ -520,52 +534,53 @@ to a single TPP ratio reintroduces the ill-conditioning immediately, with a six-
 $\kAB$ penalty, precisely as Prop.~1 predicts. Together these give an independent, larger-scale
 corroboration of both halves of the paper's claim.
 
-A subtlety worth stating plainly is that the grid's fitted data exponent is small
+One subtlety: the grid's fitted data exponent is small
 ($\beta_{\mathrm{eff}}=0.038$), which makes $k^{-\beta_{\mathrm{eff}}}$ vary little across ratios
 and hence shrinks $V_K$. The design nonetheless clears $\tau_K$ because its TPP band is wide; a
-narrower band at this small $\beta_{\mathrm{eff}}$ would be closer to the Regime-A boundary. This
-is consistent with, and sharpens, the paper's message: the required TPP spread depends on the
-data-side exponent, and a small exponent demands a wider band. Because the literature's larger $\beta\approx0.28$ would
-only \emph{increase} $V_K$, our small fitted value makes the Regime-B verdict conservative: a more
-typical data exponent would place this design even more firmly in the well-conditioned regime.
+narrower band at this small $\beta_{\mathrm{eff}}$ would be closer to the Regime-A boundary. That
+observation is consistent with, and sharpens, the paper's message: the required TPP spread depends
+on the data-side exponent, and a small exponent demands a wider band. Because the literature's
+larger $\beta\approx0.28$ would only \emph{increase} $V_K$, our small fitted value makes the
+Regime-B verdict conservative. A more typical data exponent would place this design even more
+firmly in the well-conditioned regime.
 
 \section{Limitations}
 \label{sec:limitations}
 
-This is a single-corpus (C4), single-epoch grid of $29$ envelope cells, so the holdout win-rate
-statistics are necessarily noisier than the main text's thousand-comparison enumeration, and we
-emphasize the conditioning diagnostics (which are deterministic given the design) over the RMSE
-win rate. The Chinchilla fit places the irreducible term at its lower bound ($E\to0$) and Kaplan's
-scale coefficients at their upper bounds; the loss range for these small-to-medium models does not
-approach the noise floor, so $E$ is weakly identified. The fitted exponents ($\alpha=0.123$,
-$\beta=0.038$) are specific to this C4/seq-256/single-epoch regime and are not meant to match
-canonical Chinchilla values; the analysis concerns the \emph{gap} between exponents and the
-\emph{conditioning} it induces, both of which are robust to the exact exponent magnitudes. Finally,
-the clean single ray has only five points, so its condition number reflects both the collinearity
-and the small point count; we therefore report it alongside the partially-diverse rays to isolate
-the diversity effect. Relatedly, the per-law severities in Table~\ref{tab:severity_ls} evaluate the
-shared leading-order $\varepsilon^{-2}$ curve at each law's fitted gap rather than each law's full
-nonlinear Jacobian, since the clean ray's five model sizes are too few to fit the Kaplan and
-Droppo-Elibol forms independently; the Chinchilla blow-up ($\kAB=1.9\times10^{7}$) is measured
-directly. Two further caveats follow from the robustness checks
-(Section~\ref{sec:robust}). First, the measured exponent gap is specific to the compute-optimal
-min-envelope reduction and to the full five-model range: a median-over-hyperparameters reduction
-does not admit a clean fit, and restricting to the three largest models widens the gap, so the
-precise value of $\varepsilon$ is reduction- and range-dependent even though its smallness under
-the principled reduction is stable. Second, the conditioning benefit is a property of TPP
-\emph{coverage} rather than of two-dimensionality per se: a sparse or poorly spread
-two-dimensional design can be as ill-conditioned as a ray, so it is the $V_K$ threshold, not mere
-non-collinearity, that a practitioner must verify.
+The grid is single-corpus (C4) and single-epoch, with $29$ min-loss cells. Its holdout win-rate
+statistics are therefore necessarily noisier than the main text's thousand-comparison enumeration,
+so we emphasize the conditioning diagnostics (which are deterministic given the design) over the
+RMSE win rate. The Chinchilla fit places the irreducible term at its lower bound ($E\to0$) and
+Kaplan's scale coefficients at their upper bounds. The loss range for these small-to-medium models
+does not approach the noise floor, so $E$ is weakly identified. The fitted exponents
+($\alpha=0.123$, $\beta=0.038$) are specific to this C4/seq-256/single-epoch regime and are not
+meant to match canonical Chinchilla values. The analysis concerns the \emph{gap} between exponents
+and the \emph{conditioning} it induces, and neither is sensitive to the exact exponent magnitudes.
+In addition, the clean single ray has only five points, so its condition number reflects both the
+collinearity and the small point count. We therefore report it alongside the partially-diverse
+rays to isolate the diversity effect. Relatedly, the per-law severities in
+Table~\ref{tab:severity_ls} evaluate the shared leading-order $\varepsilon^{-2}$ curve at each
+law's fitted gap, not each law's full nonlinear Jacobian. The clean ray's five model sizes are too
+few to fit the Kaplan and Droppo-Elibol forms independently. The Chinchilla blow-up
+($\kAB=1.9\times10^{7}$) is measured directly. Two further caveats follow from the sensitivity
+checks (Section~\ref{sec:robust}). First, the measured exponent gap is specific to the
+compute-optimal min-loss reduction and to the full five-model range. A median-over-hyperparameters
+reduction does not admit a clean fit, and restricting to the three largest models widens the gap.
+The precise value of $\varepsilon$ is therefore reduction- and range-dependent, even though its
+smallness under the principled reduction is stable. Second, the conditioning benefit is a property
+of TPP \emph{coverage}, not of two-dimensionality per se. A sparse or poorly spread
+two-dimensional design can be as ill-conditioned as a ray. A practitioner must therefore verify
+the $V_K$ threshold, not mere non-collinearity.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-Running the paper's complete estimation pipeline on an independent grid of models up to
-$3.5\times10^{8}$ non-embedding parameters, we confirm at scale that (i) the parameter- and
-data-scaling exponents remain near-equal ($\varepsilon\le0.085$), (ii) a diverse-TPP two-
-dimensional design is well-conditioned (Regime~B, $\kAB=86$), and (iii) a single-TPP collinear ray
-is ill-conditioned (Regime~A, $\kAB$ up to $1.9\times10^{7}$), with non-collinear designs predicting
-off-manifold points better. The tokens-per-parameter coverage principle, and its closed-form
+We ran the paper's complete estimation pipeline on an independent grid of models up to
+$3.5\times10^{8}$ non-embedding parameters. The run confirms three findings at scale. (i) The
+parameter- and data-scaling exponents remain near-equal ($\varepsilon\le0.085$). (ii) A
+diverse-TPP two-dimensional design is well-conditioned (Regime~B, $\kAB=86$). (iii) A single-TPP
+collinear ray is ill-conditioned (Regime~A, $\kAB$ up to $1.9\times10^{7}$), and non-collinear
+designs predict off-manifold points better. The tokens-per-parameter coverage principle, and its closed-form
 diversity threshold, hold well beyond the scale at which they were first
 demonstrated.
 
