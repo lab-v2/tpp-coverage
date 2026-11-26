@@ -9,6 +9,8 @@ worker oversubscribes the host.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import dataclasses
 from pathlib import Path
 
@@ -22,17 +24,22 @@ from conftest import REPO
 from training_models.core import PretokenizedDataset, PretokenizedLoader, generate_model_configs
 from training_models.core.PretokenizedLoader import _resolve_data_root
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
+    from training_models.models import ModelConfig
+
 FROZEN = Path(__file__).parent / "frozen"
 ENC = tiktoken.get_encoding("cl100k_base")
 SEQ = 32
 CORPORA = ["cosmopedia", "wikipedia", "pes2o", "redpajama", "c4", "fineweb"]
 
 
-def configs(cfgs) -> list:
+def configs(cfgs: Iterable[ModelConfig | None]) -> list[dict[str, object] | None]:
     return [dataclasses.asdict(c) if c is not None else None for c in cfgs]
 
 
-def test_generate_model_configs():
+def test_generate_model_configs() -> None:
     v = ENC.n_vocab
     view = {
         # Published targets, round and true counts: the exact released architectures.
@@ -67,7 +74,7 @@ def write_split(root: Path, name: str, split: str) -> None:
 
 
 @pytest.fixture
-def data_dir(tmp_path, monkeypatch) -> Path:
+def data_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     for name in CORPORA:
         write_split(tmp_path, name, "train")
         write_split(tmp_path, name, "val")
@@ -75,7 +82,7 @@ def data_dir(tmp_path, monkeypatch) -> Path:
     return tmp_path
 
 
-def test_dataset_items(data_dir):
+def test_dataset_items(data_dir: Path) -> None:
     ds = PretokenizedDataset(
         data_dir / "c4" / "train_tokens.bin", data_dir / "c4" / "train_lengths.bin", SEQ
     )
@@ -90,7 +97,7 @@ def test_dataset_items(data_dir):
     check_frozen(FROZEN / "dataset_items.json", view)
 
 
-def test_dataset_rejects_bad_files(data_dir):
+def test_dataset_rejects_bad_files(data_dir: Path) -> None:
     tokens, lengths = data_dir / "c4" / "train_tokens.bin", data_dir / "c4" / "train_lengths.bin"
     with pytest.raises(FileNotFoundError, match="Tokens file not found"):
         PretokenizedDataset(data_dir / "missing.bin", lengths, SEQ)
@@ -100,7 +107,7 @@ def test_dataset_rejects_bad_files(data_dir):
         PretokenizedDataset(tokens, lengths, SEQ + 1)
 
 
-def test_every_loader_reads_its_corpus(data_dir):
+def test_every_loader_reads_its_corpus(data_dir: Path) -> None:
     view = {}
     for name in dir(PretokenizedLoader):
         if not name.startswith("load_"):
@@ -123,10 +130,11 @@ def test_every_loader_reads_its_corpus(data_dir):
     check_frozen(FROZEN / "loaders.json", view)
 
 
-def test_data_root(monkeypatch, tmp_path):
+def test_data_root(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     assert _resolve_data_root("c4") == str(tmp_path / "c4")
     monkeypatch.delenv("DATA_DIR")
-    assert _resolve_data_root("c4") == str(REPO / "corpora" / "c4")
+    repo = Path(__file__).resolve().parents[3]  # spelled out, not conftest's REPO
+    assert _resolve_data_root("c4") == str(repo / "corpora" / "c4")
     with pytest.raises(FileNotFoundError, match="Preprocessed files not found"):
         PretokenizedLoader.load_c4_dataset_pretokenized_train(SEQ)

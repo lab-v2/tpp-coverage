@@ -14,6 +14,8 @@ colours, bar geometry, labels, limits, legend entries), never by image bytes.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import json
 import math
 import os
@@ -23,6 +25,10 @@ from collections.abc import Iterable
 import numpy as np
 import pandas as pd
 import pytest
+
+if TYPE_CHECKING:
+    from matplotlib.collections import Collection
+    from matplotlib.figure import Figure
 
 # The released dataset at the revision every frozen value was taken from.
 HF_REVISION = "1b4cdafcbfa4cbf58d96876a06677724a6f0dac4"
@@ -197,7 +203,7 @@ def _pooled(arrays: Iterable[object]) -> np.ndarray:
         return np.asarray([str(v) for a in arrays for v in np.ravel(a)], dtype=object)
 
 
-def _collection(coll) -> dict[str, object]:
+def _collection(coll: Collection) -> dict[str, object]:
     out: dict[str, object] = {"kind": type(coll).__name__}
     if hasattr(coll, "_offsets3d"):
         out["xyz"] = [summarize(np.asarray(v, dtype=float)) for v in coll._offsets3d]
@@ -235,7 +241,7 @@ def _patches(patches: list[object]) -> dict[str, object]:
     }
 
 
-def figure_data(fig) -> dict[str, object]:
+def figure_data(fig: Figure) -> dict[str, object]:
     """Everything a figure shows, as data: per axes its artists, labels, limits and legend."""
     axes = []
     for ax in fig.axes:
@@ -278,7 +284,7 @@ class FigureCapture:
         plt.show, plt.close = self._on_show, self._on_close
         return self
 
-    def _read(self, fig) -> None:
+    def _read(self, fig: Figure) -> None:
         if not getattr(fig, "_characterized", False):
             fig._characterized = True
             self.figures.append(figure_data(fig))
@@ -290,7 +296,7 @@ class FigureCapture:
         for fig in self._open():
             self._read(fig)
 
-    def _on_close(self, fig=None) -> None:
+    def _on_close(self, fig: object = None) -> None:
         from matplotlib.figure import Figure
 
         if isinstance(fig, Figure):

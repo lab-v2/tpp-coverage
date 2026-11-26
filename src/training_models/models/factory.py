@@ -22,7 +22,7 @@ import torch.nn.functional as F
 class LlamaModelWrapper(nn.Module):
     """Wrapper for LlamaForCausalLM to match SimpleTransformer interface."""
 
-    def __init__(self, llama_model: nn.Module, model_config: ModelConfig):
+    def __init__(self, llama_model: nn.Module, model_config: ModelConfig) -> None:
         super().__init__()
         self.model = llama_model
         self.config = model_config
@@ -86,7 +86,7 @@ class PaddedFP8Linear(nn.Module):
     stripped after the GEMM: FP8 then runs at any batch or sequence length a scaling grid needs.
     """
 
-    def __init__(self, in_features: int, out_features: int, bias: bool = True):
+    def __init__(self, in_features: int, out_features: int, bias: bool = True) -> None:
         super().__init__()
         import transformer_engine.pytorch as te
 
@@ -134,18 +134,11 @@ def _is_fp8_compatible(in_features: int, out_features: int) -> bool:
     return in_features % 16 == 0 and out_features % 8 == 0
 
 
-def replace_linear_with_fp8(module: nn.Module, name_prefix: str = "") -> dict:
-    """Recursively replace nn.Linear with PaddedFP8Linear for FP8 support.
+def replace_linear_with_fp8(module: nn.Module, name_prefix: str = "") -> dict[str, int | list[str]]:
+    """Recursively replace each nn.Linear whose dimensions FP8 allows with PaddedFP8Linear.
 
-    Only replaces layers where weight dimensions meet FP8 requirements.
-    Layers with incompatible dimensions (e.g., lm_head with vocab_size=100277)
-    are left as regular nn.Linear and will run in BF16/FP32.
-
-    This matches the standard TE training pattern:
-      - Linear layers (Q/K/V projections, FFN) → FP8 GEMMs
-      - LayerNorm / RMSNorm → higher precision (untouched)
-      - Softmax, activations → higher precision (untouched)
-      - Embedding, lm_head → higher precision if dims are incompatible
+    The rest (lm_head with vocab_size=100277) stay nn.Linear in BF16/FP32, as do norms, softmax,
+    activations and embeddings: the standard Transformer Engine pattern of FP8 GEMMs only.
 
     Returns:
         dict with counts of replaced and skipped layers

@@ -13,6 +13,8 @@ Cache prefix: pci_ (parameter CI) - won't collide with old fullcov_ caches.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import os
 import sys
 import time
@@ -30,6 +32,9 @@ from scaling_laws.laws import (
     chinchilla_loss,
     droppo_elibol_loss,
 )
+
+if TYPE_CHECKING:
+    from scaling_laws.data import PreparedData
 
 
 # ════════════════════════════════════════════════════════════════
@@ -209,15 +214,15 @@ def run_full_coverage_seeds(
 
 
 def run_all_full_coverage(
-    prepared,
-    laws=None,
-    modes=None,
-    n_seeds=30,
-    n_restarts=100,
-    base_seed=0,
-    save_dir=None,
-    verbose=True,
-):
+    prepared: dict[str, PreparedData],
+    laws: list[str] | None = None,
+    modes: list[str] | None = None,
+    n_seeds: int = 30,
+    n_restarts: int = 100,
+    base_seed: int = 0,
+    save_dir: str | None = None,
+    verbose: bool = True,
+) -> pd.DataFrame:
     """
     Run full-coverage seed variance for all datasets × laws × modes × designs.
 

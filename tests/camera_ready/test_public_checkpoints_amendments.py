@@ -13,6 +13,8 @@ Three layers, all offline, as in test_public_checkpoints_intervals.py:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import sys
 
 import numpy as np
@@ -23,6 +25,9 @@ from conftest import A2, assert_same_rows, run
 
 sys.path.insert(0, str(A2))
 from paths import WORK  # noqa: E402
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 RESULTS = A2 / "results"
 SCRIPTS = A2 / "amendments"
@@ -129,7 +134,7 @@ def test_three_study_estimate_as_printed() -> None:
 # ── 2. each script on the committed slice, against a direct computation ────────────────────
 
 
-def test_three_study_pooled_on_slice(tmp_path) -> None:
+def test_three_study_pooled_on_slice(tmp_path: Path) -> None:
     run(
         [
             "python",
@@ -157,7 +162,7 @@ def test_three_study_pooled_on_slice(tmp_path) -> None:
         assert out.loc[(seeds, "pooled, no fixed effect"), "n_pairs"] == ok.sum()
 
 
-def test_interaction_check_on_slice(tmp_path) -> None:
+def test_interaction_check_on_slice(tmp_path: Path) -> None:
     run(
         [
             "python",
@@ -180,7 +185,7 @@ def test_interaction_check_on_slice(tmp_path) -> None:
     assert (out["n_pairs"] == len(d)).all()
 
 
-def test_amendment5_on_slice(tmp_path) -> None:
+def test_amendment5_on_slice(tmp_path: Path) -> None:
     run(
         [
             "python",
@@ -219,7 +224,7 @@ def test_amendment5_on_slice(tmp_path) -> None:
 # ── 3. with the full tables, each script gives back its committed output ───────────────────
 
 
-def _needs(*paths) -> pytest.MarkDecorator:
+def _needs(*paths: Path) -> pytest.MarkDecorator:
     missing = [str(p) for p in paths if not p.exists()]
     return pytest.mark.skipif(
         bool(missing),
@@ -235,13 +240,15 @@ def _needs(*paths) -> pytest.MarkDecorator:
     ],
 )
 @_needs(FULL_E, FULL_X)
-def test_full_small_scripts_reproduce(tmp_path, script, out, keys, args) -> None:
+def test_full_small_scripts_reproduce(
+    tmp_path: Path, script: str, out: str, keys: list[str], args: list[str]
+) -> None:
     run(["python", SCRIPTS / script, "--out", tmp_path / out, *args], cwd=A2)
     assert_same_rows(pd.read_csv(tmp_path / out), pd.read_csv(RESULTS / out), keys)
 
 
 @_needs(FULL_E, FULL_X, *WINDOWS)
-def test_full_amendment5_reproduces(tmp_path) -> None:
+def test_full_amendment5_reproduces(tmp_path: Path) -> None:
     run(["python", SCRIPTS / "amendment5_1b.py", "--out", tmp_path / "a.csv"], cwd=A2, timeout=3600)
     fresh, ref = pd.read_csv(tmp_path / "a.csv"), pd.read_csv(RESULTS / "amendment5_1b.csv")
     assert_same_rows(fresh, ref, ["corpus", "spec", "arm"])

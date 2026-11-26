@@ -1,27 +1,19 @@
 #!/usr/bin/env python3
 """Bayesian / random-weight bootstrap over trained cells.
 
-Replaces the with-replacement cell bootstrap, which collapsed: resampling n cells
-leaves ~0.632n distinct (3.2-5.1 from rows of 5-8) against MIN_POINTS_FOR_FIT of
-5/4/6, so many replicates were singular or exactly determined, failed fits were
-dropped, and the surviving subset was biased. It also perturbed V_K / tau_K,
-changing the estimand.
+The with-replacement cell bootstrap collapsed: n resampled cells leave ~0.632n distinct (3.2-5.1
+from rows of 5-8) against MIN_POINTS_FOR_FIT of 5/4/6, so fits were singular or exactly
+determined, failed ones were dropped (a biased survivor set), and V_K / tau_K moved (another
+estimand). Here every cell is in every replicate with a Dirichlet(1,...,1) weight: no rank
+collapse, no failed fits, no perturbed diagnostic, the same first-order cell-level variability.
 
-Here every cell is present in every replicate with a Dirichlet(1,...,1) weight,
-so: no rank collapse, no failed fits, no perturbation of the conditioning
-diagnostic -- while the weights induce the same first-order cell-level
-sampling variability.
-
-NEW CODE, and deliberately so: the repo's _fit_generic (scaling_laws/laws.py:52)
-takes (N, D, L, bounds, sampler, n_restarts, seed) with no sample_weight, and
-nothing in the package does weighted fitting. _wls_fit below mirrors _fit_generic
-exactly -- same multi-start L-BFGS-B, same differential-evolution fallback, same
-seed handling -- with the sole change that the objective is sum(w * r^2).
-
-CORRECTNESS GATE: with unit weights the fit must reproduce the unweighted fit,
-and the replicate distribution must be centred on the ORIGINAL point estimate
-(97.8 / 92.5), not on a shifted one.
+NEW CODE, deliberately: the repo's _fit_generic (scaling_laws/laws.py:52) takes no
+sample_weight; _wls_fit mirrors it exactly (multi-start L-BFGS-B, differential-evolution
+fallback, seeds) with objective sum(w * r^2). GATE: unit weights reproduce the unweighted fit,
+and the replicates centre on the ORIGINAL point estimate (97.8 / 92.5), not a shifted one.
 """
+
+from __future__ import annotations
 
 import sys
 import os

@@ -7,6 +7,8 @@ base commit's values in `frozen/` (see `tests/characterize.py`).
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import dataclasses
 from pathlib import Path
 
@@ -19,6 +21,9 @@ from conftest import REPO
 from training_models.core.utils import PUBLISHED_ARCHITECTURES
 from training_models.models import ModelConfig, create_model
 from training_models.models import factory
+
+if TYPE_CHECKING:
+    import numpy as np
 
 FROZEN = Path(__file__).parent / "frozen"
 ENC = tiktoken.get_encoding("cl100k_base")
@@ -34,16 +39,16 @@ def license_batch(rows: int = 2) -> tuple[torch.Tensor, torch.Tensor]:
     return ids, mask
 
 
-def tiny(**kw) -> ModelConfig:
+def tiny(**kw: object) -> ModelConfig:
     spec = dict(vocab_size=ENC.n_vocab, max_seq_len=SEQ, n_layers=2, n_heads=2, d_model=8, d_ff=32)
     return ModelConfig(**{**spec, **kw})
 
 
-def weights(model: torch.nn.Module) -> dict:
+def weights(model: torch.nn.Module) -> dict[str, np.ndarray]:
     return {k: v.detach().numpy() for k, v in model.state_dict().items()}
 
 
-def test_param_counts_of_the_published_architectures():
+def test_param_counts_of_the_published_architectures() -> None:
     view = {}
     for target, spec in sorted(PUBLISHED_ARCHITECTURES.items()):
         cfg = ModelConfig(vocab_size=ENC.n_vocab, max_seq_len=2048, **spec)
@@ -53,7 +58,7 @@ def test_param_counts_of_the_published_architectures():
 
 
 @pytest.mark.parametrize("architecture", ["llama", "custom"])
-def test_seeded_model_weights_and_logits(architecture):
+def test_seeded_model_weights_and_logits(architecture: str) -> None:
     torch.manual_seed(0)
     model = create_model(tiny(), architecture=architecture.upper()).eval()
     ids, mask = license_batch()
@@ -75,7 +80,7 @@ def test_seeded_model_weights_and_logits(architecture):
     check_frozen(FROZEN / f"model_{architecture}.json", view)
 
 
-def test_custom_model_trains_one_step():
+def test_custom_model_trains_one_step() -> None:
     """One AdamW step of the custom transformer in train mode (dropout on), seeded."""
     torch.manual_seed(1)
     model = create_model(tiny(dropout=0.1), architecture="custom").train()
@@ -90,12 +95,12 @@ def test_custom_model_trains_one_step():
     check_frozen(FROZEN / "custom_step.json", {"loss": loss.item(), "weights": weights(model)})
 
 
-def test_unknown_architecture_is_rejected():
+def test_unknown_architecture_is_rejected() -> None:
     with pytest.raises(ValueError, match="Unknown architecture: gpt"):
         create_model(tiny(), architecture="gpt")
 
 
-def test_fp8_compatibility_and_replacement_stats():
+def test_fp8_compatibility_and_replacement_stats() -> None:
     """Which shapes FP8 accepts, and the replacement count on a model none of whose layers fit
     (so Transformer Engine, a GPU-only package, is never imported)."""
     grid = [[factory._is_fp8_compatible(i, o) for o in (8, 12, 16, 24)] for i in (8, 16, 32, 48)]

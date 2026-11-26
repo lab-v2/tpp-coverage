@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pathlib import Path
 
 import matplotlib
@@ -16,6 +18,9 @@ from .model.diversity import DiversityCriterion  # noqa: E402
 from .model.fitting import CHINCHILLA  # noqa: E402
 from .model.grid import TrainingGrid  # noqa: E402
 from .model.splits import frontier_split  # noqa: E402
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 FIGURE_DPI = 130
 FIGURE_FONT_SIZE = 9
@@ -37,7 +42,7 @@ class FigureBuilder:
         plt.close(figure)
         return path
 
-    def build_all(self, results: dict) -> list[Path]:
+    def build_all(self, results: dict[str, object]) -> list[Path]:
         """Build every figure and return the paths written."""
         return [
             self.loss_vs_n(),
@@ -77,7 +82,7 @@ class FigureBuilder:
         figure.colorbar(scatter, ax=axis, label="log10 N")
         return self._save(figure, "loss_vs_D.png")
 
-    def kappa_by_design(self, results: dict) -> Path:
+    def kappa_by_design(self, results: dict[str, object]) -> Path:
         rays = results["co_rays"]
         labels = ["full grid\n(NC)"] + [f"ray\nTPP~{b}" for b in rays]
         values = [results["full_grid_fits"]["Chinchilla"]["kappa_AB"]] + [
@@ -92,7 +97,7 @@ class FigureBuilder:
         axis.set_title("Conditioning: 2D grid vs single-TPP rays")
         return self._save(figure, "kappa_AB.png")
 
-    def holdout_scatter(self, results: dict) -> Path:
+    def holdout_scatter(self, results: dict[str, object]) -> Path:
         holdout = results["co_vs_nc_holdout"]
         co, nc = holdout["rmse_co_samples"], holdout["rmse_nc_samples"]
         figure, axis = plt.subplots(figsize=(4, 4))
@@ -106,7 +111,7 @@ class FigureBuilder:
         axis.set_title(f"CO vs NC (NC below line = NC wins; wr={holdout['nc_win_rate']:.2f})")
         return self._save(figure, "co_vs_nc_rmse.png")
 
-    def exponent_gap_sweep(self, results: dict) -> Path:
+    def exponent_gap_sweep(self, results: dict[str, object]) -> Path:
         sweep = results["formal_validation"]["prop1_cor1"]
         gaps = np.asarray(sweep["eps_grid"])
         kappas = np.asarray(sweep["kappa_AB"])
@@ -145,7 +150,7 @@ class FigureBuilder:
         )
         return self._save(figure, "eps_scaling.png")
 
-    def two_ray_threshold(self, results: dict) -> Path:
+    def two_ray_threshold(self, results: dict[str, object]) -> Path:
         prop2 = results["formal_validation"]["prop2_rmin"]
         criterion = DiversityCriterion(prop2["beta_eff"])
         spreads, v_values, tau_values = criterion.two_ray_curves(
@@ -171,7 +176,7 @@ class FigureBuilder:
         axis.legend(fontsize=7, loc="lower right")
         return self._save(figure, "rmin_sweep.png")
 
-    def isoflop_curves(self, results: dict) -> Path:
+    def isoflop_curves(self, results: dict[str, object]) -> Path:
         isoflop = results["formal_validation"]["isoflop"]
         co_params = np.asarray(list(isoflop["co_params"].values()), dtype=float)
         nc_params = np.asarray(
@@ -227,7 +232,7 @@ class SummaryFigure:
     def __init__(self, config: AnalysisConfig) -> None:
         self._config = config
 
-    def build(self, results: dict) -> Path:
+    def build(self, results: dict[str, object]) -> Path:
         figure, axes = plt.subplots(1, 3, figsize=(15, 4.6))
         figure.patch.set_facecolor(SURFACE)
         self._conditioning_panel(axes[0], results)
@@ -252,7 +257,7 @@ class SummaryFigure:
         plt.close(figure)
         return path
 
-    def _conditioning_panel(self, axis, results: dict) -> None:
+    def _conditioning_panel(self, axis: Axes, results: dict[str, object]) -> None:
         rays = results["co_rays"]
         control = results["equal_n_control"]
         rows = [
@@ -300,7 +305,7 @@ class SummaryFigure:
         axis.grid(axis="x", color=GRID_INK, lw=0.6, alpha=0.7)
         axis.set_axisbelow(True)
 
-    def _holdout_panel(self, axis, results: dict) -> None:
+    def _holdout_panel(self, axis: Axes, results: dict[str, object]) -> None:
         holdout = results["co_vs_nc_holdout"]
         samples = [holdout["rmse_co_samples"], holdout["rmse_nc_samples"]]
         parts = axis.boxplot(
@@ -334,7 +339,7 @@ class SummaryFigure:
         axis.grid(axis="x", color=GRID_INK, lw=0.6, alpha=0.7)
         axis.set_axisbelow(True)
 
-    def _rate_panel(self, axis, results: dict) -> None:
+    def _rate_panel(self, axis: Axes, results: dict[str, object]) -> None:
         sweep = results["formal_validation"]["prop1_cor1"]
         gaps = np.asarray(sweep["eps_grid"])
         kappas = np.asarray(sweep["kappa_AB"])

@@ -8,9 +8,17 @@ panels (surface, convergence, isoFLOP) read at the same density.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from matplotlib.legend import Legend
 from matplotlib.container import ErrorbarContainer
 from matplotlib.ticker import ScalarFormatter
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from matplotlib.axes import Axes
+    from mpl_toolkits.mplot3d import Axes3D
 
 
 SURF_W: int = 9
@@ -59,13 +67,13 @@ class FixedOrderFormatter(ScalarFormatter):
         self._fixed_fmt = fmt
         self.set_scientific(True)
 
-    def set_locs(self, locs):
+    def set_locs(self, locs: Sequence[float]) -> None:
         super().set_locs(locs)
         self.orderOfMagnitude = self._fixed_oom
         self.format = self._fixed_fmt
 
 
-def style_ticks_2d(ax) -> None:
+def style_ticks_2d(ax: Axes) -> None:
     """Big visible ticks, full bounding box on all four sides, and a
     grid that visually matches the 3-D plot's pane gridlines."""
     ax.tick_params(
@@ -103,7 +111,7 @@ def style_ticks_2d(ax) -> None:
     )
 
 
-def style_ticks_3d(ax) -> None:
+def style_ticks_3d(ax: Axes3D) -> None:
     """Big visible ticks on a 3-D Axes, with bounding box."""
     ax.tick_params(axis="x", labelsize=TICK_LABEL_FS, pad=5)
     ax.tick_params(axis="y", labelsize=TICK_LABEL_FS, pad=5)
@@ -133,7 +141,7 @@ def _style_legend(legend: Legend | None, alpha: float | None = None) -> None:
         pass
 
 
-def _style_all_legends(ax, alpha: float | None = None) -> None:
+def _style_all_legends(ax: Axes, alpha: float | None = None) -> None:
     """Restyle every legend attached to ``ax`` (handles isoFLOP's
     two-legend setup where the budget legend is added via
     ``ax.add_artist``)."""
@@ -148,7 +156,7 @@ def _style_all_legends(ax, alpha: float | None = None) -> None:
 
 
 def _darken_errorbars(
-    ax,
+    ax: Axes,
     color: str = "black",
     alpha: float = 1.0,
     linewidth: float = 2.0,

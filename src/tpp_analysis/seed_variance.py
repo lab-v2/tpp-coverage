@@ -361,42 +361,57 @@ def plot_convergence_with_errorbars(
 
         color = DESIGN_COLORS.get(design, "gray")
         marker = DESIGN_MARKERS.get(design, "o")
-        x = dsub["coverage_frac"].values
-        y = dsub["r2_mean"].values
+        _draw_design(ax, dsub, design, color, marker, band_type, marker_size, line_width)
 
-        # Mean line + markers
-        ax.plot(
-            x,
-            y,
-            color=color,
-            marker=marker,
-            markersize=marker_size,
-            linewidth=line_width,
-            label=design,
-            zorder=2,
-        )
+    _finish_convergence_axes(
+        ax, holdout_split, y_min, y_max, title, axis_label_fs, tick_label_fs, legend_fs
+    )
+    return fig
 
-        # Error bars (classic caps)
-        if band_type == "percentile":
-            lo = y - dsub["r2_p5"].values
-            hi = dsub["r2_p95"].values - y
-        else:
-            lo = dsub["r2_std"].values
-            hi = dsub["r2_std"].values
 
-        ax.errorbar(
-            x,
-            y,
-            yerr=[lo, hi],
-            fmt="none",
-            ecolor="#333333",
-            elinewidth=1.5,
-            capsize=6,
-            capthick=1.5,
-            alpha=0.7,
-            zorder=3,
-        )
+def _draw_design(ax, dsub, design, color, marker, band_type, marker_size, line_width):
+    """One design's mean R² line and its error bars (p5-p95, or mean ± std)."""
+    x = dsub["coverage_frac"].values
+    y = dsub["r2_mean"].values
 
+    # Mean line + markers
+    ax.plot(
+        x,
+        y,
+        color=color,
+        marker=marker,
+        markersize=marker_size,
+        linewidth=line_width,
+        label=design,
+        zorder=2,
+    )
+
+    # Error bars (classic caps)
+    if band_type == "percentile":
+        lo = y - dsub["r2_p5"].values
+        hi = dsub["r2_p95"].values - y
+    else:
+        lo = dsub["r2_std"].values
+        hi = dsub["r2_std"].values
+
+    ax.errorbar(
+        x,
+        y,
+        yerr=[lo, hi],
+        fmt="none",
+        ecolor="#333333",
+        elinewidth=1.5,
+        capsize=6,
+        capthick=1.5,
+        alpha=0.7,
+        zorder=3,
+    )
+
+
+def _finish_convergence_axes(
+    ax, holdout_split, y_min, y_max, title, axis_label_fs, tick_label_fs, legend_fs
+):
+    """Labels, limits, ticks, legend and grid of a convergence panel."""
     ylabel = f"R² {holdout_split.title()}"
     ax.set_xlabel("Coverage Fraction", fontsize=axis_label_fs)
     ax.set_ylabel(ylabel, fontsize=axis_label_fs)
@@ -410,8 +425,6 @@ def plot_convergence_with_errorbars(
 
     if title:
         ax.set_title(title, fontsize=axis_label_fs)
-
-    return fig
 
 
 # ════════════════════════════════════════════════════════════════

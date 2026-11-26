@@ -14,6 +14,8 @@ Without them these tests skip and name the file they need.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import os
 import sys
 
@@ -25,6 +27,9 @@ from conftest import A2, assert_same_rows, pool_width, run
 
 sys.path.insert(0, str(A2))
 from paths import WORK  # noqa: E402
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 RESULTS = A2 / "results"
 SCRIPTS = A2 / "intervals"
@@ -269,7 +274,7 @@ def slice_frame() -> pd.DataFrame:
     return d
 
 
-def _run(script: str, tmp_path, *args: str) -> None:
+def _run(script: str, tmp_path: Path, *args: str) -> None:
     run(
         ["python", SCRIPTS / script, "--results", SLICE, *args],
         cwd=A2,
@@ -277,7 +282,7 @@ def _run(script: str, tmp_path, *args: str) -> None:
     )
 
 
-def test_vk_ratio_boot_on_slice(tmp_path, slice_frame) -> None:
+def test_vk_ratio_boot_on_slice(tmp_path: Path, slice_frame: pd.DataFrame) -> None:
     _run(
         "vk_ratio_boot.py",
         tmp_path,
@@ -328,7 +333,7 @@ def test_vk_ratio_boot_on_slice(tmp_path, slice_frame) -> None:
     assert (tmp_path / "a.csv").read_bytes() == (tmp_path / "b.csv").read_bytes()
 
 
-def test_ratio_of_medians_on_slice(tmp_path, slice_frame) -> None:
+def test_ratio_of_medians_on_slice(tmp_path: Path, slice_frame: pd.DataFrame) -> None:
     _run("ratio_of_medians_boot.py", tmp_path, "--n-boot", "200", "--out", tmp_path / "r.csv")
     row = pd.read_csv(tmp_path / "r.csv").iloc[0]
     fin = slice_frame[np.isfinite(slice_frame["delta"])]
@@ -342,7 +347,7 @@ def _regime_letters(m: pd.Series, kappa: int) -> np.ndarray:
     return np.where(m.fillna(-np.inf) + np.log10(kappa / 100) >= 0, "B", "A")
 
 
-def test_co_only_regime_on_slice(tmp_path, slice_frame) -> None:
+def test_co_only_regime_on_slice(tmp_path: Path, slice_frame: pd.DataFrame) -> None:
     _run(
         "co_only_regime.py",
         tmp_path,
@@ -371,7 +376,7 @@ def test_co_only_regime_on_slice(tmp_path, slice_frame) -> None:
     assert a_counts == sorted(a_counts, reverse=True) and a_counts[0] > a_counts[-1]
 
 
-def test_regime_by_band_on_slice(tmp_path, slice_frame) -> None:
+def test_regime_by_band_on_slice(tmp_path: Path, slice_frame: pd.DataFrame) -> None:
     _run(
         "regime_by_band_ci.py",
         tmp_path,
@@ -417,7 +422,7 @@ def test_regime_by_band_on_slice(tmp_path, slice_frame) -> None:
         assert a["n_pairs"].sum() == ref
 
 
-def test_vk_ratio_seeds_on_slice(tmp_path) -> None:
+def test_vk_ratio_seeds_on_slice(tmp_path: Path) -> None:
     """The released streams give back the two scripts' intervals; the pooled row pools seeds."""
     _run(
         "vk_ratio_seeds.py",
@@ -483,7 +488,7 @@ def test_cluster_medians_resample_whole_windows() -> None:
     assert (one_window == np.median(vals)).all()  # one window per cell: no spread
 
 
-def test_regime_cells_on_slice(tmp_path, slice_frame) -> None:
+def test_regime_cells_on_slice(tmp_path: Path, slice_frame: pd.DataFrame) -> None:
     _run(
         "regime_cells.py",
         tmp_path,
@@ -538,7 +543,7 @@ def test_regime_cells_on_slice(tmp_path, slice_frame) -> None:
 # ── 3. with the full 512-seed tables, each script gives back its committed output ──────────
 
 
-def _needs(*paths) -> pytest.MarkDecorator:
+def _needs(*paths: Path) -> pytest.MarkDecorator:
     missing = [str(p) for p in paths if not p.exists()]
     return pytest.mark.skipif(
         bool(missing),
@@ -547,7 +552,7 @@ def _needs(*paths) -> pytest.MarkDecorator:
 
 
 @_needs(FULL_E)
-def test_full_vk_ratio_boot_reproduces(tmp_path) -> None:
+def test_full_vk_ratio_boot_reproduces(tmp_path: Path) -> None:
     run(
         [
             "python",
@@ -576,7 +581,7 @@ def test_full_vk_ratio_boot_reproduces(tmp_path) -> None:
 
 
 @_needs(FULL_E)
-def test_full_ratio_of_medians_reproduces(tmp_path) -> None:
+def test_full_ratio_of_medians_reproduces(tmp_path: Path) -> None:
     run(
         [
             "python",
@@ -603,7 +608,7 @@ def test_full_ratio_of_medians_reproduces(tmp_path) -> None:
     ],
 )
 @_needs(FULL_E, FULL_X)
-def test_full_regime_tables_reproduce(tmp_path, script, keys) -> None:
+def test_full_regime_tables_reproduce(tmp_path: Path, script: str, keys: list[str]) -> None:
     run(
         [
             "python",
@@ -624,7 +629,7 @@ def test_full_regime_tables_reproduce(tmp_path, script, keys) -> None:
 
 
 @_needs(FULL_E)
-def test_full_vk_ratio_seeds_reproduces(tmp_path) -> None:
+def test_full_vk_ratio_seeds_reproduces(tmp_path: Path) -> None:
     run(
         [
             "python",
@@ -646,7 +651,7 @@ def test_full_vk_ratio_seeds_reproduces(tmp_path) -> None:
 
 
 @_needs(FULL_E, FULL_X)
-def test_full_regime_cells_reproduce(tmp_path) -> None:
+def test_full_regime_cells_reproduce(tmp_path: Path) -> None:
     """Replicate 0 of every cell; the other nine replicates only test verdict stability."""
     run(
         [

@@ -67,7 +67,7 @@ def find_metrics_for_checkpoint(
     return None
 
 
-def load_metrics_from_npz(npz_path: str) -> dict:
+def load_metrics_from_npz(npz_path: str) -> dict[str, list[float]]:
     """Load training metrics from NPZ file."""
     if not os.path.exists(npz_path):
         raise FileNotFoundError(f"Metrics file not found: {npz_path}")
@@ -101,7 +101,7 @@ def load_metrics_from_npz(npz_path: str) -> dict:
 
 def resume_distributed_training(
     args: argparse.Namespace, rank: int
-) -> tuple[str | None, str | None, dict | None]:
+) -> tuple[str | None, str | None, dict[str, list[float]] | None]:
     resume_checkpoint_path = None
     resume_metrics_path = None
     prior_metrics = None

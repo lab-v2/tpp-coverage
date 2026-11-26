@@ -3,6 +3,8 @@ generator, and the audit tables against their recorded results."""
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import importlib.util
 import json
 import os
@@ -17,11 +19,14 @@ import pytest
 
 from conftest import REPO, run
 
+if TYPE_CHECKING:
+    from types import ModuleType
+
 CLUSTER = REPO / "cluster"
 QUEUE = CLUSTER / "queue"
 
 
-def _load(name: str, path: Path):
+def _load(name: str, path: Path) -> ModuleType:
     spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     sys.modules[name] = module  # dataclasses look their module up here

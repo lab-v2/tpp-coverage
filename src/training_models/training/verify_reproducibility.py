@@ -63,7 +63,7 @@ def _extract_run_type(fn: str) -> str:
     return ""
 
 
-def _extract_identity(fn: str):
+def _extract_identity(fn: str) -> dict[str, str | int | None] | None:
     """Pull (dataset, design, m, token, run_type) from any local or HF
     filename. m and token are the canonical identifiers - they're always
     present and always exact across naming conventions."""
@@ -107,14 +107,11 @@ def _extract_identity(fn: str):
 
 
 def _resolve_ambiguous(repo_dir: str, target_fn: str) -> str:
-    """List the HF directory and find the file that shares the same
-    identity tuple (dataset, design, m{N}, token{D}, run_type) as the target.
+    """Find the HF file with the target's identity (dataset, design, m{N}, token{D}, run_type).
 
-    This handles the case where local filenames (e.g.
-    `REPRO_NxD_GRID_cosmopedia_m10070160_token35000000_...`) have different
-    leading structure than HF filenames (e.g.
-    `cosmopedia_NxD_GRID_N10M_D35M_cosmopedia_m10070160_token35000000_...`).
-    Both share the same `_m{N}_token{D}_` core, which we use as the anchor."""
+    Local and HF names lead differently (`REPRO_NxD_GRID_cosmopedia_m10070160_token35000000_...`
+    against `cosmopedia_NxD_GRID_N10M_D35M_cosmopedia_m10070160_token35000000_...`); the shared
+    `_m{N}_token{D}_` core is the anchor."""
     from huggingface_hub import HfApi
 
     api = HfApi()
@@ -234,14 +231,14 @@ def fetch_reference(reproduced_path: str, cache_dir: str = DEFAULT_CACHE_DIR) ->
 # ============================================================
 
 
-def load_checkpoint(path: str) -> dict:
+def load_checkpoint(path: str) -> dict[str, object]:
     """Load a .pt checkpoint."""
     print(f"  Loading: {os.path.basename(path)}")
     ckpt = torch.load(path, map_location="cpu", weights_only=False)
     return ckpt
 
 
-def load_metrics(path: str) -> dict:
+def load_metrics(path: str) -> dict[str, np.ndarray]:
     """Load a .npz metrics file."""
     print(f"  Loading: {os.path.basename(path)}")
     data = dict(np.load(path, allow_pickle=True))
@@ -253,7 +250,7 @@ def load_metrics(path: str) -> dict:
 # ============================================================
 
 
-def compare_scalars(name: str, orig, repro, atol: float = 1e-6) -> bool:
+def compare_scalars(name: str, orig: float | None, repro: float | None, atol: float = 1e-6) -> bool:
     """Compare two scalar values."""
     if orig is None and repro is None:
         print(f"  {name}: both None ✓")
@@ -301,7 +298,7 @@ def compare_arrays(name: str, orig: np.ndarray, repro: np.ndarray, atol: float =
     return match
 
 
-def compare_checkpoints(orig_path: str, repro_path: str, atol: float = 1e-6):
+def compare_checkpoints(orig_path: str, repro_path: str, atol: float = 1e-6) -> None:
     """Compare two .pt checkpoints."""
     print(f"\n{'=' * 70}")
     print("CHECKPOINT COMPARISON")
@@ -360,7 +357,7 @@ def compare_checkpoints(orig_path: str, repro_path: str, atol: float = 1e-6):
     print_verdict(results)
 
 
-def compare_metrics(orig_path: str, repro_path: str, atol: float = 1e-5):
+def compare_metrics(orig_path: str, repro_path: str, atol: float = 1e-5) -> None:
     """Compare two .npz metrics files."""
     print(f"\n{'=' * 70}")
     print("METRICS COMPARISON")
@@ -399,7 +396,7 @@ def compare_metrics(orig_path: str, repro_path: str, atol: float = 1e-5):
     print_verdict(results)
 
 
-def compare_weights(orig_path: str, repro_path: str, atol: float = 1e-6):
+def compare_weights(orig_path: str, repro_path: str, atol: float = 1e-6) -> None:
     """Compare model weights between two checkpoints."""
     print(f"\n{'=' * 70}")
     print("WEIGHT COMPARISON")
@@ -473,7 +470,7 @@ def compare_weights(orig_path: str, repro_path: str, atol: float = 1e-6):
     print_verdict(results)
 
 
-def print_verdict(results):
+def print_verdict(results: list[bool]) -> None:
     """Print final pass/fail verdict."""
     passed = sum(results)
     total = len(results)

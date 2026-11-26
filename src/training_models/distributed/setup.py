@@ -5,6 +5,8 @@ Distributed training setup utilities.
 Extracted from the working evaluate_holdout_distributed.py implementation.
 """
 
+from __future__ import annotations
+
 import os
 import time
 import torch
@@ -166,7 +168,7 @@ def setup_distributed(rank: int, world_size: int) -> bool:
         return False
 
 
-def cleanup_distributed():
+def cleanup_distributed() -> None:
     """Clean up distributed environment."""
     try:
         if dist.is_initialized():

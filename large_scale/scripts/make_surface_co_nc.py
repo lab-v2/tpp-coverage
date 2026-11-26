@@ -1,18 +1,16 @@
 #!/usr/bin/env python
-"""Dual Chinchilla surface (CO vs NC), the representative pair from the CO/NC
-sweep, drawn with the companion paper's surface code (surface_helpers +
-panel_style).
+"""Dual Chinchilla surface (CO vs NC), the representative pair from the CO/NC sweep, drawn
+with the companion paper's surface code (surface_helpers + panel_style).
 
-Among valid pairs (matched training-cell count, V_K_NC > V_K_CO) this is the one
-with the largest R2 margin psi = R2_NC - R2_CO on the 354M frontier, i.e. the
-clearest case of a non-collinear design beating a collinear one:
+Among valid pairs (matched training-cell count, V_K_NC > V_K_CO) this is the one with the
+largest R2 margin psi = R2_NC - R2_CO on the 354M frontier, the clearest NC-beats-CO case:
   CO = {136, 200}  (collinear, tiny V_K)   -> frontier R2 ~ -1.95
   NC = {20, 43}    (spread, larger V_K)     -> frontier R2 ~ +0.79
-Both fit Chinchilla on the training cells (N <= 85M, 6 each) at n_restarts=20
-(matching the sweep) and are scored by extrapolation R2 on the 354M frontier
-(holdout, drawn as points + residual sticks). V_K = Var(v^-beta), beta = 0.971.
+Both fit Chinchilla on the training cells (N <= 85M, 6 each) at n_restarts=20 (matching the
+sweep) and are scored by extrapolation R2 on the 354M frontier (holdout, drawn as points +
+residual sticks). V_K = Var(v^-beta), beta = 0.971.
 
-Output: figures/surface_co_vs_nc.png . Uses the paper's code in this repository (TPP_CODE_REPO selects another checkout).
+Output: figures/surface_co_vs_nc.png. Paper code from this repository (TPP_CODE_REPO: another).
 """
 
 from __future__ import annotations

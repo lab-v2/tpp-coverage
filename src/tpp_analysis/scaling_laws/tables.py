@@ -13,6 +13,8 @@ not the average across all three holdout splits.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 
 import numpy as np
 import pandas as pd
@@ -93,33 +95,8 @@ def _pct_fmt(val: float) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 
 
-def _latex_one_table(
-    df: pd.DataFrame,
-    r2_col: str,
-    caption: str,
-) -> str:
-    """
-    Build a LaTeX table for one (dataset, holdout_type) combination.
-
-    Uses \\multirow for Epoch Mode and Law grouping, \\win{} for best
-    R² holdout per (Epoch Mode, Law) group.
-    """
-    rmse_col = r2_col.replace("R²", "RMSE")
-    holdout_short = r2_col.replace("R² ", "")
-
-    # Prepare view
-    view = df.copy()
-    view["Gap"] = view["R² Train"] - view[r2_col]
-    view = view.sort_values(["Epoch Mode", "Law", "Design"])
-
-    # Find winners per (Epoch Mode, Law)
-    winners = set()
-    for (mode, law), grp in view.groupby(["Epoch Mode", "Law"]):
-        if len(grp) >= 2 and grp[r2_col].notna().any():
-            best_idx = grp[r2_col].idxmax()
-            winners.add(best_idx)
-
-    # Build rows grouped by (Epoch Mode, Law)
+def _one_table_head(holdout_short: str) -> list[str]:
+    """The opening of a per-(dataset, holdout) table, through its header row."""
     lines = []
     lines.append(r"\begin{table}[h!]")
     lines.append(r"\centering")
@@ -135,6 +112,14 @@ def _latex_one_table(
     )
     lines.append(r"\midrule")
 
+    return lines
+
+
+def _one_table_body(
+    view: pd.DataFrame, winners: set[object], r2_col: str, rmse_col: str
+) -> list[str]:
+    """The rows, grouped by Epoch Mode and Law with \\multirow cells; winners in \\win{}."""
+    lines: list[str] = []
     grouped_modes = list(view.groupby("Epoch Mode", sort=False))
 
     for mode_idx, (mode, mode_grp) in enumerate(grouped_modes):
@@ -175,6 +160,38 @@ def _latex_one_table(
 
         if mode_idx < len(grouped_modes) - 1:
             lines.append(r"\midrule")
+    return lines
+
+
+def _latex_one_table(
+    df: pd.DataFrame,
+    r2_col: str,
+    caption: str,
+) -> str:
+    """
+    Build a LaTeX table for one (dataset, holdout_type) combination.
+
+    Uses \\multirow for Epoch Mode and Law grouping, \\win{} for best
+    R² holdout per (Epoch Mode, Law) group.
+    """
+    rmse_col = r2_col.replace("R²", "RMSE")
+    holdout_short = r2_col.replace("R² ", "")
+
+    # Prepare view
+    view = df.copy()
+    view["Gap"] = view["R² Train"] - view[r2_col]
+    view = view.sort_values(["Epoch Mode", "Law", "Design"])
+
+    # Find winners per (Epoch Mode, Law)
+    winners = set()
+    for (mode, law), grp in view.groupby(["Epoch Mode", "Law"]):
+        if len(grp) >= 2 and grp[r2_col].notna().any():
+            best_idx = grp[r2_col].idxmax()
+            winners.add(best_idx)
+
+    # Build rows grouped by (Epoch Mode, Law)
+    lines = _one_table_head(holdout_short)
+    lines.extend(_one_table_body(view, winners, r2_col, rmse_col))
 
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")
@@ -188,6 +205,42 @@ def _latex_one_table(
 # ════════════════════════════════════════════════════════════════════════════
 # Aggregated stats tables (LaTeX)
 # ════════════════════════════════════════════════════════════════════════════
+
+
+def _design_stats(
+    df: pd.DataFrame, designs: list[str], r2_col: str, rmse_col: str
+) -> dict[str, dict[str, float]]:
+    """Mean, median and std of R² and RMSE per design."""
+    stats = {}
+    for design in designs:
+        sub = df[df["Design"] == design]
+        stats[design] = {
+            "r2_mean": sub[r2_col].mean(),
+            "r2_median": sub[r2_col].median(),
+            "r2_std": sub[r2_col].std(),
+            "rmse_mean": sub[rmse_col].mean(),
+            "rmse_median": sub[rmse_col].median(),
+            "rmse_std": sub[rmse_col].std(),
+        }
+    return stats
+
+
+def _stats_section(
+    title: str,
+    metric: str,
+    designs: list[str],
+    cell: Callable[[str, str, str], str],
+    best: dict[str, str],
+) -> list[str]:
+    """One metric's rows (Mean, Median, Std per design) under its \\multirow title."""
+    out = [title]
+    for design in designs:
+        out.append(
+            f" & {design:15s} & {cell(design, f'{metric}_mean', best[f'{metric}_mean']):15s} "
+            f"& {cell(design, f'{metric}_median', best[f'{metric}_median']):15s} "
+            f"& {cell(design, f'{metric}_std', best[f'{metric}_std']):15s} \\\\"
+        )
+    return out
 
 
 def _latex_stats_table(
@@ -204,17 +257,7 @@ def _latex_stats_table(
     """
     designs = ["Colinear", "Non-Colinear"]
 
-    stats = {}
-    for design in designs:
-        sub = df[df["Design"] == design]
-        stats[design] = {
-            "r2_mean": sub[r2_col].mean(),
-            "r2_median": sub[r2_col].median(),
-            "r2_std": sub[r2_col].std(),
-            "rmse_mean": sub[rmse_col].mean(),
-            "rmse_median": sub[rmse_col].median(),
-            "rmse_std": sub[rmse_col].std(),
-        }
+    stats = _design_stats(df, designs, r2_col, rmse_col)
 
     def _best(metric_key: str, higher_better: bool) -> str:
         vals = {d: stats[d][metric_key] for d in designs}
@@ -223,12 +266,14 @@ def _latex_stats_table(
         else:
             return min(vals, key=vals.get)
 
-    best_r2_mean = _best("r2_mean", True)
-    best_r2_median = _best("r2_median", True)
-    best_r2_std = _best("r2_std", False)
-    best_rmse_mean = _best("rmse_mean", False)
-    best_rmse_median = _best("rmse_median", False)
-    best_rmse_std = _best("rmse_std", False)
+    best = {
+        "r2_mean": _best("r2_mean", True),
+        "r2_median": _best("r2_median", True),
+        "r2_std": _best("r2_std", False),
+        "rmse_mean": _best("rmse_mean", False),
+        "rmse_median": _best("rmse_median", False),
+        "rmse_std": _best("rmse_std", False),
+    }
 
     def _cell(design: str, key: str, best_design: str) -> str:
         v = stats[design][key]
@@ -244,23 +289,11 @@ def _latex_stats_table(
     )
     lines.append(r"\midrule")
 
-    lines.append(r"\multirow{2}{*}{$R^2$}")
-    for design in designs:
-        lines.append(
-            f" & {design:15s} & {_cell(design, 'r2_mean', best_r2_mean):15s} "
-            f"& {_cell(design, 'r2_median', best_r2_median):15s} "
-            f"& {_cell(design, 'r2_std', best_r2_std):15s} \\\\"
-        )
+    lines.extend(_stats_section(r"\multirow{2}{*}{$R^2$}", "r2", designs, _cell, best))
 
     lines.append(r"\midrule")
 
-    lines.append(r"\multirow{2}{*}{RMSE}")
-    for design in designs:
-        lines.append(
-            f" & {design:15s} & {_cell(design, 'rmse_mean', best_rmse_mean):15s} "
-            f"& {_cell(design, 'rmse_median', best_rmse_median):15s} "
-            f"& {_cell(design, 'rmse_std', best_rmse_std):15s} \\\\"
-        )
+    lines.extend(_stats_section(r"\multirow{2}{*}{RMSE}", "rmse", designs, _cell, best))
 
     lines.append(r"\bottomrule")
     lines.append(r"\end{tabular}")
@@ -291,67 +324,27 @@ def _winrate_ci(n_wins: int, n_total: int, confidence: float = 0.95) -> tuple[fl
     return 100 * p, 100 * lo, 100 * hi
 
 
-def _latex_winrate_table(winners: pd.DataFrame, win_threshold: float = 60.0) -> str:
-    """
-    Main winrate table (Table 4): unified holdout only.
+def _breakdown_rows(
+    uni: pd.DataFrame,
+    col: str,
+    pct_row: Callable[[pd.DataFrame], tuple[int, int, int, float, float, float]],
+) -> list[tuple[str, tuple[int, int, int, float, float, float]]]:
+    """(value, win-rate row) for each value of one breakdown column, sorted."""
+    return [(val, pct_row(uni[uni[col] == val])) for val in sorted(uni[col].unique())]
 
-    All breakdown columns (Dataset, Law, Mode) computed on unified holdout.
-    Caption includes 95% Wilson CI on the overall unified win rate.
-    """
-    if winners.empty:
-        return "% No winners data available."
 
-    # Filter to unified holdout only
-    uni = winners[winners["Holdout"] == "Unified"]
-    if uni.empty:
-        return "% No unified holdout winners."
-
-    def _pct_row(sub: pd.DataFrame) -> tuple[int, int, int, float, float, float]:
-        n = len(sub)
-        nc = (sub["Winner"] == "Non-Colinear").sum()
-        co = n - nc
-        pct, lo, hi = _winrate_ci(nc, n)
-        return nc, co, n, pct, lo, hi
-
-    # Overall
-    nc_all, co_all, total_all, pct_all, lo_all, hi_all = _pct_row(uni)
-
-    # Build breakdown rows: Dataset, Law, Mode
-    rows_data = []
-    for label, col in [("Dataset", "Dataset"), ("Law", "Law"), ("Mode", "Epoch Mode")]:
-        for val in sorted(uni[col].unique()):
-            nc, co, total, pct, lo, hi = _pct_row(uni[uni[col] == val])
-            rows_data.append((f"{label}: {val}", nc, co, total, pct))
-
-    # Find max rows per breakdown for column layout
-    ds_rows = [
-        (v, r)
-        for v, r in [
-            (val, _pct_row(uni[uni["Dataset"] == val])) for val in sorted(uni["Dataset"].unique())
-        ]
-    ]
-    law_rows = [
-        (v, r)
-        for v, r in [(val, _pct_row(uni[uni["Law"] == val])) for val in sorted(uni["Law"].unique())]
-    ]
-    mode_rows = [
-        (v, r)
-        for v, r in [
-            (val, _pct_row(uni[uni["Epoch Mode"] == val]))
-            for val in sorted(uni["Epoch Mode"].unique())
-        ]
-    ]
-
-    # Build side-by-side table matching paper Table 4 format
-    n_rows = max(len(ds_rows), len(law_rows), len(mode_rows))
-
-    def pad(
-        lst: list[tuple[str, tuple[int, int, int, float, float, float]]],
-    ) -> list[tuple[str, tuple[int, int, int, float, float, float]]]:
-        return lst + [("", (0, 0, 0, 0.0, 0.0, 0.0))] * (n_rows - len(lst))
-
-    ds_rows, law_rows, mode_rows = pad(ds_rows), pad(law_rows), pad(mode_rows)
-
+def _winrate_lines(
+    ds_rows: list[tuple[str, tuple[int, int, int, float, float, float]]],
+    law_rows: list[tuple[str, tuple[int, int, int, float, float, float]]],
+    mode_rows: list[tuple[str, tuple[int, int, int, float, float, float]]],
+    n_rows: int,
+    pct_all: float,
+    lo_all: float,
+    hi_all: float,
+    nc_all: int,
+    total_all: int,
+) -> list[str]:
+    """Table 4's LaTeX: Dataset, Scaling Law and Eval. Mode breakdowns side by side."""
     lines = []
     lines.append(r"\begin{table*}[!htbp]")
     lines.append(r"\small")
@@ -387,6 +380,59 @@ def _latex_winrate_table(winners: pd.DataFrame, win_threshold: float = 60.0) -> 
         lines.append(" & ".join(parts) + r" \\")
 
     lines.extend([r"\bottomrule", r"\end{tabular}", r"\end{table*}"])
+    return lines
+
+
+def _latex_winrate_table(winners: pd.DataFrame, win_threshold: float = 60.0) -> str:
+    """
+    Main winrate table (Table 4): unified holdout only.
+
+    All breakdown columns (Dataset, Law, Mode) computed on unified holdout.
+    Caption includes 95% Wilson CI on the overall unified win rate.
+    """
+    if winners.empty:
+        return "% No winners data available."
+
+    # Filter to unified holdout only
+    uni = winners[winners["Holdout"] == "Unified"]
+    if uni.empty:
+        return "% No unified holdout winners."
+
+    def _pct_row(sub: pd.DataFrame) -> tuple[int, int, int, float, float, float]:
+        n = len(sub)
+        nc = (sub["Winner"] == "Non-Colinear").sum()
+        co = n - nc
+        pct, lo, hi = _winrate_ci(nc, n)
+        return nc, co, n, pct, lo, hi
+
+    # Overall
+    nc_all, co_all, total_all, pct_all, lo_all, hi_all = _pct_row(uni)
+
+    # Build breakdown rows: Dataset, Law, Mode
+    rows_data = []
+    for label, col in [("Dataset", "Dataset"), ("Law", "Law"), ("Mode", "Epoch Mode")]:
+        for val in sorted(uni[col].unique()):
+            nc, co, total, pct, lo, hi = _pct_row(uni[uni[col] == val])
+            rows_data.append((f"{label}: {val}", nc, co, total, pct))
+
+    # Find max rows per breakdown for column layout
+    ds_rows = _breakdown_rows(uni, "Dataset", _pct_row)
+    law_rows = _breakdown_rows(uni, "Law", _pct_row)
+    mode_rows = _breakdown_rows(uni, "Epoch Mode", _pct_row)
+
+    # Build side-by-side table matching paper Table 4 format
+    n_rows = max(len(ds_rows), len(law_rows), len(mode_rows))
+
+    def pad(
+        lst: list[tuple[str, tuple[int, int, int, float, float, float]]],
+    ) -> list[tuple[str, tuple[int, int, int, float, float, float]]]:
+        return lst + [("", (0, 0, 0, 0.0, 0.0, 0.0))] * (n_rows - len(lst))
+
+    ds_rows, law_rows, mode_rows = pad(ds_rows), pad(law_rows), pad(mode_rows)
+
+    lines = _winrate_lines(
+        ds_rows, law_rows, mode_rows, n_rows, pct_all, lo_all, hi_all, nc_all, total_all
+    )
 
     return "\n".join(lines)
 

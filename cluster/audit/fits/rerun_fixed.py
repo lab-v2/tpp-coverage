@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
 """Scale test, both audit fixes applied. Preregistered before any outcome was seen.
 
-FIX 1 (balancing): the previous rule kept the cells nearest each row's median
-log-D, which shaved 20.8% off NC's V_K -- i.e. it eroded the treatment. New rule
-is symmetric and extreme-preserving: whichever arm must shed cells in a row keeps
-its min and max log-D and fills the rest by farthest-point spacing. Both arms
-keep their bounding box; cardinality is still matched per N row.
+FIX 1 (balancing): the previous rule kept the cells nearest each row's median log-D, which
+shaved 20.8% off NC's V_K (it eroded the treatment). Now whichever arm must shed cells in a
+row keeps its min and max log-D and fills the rest by farthest-point spacing: both arms keep
+their bounding box, and cardinality is still matched per N row.
 
-FIX 2 (convergence): Droppo-Elibol (6 params, bounds spanning 11 decades) failed
-to find its basin in 20/30 seeds at 300 restarts, so the win rate was measuring
-optimizer luck. Restarts raised to 2000, and a fit counts only if its TRAINING
-SSE is within CONV_TOL of the best SSE for that (stratum, law, arm). Holdout is
-never used to filter -- that would be outcome-dependent selection. A seed-pair
-is retained only if BOTH arms converged, preserving the seed pairing.
-
-No cell is ever dropped. Only failed optimizations are.
+FIX 2 (convergence): Droppo-Elibol (6 params, bounds spanning 11 decades) missed its basin in
+20/30 seeds at 300 restarts, so the win rate measured optimizer luck. Restarts are 2000, and a
+fit counts only if its TRAINING SSE is within CONV_TOL of the best for that (stratum, law,
+arm); holdout never filters (that would be outcome-dependent selection). A seed-pair is kept
+only if BOTH arms converged. No cell is ever dropped. Only failed optimizations are.
 """
+
+from __future__ import annotations
 
 import sys
 import os

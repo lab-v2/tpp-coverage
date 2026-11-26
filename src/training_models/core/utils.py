@@ -94,12 +94,8 @@ def _count_tokens_batch(args: tuple[list[str], str, int]) -> int:
 
 
 def count_total_tokens(texts: list[str], tokenizer: tiktoken.Encoding, max_seq_len: int) -> int:
-    """Count total tokens in a dataset applying max_seq_len truncation per text.
-
-    This function counts tokens exactly as they would be used in training,
-    matching the logic in PretokenizedDataset.__getitem__ where tokens are
-    truncated at max_seq_len per text. Uses multiprocessing to parallelize
-    token counting across 10 worker processes.
+    """Count a dataset's tokens with each text truncated at max_seq_len, as
+    PretokenizedDataset.__getitem__ feeds them to training, in a pool of 10 processes.
 
     Args:
         texts: List of text strings to tokenize
@@ -146,53 +142,13 @@ def generate_model_configs(
     target_params: list[int] | None = None,
 ) -> list[ModelConfig]:
     """..."""
-
-    # ---- Hot path: published architectures ----
-    # When the caller asks for one of the 14 published targets, return the
-    # exact architecture used to train the corresponding HF reference. This
-    # guarantees bit-perfect architecture reproduction. ModelConfig.total_params
-    # then reports the correct true count, which propagates to the checkpoint
-    # filename's m{N} label and to (N, D) scaling-law data.
-    if target_params is not None and len(target_params) > 0:
-        selected = []
-        for t in target_params:
-            if t in PUBLISHED_ARCHITECTURES:
-                spec = PUBLISHED_ARCHITECTURES[t]
-                selected.append(
-                    ModelConfig(
-                        vocab_size=vocab_size,
-                        max_seq_len=max_seq_len,
-                        **spec,
-                    )
-                )
-            else:
-                selected.append(None)
-        if all(c is not None for c in selected):
-            return selected[:num_configs]
-        # else fall through to search
+    # ---- Hot path: published architectures (see _published_configs) ----
+    published = _published_configs(num_configs, vocab_size, max_seq_len, target_params)
+    if published is not None:
+        return published
 
     # ---- Original search code, as a backup.
-    layer_counts = [1, 2, 3, 4, 6, 8, 12, 16, 24]
-    d_model_options = [
-        16,
-        24,
-        32,
-        48,
-        64,
-        96,
-        128,
-        160,
-        192,
-        256,
-        384,
-        512,
-        768,
-        1024,
-        1536,
-        2048,
-    ]
-    n_heads_options = [1, 2, 4, 6, 8, 12, 16, 24, 32]
-
+    layer_counts, d_model_options, n_heads_options = _SEARCH_SPACE
     candidates: list[ModelConfig] = []
 
     for n_layers in layer_counts:
@@ -202,24 +158,13 @@ def generate_model_configs(
             if not valid_heads:
                 continue
             for n_heads in valid_heads:
-                head_dim = d_model // n_heads
-                if head_dim % 2 != 0:  # Must be even for rotate_half
-                    continue
-                d_ff = d_model * 4
-                cfg = ModelConfig(
-                    vocab_size=vocab_size,
-                    max_seq_len=max_seq_len,
-                    n_layers=n_layers,
-                    n_heads=n_heads,
-                    d_model=d_model,
-                    d_ff=d_ff,
+                cfg = _search_candidate(
+                    vocab_size, max_seq_len, n_layers, d_model, n_heads, min_params, max_params
                 )
-                total = cfg.legacy_param_count
-                if min_params <= total <= max_params:
+                if cfg is not None:
                     candidates.append(cfg)
 
-    # Sort by parameter count and sample evenly in log-space between requested bounds
-    candidates.sort(key=lambda c: c.legacy_param_count)
+    candidates.sort(key=lambda c: c.legacy_param_count)  # then sample by size, below
     if not candidates:
         return []
 
@@ -239,6 +184,86 @@ def generate_model_configs(
         return selected[:num_configs]
 
     # Otherwise, clamp bounds and sample evenly in log-space
+    selected, used = _log_spaced_pick(candidates, min_params, max_params, num_configs)
+    # Ensure exact count (in rare cases of duplicates)
+    if len(selected) < num_configs:
+        for i in range(len(candidates)):
+            if i not in used:
+                selected.append(candidates[i])
+                if len(selected) == num_configs:
+                    break
+
+    return selected
+
+
+# The backup search grid: (layer counts, d_model options, head counts).
+_SEARCH_SPACE = (
+    [1, 2, 3, 4, 6, 8, 12, 16, 24],
+    [16, 24, 32, 48, 64, 96, 128, 160, 192, 256, 384, 512, 768, 1024, 1536, 2048],
+    [1, 2, 4, 6, 8, 12, 16, 24, 32],
+)
+
+
+def _published_configs(
+    num_configs: int, vocab_size: int, max_seq_len: int, target_params: list[int] | None
+) -> list[ModelConfig] | None:
+    """The published architectures for the targets, when every target is one; else None."""
+    # When the caller asks for one of the 14 published targets, return the
+    # exact architecture used to train the corresponding HF reference. This
+    # guarantees bit-perfect architecture reproduction. ModelConfig.total_params
+    # then reports the correct true count, which propagates to the checkpoint
+    # filename's m{N} label and to (N, D) scaling-law data.
+    if not (target_params is not None and len(target_params) > 0):
+        return None
+    selected = []
+    for t in target_params:
+        if t in PUBLISHED_ARCHITECTURES:
+            spec = PUBLISHED_ARCHITECTURES[t]
+            selected.append(
+                ModelConfig(
+                    vocab_size=vocab_size,
+                    max_seq_len=max_seq_len,
+                    **spec,
+                )
+            )
+        else:
+            selected.append(None)
+    if all(c is not None for c in selected):
+        return selected[:num_configs]
+    return None  # the caller falls through to the search
+
+
+def _search_candidate(
+    vocab_size: int,
+    max_seq_len: int,
+    n_layers: int,
+    d_model: int,
+    n_heads: int,
+    min_params: int,
+    max_params: int,
+) -> ModelConfig | None:
+    """The grid point's config (d_ff = 4 d_model), or None if its head_dim is odd or its
+    legacy parameter count falls outside [min_params, max_params]."""
+    head_dim = d_model // n_heads
+    if head_dim % 2 != 0:  # Must be even for rotate_half
+        return None
+    d_ff = d_model * 4
+    cfg = ModelConfig(
+        vocab_size=vocab_size,
+        max_seq_len=max_seq_len,
+        n_layers=n_layers,
+        n_heads=n_heads,
+        d_model=d_model,
+        d_ff=d_ff,
+    )
+    total = cfg.legacy_param_count
+    return cfg if min_params <= total <= max_params else None
+
+
+def _log_spaced_pick(
+    candidates: list[ModelConfig], min_params: int, max_params: int, num_configs: int
+) -> tuple[list[ModelConfig], set[int]]:
+    """Candidates nearest num_configs log-spaced sizes in the feasible [min, max], each once."""
     feasible_min = candidates[0].legacy_param_count
     feasible_max = candidates[-1].legacy_param_count
     lo = max(min_params, feasible_min)
@@ -258,13 +283,4 @@ def generate_model_configs(
                 used.add(int(idx))
                 selected.append(candidates[int(idx)])
                 break
-
-    # Ensure exact count (in rare cases of duplicates)
-    if len(selected) < num_configs:
-        for i in range(len(candidates)):
-            if i not in used:
-                selected.append(candidates[i])
-                if len(selected) == num_configs:
-                    break
-
-    return selected
+    return selected, used

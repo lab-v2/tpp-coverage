@@ -66,7 +66,7 @@ def median_draws(d: pd.DataFrame, scheme: str, rng: np.random.Generator, n_boot:
     raise ValueError(f"unknown resampling scheme {scheme!r}")
 
 
-def stratum_interval(task: tuple[str, str, pd.DataFrame, int]) -> dict:
+def stratum_interval(task: tuple[str, str, pd.DataFrame, int]) -> dict[str, object]:
     """One output row: the median ratio of a stratum and its 95% interval under a scheme."""
     stratum, scheme, d, n_boot = task
     rng = C.rng_for("vk_ratio_boot", stratum, scheme)

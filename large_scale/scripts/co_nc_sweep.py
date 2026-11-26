@@ -1,19 +1,15 @@
 #!/usr/bin/env python
 """Sweep CO/NC design pairs and rank by psi = R2_NC - R2_CO on a fixed holdout.
 
-Setup (matches the paper's split and the first README figure):
-  - Holdout = the 354M extrapolation frontier (largest N; 5 cells). Fixed.
-  - A "design" is the set of TRAINING cells (N <= 85M) at a subset of the 7
-    design-TPP values. Both CO and NC must be non-singleton (K >= 2).
-  - A valid pair (CO, NC) has the SAME number of training cells (same m) and
-    V_K_NC > V_K_CO, where V_K = Var(v^-beta) over the subset's TPP values
-    (beta = 0.971, the paper's fitted C4 Chinchilla beta from its
-    appendix fitted-parameter table; the paper's literature value is 0.28).
-  - Each design fits Chinchilla (paper's fit_chinchilla) on its training cells
-    and is scored by R2 on the shared holdout.
-  - psi = R2_NC - R2_CO. Report the top 10 pairs by psi.
+Setup, as in the paper's split and the first README figure: the holdout is the 354M
+extrapolation frontier (largest N; 5 cells), fixed. A design is the set of TRAINING cells
+(N <= 85M) at a subset of the 7 design-TPP values, CO and NC both non-singleton (K >= 2). A
+valid pair has the SAME number of training cells (m) and V_K_NC > V_K_CO, V_K = Var(v^-beta)
+over the subset's TPP values (beta = 0.971, the paper's fitted C4 Chinchilla beta from its
+appendix fitted-parameter table; its literature value is 0.28). Each design fits the paper's
+fit_chinchilla on its training cells and is scored by R2 on the shared holdout; the top 10
+pairs by psi are reported. Only the ~120 subsets are fit (in parallel); pairs are a subtraction.
 
-Only the ~120 subsets are fit (in parallel); pairs are then a subtraction.
 Run: OMP_NUM_THREADS=1 uv run python large_scale/scripts/co_nc_sweep.py
 """
 

@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """Per-stratum budget-matched CO/NC comparison using the paper's own select_nc_bbox.
 
-Why: the trained stratum cannot identify a size interaction by regression, because
-NC's k_max = D_max/N falls as 1/N by bbox construction, so the design contrast
-Delta is collinear with log N (r = -0.993). Adding cells cannot fix it -- any new
-D column still falls as 1/N.
+Why: regression on the trained stratum cannot identify a size interaction: NC's
+k_max = D_max/N falls as 1/N by bbox construction, so the design contrast Delta is collinear
+with log N (r = -0.993), and adding cells cannot fix it (any new D column still falls as 1/N).
 
-Instead, hold the design contrast FIXED BY CONSTRUCTION: for every CO subset S,
-select_nc_bbox builds a budget-matched NC design around it (the machinery behind
-the paper's Table 6). Run that separately within each N stratum, and the residual
-difference between strata IS the size effect, with contrast held fixed.
+Instead, hold the design contrast FIXED BY CONSTRUCTION: for every CO subset S, select_nc_bbox
+builds a budget-matched NC design around it (the machinery behind the paper's Table 6). Run
+within each N stratum, the residual difference between strata IS the size effect.
 
 Everything here is the repo's: assign_tpp_bins, select_nc_bbox, bbox_seed_for,
 _SEED_FITTERS, MIN_POINTS_FOR_FIT. Droppo uses the ratified data-scaled N_c/D_c.
 """
+
+from __future__ import annotations
 
 import sys
 import os

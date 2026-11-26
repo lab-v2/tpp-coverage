@@ -9,6 +9,8 @@ actions/checkout prints them, plain and regex-escaped.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import os
 import re
 import shlex
@@ -18,6 +20,9 @@ import pytest
 import yaml
 
 from conftest import REPO
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 WORKFLOWS = REPO / ".github" / "workflows"
 OWN_POOL = ["self-hosted", "linux", "primary"]
@@ -114,7 +119,7 @@ def test_the_privacy_job_installs_the_project_dependencies() -> None:
     assert "--only-group" not in privacy_command()
 
 
-def test_the_privacy_job_passes_in_a_fresh_environment(tmp_path) -> None:
+def test_the_privacy_job_passes_in_a_fresh_environment(tmp_path: Path) -> None:
     """The privacy job's own command, in a fresh environment, as the runner does it."""
     env = {
         k: v

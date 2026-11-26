@@ -7,6 +7,8 @@ camera_ready/public_checkpoints/results/.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import shutil
 import sys
 
@@ -16,6 +18,9 @@ import pytest
 
 from conftest import A2, assert_same_rows, pool_width, run
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 pytestmark = pytest.mark.network
 RESULTS = A2 / "results"
 SMALL_CELLS = ["olmo_ladder/dolma17-peteish", "gadre_overtrain/C4"]
@@ -23,12 +28,12 @@ KEY = ["cell", "window", "ray_bin", "n_rays", "seed", "law"]
 
 
 @pytest.fixture(scope="module")
-def work(pc_work):
+def work(pc_work: tuple[Path, dict[str, str]]) -> tuple[Path, dict[str, str]]:
     """A private work directory holding the HuggingFace run tables."""
     return pc_work
 
 
-def test_run_tables_downloaded(work) -> None:
+def test_run_tables_downloaded(work: tuple[Path, dict[str, str]]) -> None:
     path, _ = work
     expanded = pd.read_csv(path / "artifacts" / "runs_expanded.csv")
     assert set(expanded["corpus"]) == {"E", "X"}
@@ -36,7 +41,7 @@ def test_run_tables_downloaded(work) -> None:
     np.testing.assert_allclose(expanded["k"], expanded["D"] / expanded["N"], rtol=1e-9)
 
 
-def test_fits_reproduce_committed_rows(work) -> None:
+def test_fits_reproduce_committed_rows(work: tuple[Path, dict[str, str]]) -> None:
     """Fit two cells from scratch: every row equals the committed 5-seed table."""
     path, env = work
     run(
@@ -67,7 +72,7 @@ def test_fits_reproduce_committed_rows(work) -> None:
     assert_same_rows(screen, ref[ref["cell"].isin(SMALL_CELLS)], ["cell"])
 
 
-def test_margins_reproduce(work) -> None:
+def test_margins_reproduce(work: tuple[Path, dict[str, str]]) -> None:
     """margins.py rebuilds every E-corpus design and must match the committed margins."""
     path, env = work
     shutil.copy(RESULTS / "results_E.csv", path / "results_E.csv")
@@ -92,7 +97,7 @@ def test_margins_reproduce(work) -> None:
     )
 
 
-def test_seed_enumeration_reproduces_committed_rows(work) -> None:
+def test_seed_enumeration_reproduces_committed_rows(work: tuple[Path, dict[str, str]]) -> None:
     """The 512-seed enumeration, seeds 0-7, two cells: equal to the committed slice."""
     path, env = work
     run(

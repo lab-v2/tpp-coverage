@@ -101,13 +101,13 @@ RUN_CONFIG = {
 # ════════════════════════════════════════════════════════════════════════
 
 
-def _fmt(val, prec=4):
+def _fmt(val: float | None, prec: int = 4) -> str:
     if val is None or (isinstance(val, float) and np.isnan(val)):
         return "---"
     return f"{val:.{prec}f}"
 
 
-def _fmt_sci(val):
+def _fmt_sci(val: float | None) -> str:
     """Format large/small numbers in LaTeX scientific notation."""
     if val is None or np.isnan(val):
         return "---"
@@ -121,7 +121,7 @@ def _fmt_sci(val):
     return f"${val:.4f}$"
 
 
-def _win(val, prec=4):
+def _win(val: float | None, prec: int = 4) -> str:
     return f"\\win{{{_fmt(val, prec)}}}"
 
 
@@ -130,7 +130,7 @@ def _win(val, prec=4):
 # ════════════════════════════════════════════════════════════════════════
 
 
-def _fmt_ci(val, std, ci, prec=4):
+def _fmt_ci(val: float | None, std: float, ci: float, prec: int = 4) -> str:
     """Format a value with tiny σ/CI annotation."""
     if val is None or (isinstance(val, float) and np.isnan(val)):
         return "---"
@@ -139,29 +139,9 @@ def _fmt_ci(val, std, ci, prec=4):
     return base + ann
 
 
-def build_metric_table(df, dataset, split_key, split_header, split_caption, n_seeds_label=30):
-    """
-    Build one LaTeX table for a (dataset, holdout_split) pair.
-
-    Each row = (Epoch Mode, Law, Design) with mean R², RMSE across seeds.
-    Includes σ and 95% CI as tiny annotations.
-    \\win{} marks best R² per (Mode, Law) group.
-
-    Args:
-        split_header: compact math notation used in column headers
-            (e.g., r"$\\mathcal{H}$")
-        split_caption: descriptive form used in the table caption
-            (e.g., r"Holdout ($\\mathcal{H}$)")
-        n_seeds_label: number to print in caption (e.g., "Mean across N seeds")
-    """
-    r2_col = f"r2_{split_key}"
-    rmse_col = f"rmse_{split_key}"
-
-    sub = df[df["dataset"] == dataset].copy()
-    if sub.empty or r2_col not in sub.columns:
-        return None
-
-    # Aggregate across seeds
+def _seed_aggregate(sub: pd.DataFrame, r2_col: str, rmse_col: str) -> pd.DataFrame:
+    """Mean, std and 95% CI over seeds per (mode, law, design), with the train-holdout gap,
+    in the paper's mode, law and design order."""
     agg = (
         sub.groupby(["mode", "law", "design"])
         .agg(
@@ -195,30 +175,12 @@ def build_metric_table(df, dataset, split_key, split_header, split_caption, n_se
     agg["_law_rank"] = agg["law"].map(law_rank).fillna(99)
     agg["_design_rank"] = agg["design"].map(design_rank).fillna(99)
     agg = agg.sort_values(["_mode_rank", "_law_rank", "_design_rank"])
+    return agg
 
-    # Find winners per (mode, law)
-    winners = set()
-    for (mode, law), grp in agg.groupby(["mode", "law"]):
-        if len(grp) >= 2:
-            best_idx = grp["r2_mean"].idxmax()
-            winners.add(best_idx)
 
-    ds_display = DS_DISPLAY.get(dataset, dataset)
-
-    lines = [
-        r"\begin{table}[ht!]",
-        r"\centering",
-        r"\renewcommand{\arraystretch}{1.2}",
-        r"\resizebox{\textwidth}{!}{",
-        r"\begin{tabular}{ll l c c c c c}",
-        r"\toprule",
-        r"\textbf{Epoch Mode} & \textbf{Law} & \textbf{Design} "
-        r"& \textbf{R$^2$ Train} & \textbf{R$^2$ " + split_header + r"} "
-        r"& \textbf{RMSE Train} & \textbf{RMSE " + split_header + r"} "
-        r"& \textbf{Gap} \\",
-        r"\midrule",
-    ]
-
+def _metric_rows(agg: pd.DataFrame, winners: set[object]) -> list[str]:
+    """The table rows, grouped by mode and law with \\multirow cells; winners in \\win{}."""
+    lines: list[str] = []
     grouped_modes = list(agg.groupby("mode", sort=False))
     for mi, (mode, mode_grp) in enumerate(grouped_modes):
         grouped_laws = list(mode_grp.groupby("law", sort=False))
@@ -269,6 +231,65 @@ def build_metric_table(df, dataset, split_key, split_header, split_caption, n_se
 
         if mi < len(grouped_modes) - 1:
             lines.append(r"\midrule")
+    return lines
+
+
+def build_metric_table(
+    df: pd.DataFrame,
+    dataset: str,
+    split_key: str,
+    split_header: str,
+    split_caption: str,
+    n_seeds_label: int | str = 30,
+) -> str | None:
+    """
+    Build one LaTeX table for a (dataset, holdout_split) pair.
+
+    Each row = (Epoch Mode, Law, Design) with mean R², RMSE across seeds.
+    Includes σ and 95% CI as tiny annotations.
+    \\win{} marks best R² per (Mode, Law) group.
+
+    Args:
+        split_header: compact math notation used in column headers
+            (e.g., r"$\\mathcal{H}$")
+        split_caption: descriptive form used in the table caption
+            (e.g., r"Holdout ($\\mathcal{H}$)")
+        n_seeds_label: number to print in caption (e.g., "Mean across N seeds")
+    """
+    r2_col = f"r2_{split_key}"
+    rmse_col = f"rmse_{split_key}"
+
+    sub = df[df["dataset"] == dataset].copy()
+    if sub.empty or r2_col not in sub.columns:
+        return None
+
+    # Aggregate across seeds
+    agg = _seed_aggregate(sub, r2_col, rmse_col)
+
+    # Find winners per (mode, law)
+    winners = set()
+    for (mode, law), grp in agg.groupby(["mode", "law"]):
+        if len(grp) >= 2:
+            best_idx = grp["r2_mean"].idxmax()
+            winners.add(best_idx)
+
+    ds_display = DS_DISPLAY.get(dataset, dataset)
+
+    lines = [
+        r"\begin{table}[ht!]",
+        r"\centering",
+        r"\renewcommand{\arraystretch}{1.2}",
+        r"\resizebox{\textwidth}{!}{",
+        r"\begin{tabular}{ll l c c c c c}",
+        r"\toprule",
+        r"\textbf{Epoch Mode} & \textbf{Law} & \textbf{Design} "
+        r"& \textbf{R$^2$ Train} & \textbf{R$^2$ " + split_header + r"} "
+        r"& \textbf{RMSE Train} & \textbf{RMSE " + split_header + r"} "
+        r"& \textbf{Gap} \\",
+        r"\midrule",
+    ]
+
+    lines.extend(_metric_rows(agg, winners))
 
     lines.extend(
         [
@@ -344,7 +365,9 @@ LAW_TABLE_CONFIG = {
 }
 
 
-def build_param_table_per_law(df, law_name, dataset_order, label_suffix="", seed=0):
+def build_param_table_per_law(
+    df: pd.DataFrame, law_name: str, dataset_order: list[str], label_suffix: str = "", seed: int = 0
+) -> str | None:
     """
     Build a fitted-parameters table for one law across all datasets.
     Matches the paper's Appendix F format (Tables 41-44). Per-split holdout R² columns
@@ -456,7 +479,7 @@ def build_param_table_per_law(df, law_name, dataset_order, label_suffix="", seed
 # ════════════════════════════════════════════════════════════════════════
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Generate appendix tables from full_coverage parquet"
     )

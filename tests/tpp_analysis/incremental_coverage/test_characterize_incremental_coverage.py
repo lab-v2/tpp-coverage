@@ -8,6 +8,8 @@ frozen in `frozen/*.json`.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import json
 from pathlib import Path
 
@@ -16,13 +18,16 @@ import pytest
 
 from characterize import FREEZE, FigureCapture, check_frozen, released
 
+if TYPE_CHECKING:
+    from scaling_laws.data import PreparedData
+
 pytestmark = pytest.mark.network
 FROZEN = Path(__file__).parent / "frozen"
 INCREMENTAL = FROZEN / "incremental_wikipedia.parquet"
 
 
 @pytest.fixture(scope="module")
-def wiki():
+def wiki() -> PreparedData:
     from scaling_laws.data import load_and_prepare
 
     root = released("extracted_losses/wikipedia.csv")
@@ -31,7 +36,7 @@ def wiki():
     )
 
 
-def _holdouts(data) -> dict[str, list[dict[str, object]]]:
+def _holdouts(data: PreparedData) -> dict[str, list[dict[str, object]]]:
     return {
         "unified": data.unified_holdout,
         "colinear": data.colinear_holdout,
@@ -47,7 +52,7 @@ def _step_view(steps: list[dict[str, object]]) -> list[dict[str, object]]:
     ]
 
 
-def test_step_builders(wiki):
+def test_step_builders(wiki: PreparedData) -> None:
     from incremental_coverage import coverage as cov
 
     check_frozen(
@@ -68,7 +73,7 @@ def test_step_builders(wiki):
 
 
 @pytest.mark.slow
-def test_run_full_incremental(wiki, monkeypatch):
+def test_run_full_incremental(wiki: PreparedData, monkeypatch: pytest.MonkeyPatch) -> None:
     """The whole CO and NC sweep for the Kaplan law (the fastest; 1 restart), deltas included."""
     from incremental_coverage import coverage as cov
 
@@ -77,7 +82,7 @@ def test_run_full_incremental(wiki, monkeypatch):
     check_frozen(FROZEN / "run_full_incremental_kaplan.json", df)
 
 
-def test_epoch_law_at_one_step(wiki):
+def test_epoch_law_at_one_step(wiki: PreparedData) -> None:
     from incremental_coverage import coverage as cov
     from scaling_laws.laws import LAWS
 
@@ -90,7 +95,7 @@ def test_epoch_law_at_one_step(wiki):
 
 
 @pytest.fixture(scope="module")
-def incremental(wiki) -> pd.DataFrame:
+def incremental(wiki: PreparedData) -> pd.DataFrame:
     """The base `run_full_incremental` output for every law: computed and stored when freezing."""
     if FREEZE:
         from incremental_coverage import coverage as cov

@@ -10,16 +10,21 @@ Returns a flat list of result dicts that can be turned into DataFrames.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 
 from scaling_laws.data import PreparedData, load_and_prepare, prepare_arrays, prepare_epoch_expanded
 from scaling_laws.laws import LAWS, evaluate, evaluate_parametric_epoch
+
+if TYPE_CHECKING:
+    from scaling_laws.laws import ScalingLaw
 
 
 # ── Single fit helper ─────────────────────────────────────────────────────
 
 
 def _run_one_fit(
-    law,
+    law: ScalingLaw,
     design_label: str,
     mode: str,
     train_data: list[dict[str, object]],
@@ -59,7 +64,7 @@ def _run_one_fit(
 
 
 def _run_one_epoch_fit(
-    law,
+    law: ScalingLaw,
     design_label: str,
     train_data: list[dict[str, object]],
     holdouts: dict[str, list[dict[str, object]]],

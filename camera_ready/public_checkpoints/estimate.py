@@ -17,7 +17,7 @@ import argparse
 import multiprocessing as mp
 import os
 import zlib
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 for _v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
@@ -256,7 +256,16 @@ def main(argv: list[str] | None = None) -> None:
 
     rows: list[dict[str, object]] = []
 
-    def rec(section, spec, arm, corpus, stratum, e5: Estimate, e512: Estimate, note=""):
+    def rec(
+        section: str,
+        spec: str,
+        arm: str,
+        corpus: str,
+        stratum: str,
+        e5: Estimate,
+        e512: Estimate,
+        note: str = "",
+    ) -> None:
         chg = ""
         if np.isfinite(e5.lo) and np.isfinite(e512.lo):
             if e5.excludes_zero != e512.excludes_zero:
@@ -349,7 +358,7 @@ def main(argv: list[str] | None = None) -> None:
             f"seeds 0-{frames[corpus]['seed'].max()}"
         )
 
-    def pair(fn, *a, **kw):
+    def pair(fn: Callable[..., Estimate], *a: object, **kw: object) -> tuple[Estimate, Estimate]:
         """The same statistic on seeds 0-4 and on seeds 0-511."""
         return fn(5, *a, **kw), fn(512, *a, **kw)
 
@@ -467,7 +476,7 @@ def main(argv: list[str] | None = None) -> None:
                 if (big["stratum"] == stratum).sum() == 0:
                     continue
 
-                def f(ns, arm=arm, gap=gap, stratum=stratum):
+                def f(ns: int, arm: str = arm, gap: str = gap, stratum: str = stratum) -> Estimate:
                     d = big[(big["seed"] < ns) & (big["stratum"] == stratum)]
                     return est(d, gap, f"Delta_{arm}")
 
@@ -483,7 +492,7 @@ def main(argv: list[str] | None = None) -> None:
                     f"{nw} windows in {nc} cells",
                 )
 
-            def fb(ns, arm=arm, gap=gap):
+            def fb(ns: int, arm: str = arm, gap: str = gap) -> Estimate:
                 d = big[(big["seed"] < ns) & (big["stratum"] != ">=1B")]
                 return est(d, gap, f"Delta_{arm}")
 
@@ -561,7 +570,7 @@ def main(argv: list[str] | None = None) -> None:
     print("=" * 118)
     srows = []
 
-    def small_row(corpus, name, d, seeds):
+    def small_row(corpus: str, name: str, d: pd.DataFrame, seeds: int) -> None:
         width, stride = CONSTRUCTIONS[name]
         block = int(np.ceil(width / stride))
         s = d[d["stratum"] == "<100M"]

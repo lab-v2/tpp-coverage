@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """Re-fit Droppo-Elibol only, with N_c/D_c bounds scaled to the observed data.
 
-Diagnosis: at 300 AND 2000 restarts, Droppo NC high-N diverged (off-ray RMSE
-0.40-5.76, cv 0.758) while every other law/stratum cell had cv <= 0.06. Cause is
-not restart count: the released fitter puts N_c, D_c in (1e3, 1e14) -- eleven
-decades -- with the sampler drawing log-uniform over only 1e5-1e12, while this
-grid has N in [2.3e7, 2.0e8] and D in [1e8, 1e10]. Most restarts start far from
-any basin.
+Diagnosis: at 300 AND 2000 restarts, Droppo NC high-N diverged (off-ray RMSE 0.40-5.76,
+cv 0.758) while every other law/stratum cell had cv <= 0.06. Cause is not restart count:
+the released fitter puts N_c, D_c in (1e3, 1e14) -- eleven decades -- with the sampler
+drawing log-uniform over only 1e5-1e12, while this grid has N in [2.3e7, 2.0e8] and D in
+[1e8, 1e10]. Most restarts start far from any basin.
 
 Fix: bounds and sampler for the two scale parameters are tied to the data,
 N_c in [min(N)/1e3, max(N)*1e3] and likewise for D_c. Everything else -- the law,
 _fit_generic, the exponent bounds, the seeds, the arms -- is the repo's and
 unchanged, and the change is applied IDENTICALLY to CO and NC.
 """
+
+from __future__ import annotations
 
 import sys
 import os

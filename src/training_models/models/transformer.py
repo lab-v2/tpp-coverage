@@ -2,6 +2,8 @@
 Transformer model components.
 """
 
+from __future__ import annotations
+
 import sys
 import os
 
@@ -17,7 +19,7 @@ from training_models.models import ModelConfig, MultiHeadAttention, FeedForward
 class TransformerLayer(nn.Module):
     """Single transformer layer."""
 
-    def __init__(self, config: ModelConfig):
+    def __init__(self, config: ModelConfig) -> None:
         super().__init__()
         self.config = config
 
@@ -46,7 +48,7 @@ class TransformerLayer(nn.Module):
 class SimpleTransformer(nn.Module):
     """Simple decoder-only transformer."""
 
-    def __init__(self, config: ModelConfig):
+    def __init__(self, config: ModelConfig) -> None:
         super().__init__()
         self.config = config
 

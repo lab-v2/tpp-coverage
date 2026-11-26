@@ -15,6 +15,8 @@ Plot families
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from collections.abc import Callable
 
 import numpy as np
@@ -24,6 +26,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 
 from scaling_laws.parsing import parse_epoch_results
+
+if TYPE_CHECKING:
+    from scaling_laws.data import PreparedData
 
 matplotlib.rcParams["mathtext.fontset"] = "stix"
 matplotlib.rcParams["font.family"] = "STIXGeneral"
@@ -116,15 +121,20 @@ def plot_3d_overview(filepath: str, title: str = "", save_dir: str | None = None
                     edgecolors="w",
                     label=_LABEL_MAP.get(rt, rt),
                 )
-        ax.invert_yaxis()
-        ax.set_xlabel("N (params)")
-        ax.set_ylabel("D (tokens)")
-        ax.set_zlabel("Loss")
+        _label_nd_loss_axes(ax)
         ax.set_title(f"{title or filepath} - {group_name}", fontweight="bold")
         ax.legend(fontsize=9)
         plt.tight_layout()
         sp = f"{save_dir}/{group_name.lower().replace('-', '_')}_3d.png" if save_dir else None
         _savefig_and_show(fig, sp)
+
+
+def _label_nd_loss_axes(ax: Axes3D) -> None:
+    """A run-scatter's 3-D axes: N, D (inverted) and Loss."""
+    ax.invert_yaxis()
+    ax.set_xlabel("N (params)")
+    ax.set_ylabel("D (tokens)")
+    ax.set_zlabel("Loss")
 
 
 def plot_overlay(filepath: str, title: str = "", save_path: str | None = None) -> None:
@@ -146,10 +156,7 @@ def plot_overlay(filepath: str, title: str = "", save_path: str | None = None) -
                 edgecolors="w",
                 label=_LABEL_MAP.get(rt, rt),
             )
-    ax.invert_yaxis()
-    ax.set_xlabel("N (params)")
-    ax.set_ylabel("D (tokens)")
-    ax.set_zlabel("Loss")
+    _label_nd_loss_axes(ax)
     ax.set_title(title or "Colinear vs Non-Colinear Overlay", fontweight="bold")
     ax.legend(loc="upper left")
     plt.tight_layout()
@@ -162,7 +169,7 @@ def plot_overlay(filepath: str, title: str = "", save_path: str | None = None) -
 
 
 def plot_distributions(
-    prepared_data,
+    prepared_data: PreparedData | dict[str, PreparedData],
     save_dir: str | None = None,
 ) -> None:
     """
@@ -591,7 +598,7 @@ def plot_epoch_law_surface(
 
 def plot_all_surfaces(
     all_results: list[dict[str, object]],
-    prepared_data,
+    prepared_data: PreparedData | dict[str, PreparedData],
     mode: str | None = None,
     dataset_filter: str | None = None,
     elev: float = 25,
@@ -703,16 +710,16 @@ def _chinchilla_optimal_N(
 
 
 def plot_isoflop_single(
-    all_results,
-    prepared_data,
-    holdout_type="unified",
-    dataset_filter=None,
-    mode_filter=None,
-    flop_budgets=None,
-    N_range=None,
-    y_lim=None,
-    show_optimal=True,
-    save_dir=None,
+    all_results: list[dict[str, object]],
+    prepared_data: PreparedData | dict[str, PreparedData],
+    holdout_type: str = "unified",
+    dataset_filter: str | None = None,
+    mode_filter: str | None = None,
+    flop_budgets: np.ndarray | None = None,
+    N_range: np.ndarray | None = None,
+    y_lim: tuple[float, float] | None = None,
+    show_optimal: bool = True,
+    save_dir: str | None = None,
 ) -> None:
     """
     One **separate figure** per (dataset, mode) for a given holdout type.
@@ -783,13 +790,13 @@ def plot_isoflop_single(
 
 
 def plot_isoflops(
-    all_results,
-    prepared_data=None,
-    flop_budgets=None,
-    N_range=None,
-    y_lim=None,
-    show_optimal=True,
-    save_dir=None,
+    all_results: list[dict[str, object]],
+    prepared_data: PreparedData | dict[str, PreparedData] | None = None,
+    flop_budgets: np.ndarray | None = None,
+    N_range: np.ndarray | None = None,
+    y_lim: tuple[float, float] | None = None,
+    show_optimal: bool = True,
+    save_dir: str | None = None,
 ) -> None:
     """
     One figure per (dataset, mode, holdout_type) - fully separated.
@@ -1159,12 +1166,12 @@ def plot_dual_blanket(
 
 def plot_dual_blanket_from_results(
     all_results: list[dict[str, object]],
-    prepared_data,
+    prepared_data: PreparedData | dict[str, PreparedData],
     law_name: str = "Chinchilla",
     mode_filter: str = "Final",
     dataset_filter: str | None = None,
     holdout_keys: list[str] | None = None,
-    **kwargs,
+    **kwargs: object,
 ) -> None:
     """
     Convenience wrapper: find the CO and NC results for a given law + mode

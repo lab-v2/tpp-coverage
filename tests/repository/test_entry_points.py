@@ -59,7 +59,8 @@ def test_one_hf_dataset_id() -> None:
     from hf_dataset import REPO_ID
 
     verify = (REPO / "src/training_models/training/verify_reproducibility.py").read_text()
-    assert f'HF_REPO_ID = "{REPO_ID}"' in verify
+    assert 'HF_REPO_ID = "leibnitz-lab/colinear_scaling_models"' in verify
+    assert REPO_ID == "leibnitz-lab/colinear_scaling_models"
 
 
 # ── the job generator ──────────────────────────────────────────────────────

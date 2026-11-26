@@ -44,7 +44,7 @@ _NUM_RE = re.compile(r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?")
 _NP_WRAPPER_RE = re.compile(r"np\.\w+\(([^)]*?)\)")
 
 
-def parse_tpp_list(s):
+def parse_tpp_list(s: object) -> np.ndarray | None:
     if not isinstance(s, str) or not s.strip():
         return None
     clean = _NP_WRAPPER_RE.sub(r"\1", s)
@@ -57,7 +57,7 @@ def parse_tpp_list(s):
         return None
 
 
-def per_seed_log_avg_winrate(g: pd.DataFrame, law: str, kappa_targets):
+def per_seed_log_avg_winrate(g: pd.DataFrame, law: str, kappa_targets: np.ndarray) -> float:
     """Returns this (seed, cell) slice's log-averaged winrate over
     the alive κ range."""
     beta = LIT_BETA_EFF[law]
@@ -131,7 +131,9 @@ def load_all_seeds(seed_dir: Path) -> pd.DataFrame:
     )
 
 
-def worker(args):
+def worker(
+    args: tuple[str, str, str, pd.DataFrame, np.ndarray],
+) -> tuple[str, str, str, dict[int, float]]:
     law, dataset, mode, g, kappa_targets = args
     seeds = sorted(g["seed"].unique())
     out = {}
@@ -141,19 +143,7 @@ def worker(args):
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument(
-        "--seed-dir",
-        type=Path,
-        default=Path("subset_bbox_seeds"),
-        help="Parent dir containing seed_*/ subdirs "
-        "(default: subset_bbox_seeds - matches "
-        "dispatch_seeds.sh default).",
-    )
-    ap.add_argument("--out-dir", required=True, type=Path)
-    ap.add_argument("--mode", default="first")
-    ap.add_argument("--n-workers", type=int, default=8)
-    args = ap.parse_args()
+    args = _parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
     kappa_targets = np.logspace(np.log10(KT_LOG_MIN), np.log10(KT_LOG_MAX), N_POINTS)
@@ -169,11 +159,7 @@ def main() -> None:
         results = pool.map(worker, cells)
 
     # Build (seed, law, dataset) → log-avg winrate
-    tidy = []
-    for law, dataset, mode, per_seed in results:
-        for seed, wr in per_seed.items():
-            tidy.append({"seed": seed, "law": law, "dataset": dataset, "log_avg_winrate": wr})
-    tidy_df = pd.DataFrame(tidy)
+    tidy_df = _tidy(results)
 
     # Per-law: first average across datasets (within a seed),
     # then bootstrap CI across seeds
@@ -213,10 +199,44 @@ def main() -> None:
                 }
             )
 
+    _write_and_print(per_law_ci, per_dataset_ci, args.out_dir)
+    print(f"\n  Artifacts: {args.out_dir}/per_{{law,dataset}}_ci.csv")
+
+
+def _parse_args() -> argparse.Namespace:
+    """The command line: seed and output directories, epoch mode, pool size."""
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--seed-dir",
+        type=Path,
+        default=Path("subset_bbox_seeds"),
+        help="Parent dir containing seed_*/ subdirs "
+        "(default: subset_bbox_seeds - matches "
+        "dispatch_seeds.sh default).",
+    )
+    ap.add_argument("--out-dir", required=True, type=Path)
+    ap.add_argument("--mode", default="first")
+    ap.add_argument("--n-workers", type=int, default=8)
+    return ap.parse_args()
+
+
+def _tidy(results: list[tuple[str, str, str, dict[int, float]]]) -> pd.DataFrame:
+    """One row per (seed, law, dataset) with its log-averaged winrate."""
+    tidy = []
+    for law, dataset, mode, per_seed in results:
+        for seed, wr in per_seed.items():
+            tidy.append({"seed": seed, "law": law, "dataset": dataset, "log_avg_winrate": wr})
+    return pd.DataFrame(tidy)
+
+
+def _write_and_print(
+    per_law_ci: list[dict[str, object]], per_dataset_ci: list[dict[str, object]], out_dir: Path
+) -> None:
+    """Write per_law_ci.csv and per_dataset_ci.csv, and print them as one table."""
     law_df = pd.DataFrame(per_law_ci)
     cell_df = pd.DataFrame(per_dataset_ci)
-    law_df.to_csv(args.out_dir / "per_law_ci.csv", index=False)
-    cell_df.to_csv(args.out_dir / "per_dataset_ci.csv", index=False)
+    law_df.to_csv(out_dir / "per_law_ci.csv", index=False)
+    cell_df.to_csv(out_dir / "per_dataset_ci.csv", index=False)
 
     print("\n" + "=" * 95)
     print(
@@ -235,7 +255,6 @@ def main() -> None:
         ci = f"[{law_row['lo']:.2f}, {law_row['hi']:.2f}]"
         print(f"  {'':<16s}  {'── AVG ──':<14s}  {law_row['mean']:>14.2f}%  {ci:>20s}")
         print("  " + "─" * 91)
-    print(f"\n  Artifacts: {args.out_dir}/per_{{law,dataset}}_ci.csv")
 
 
 if __name__ == "__main__":

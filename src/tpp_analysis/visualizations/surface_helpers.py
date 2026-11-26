@@ -6,9 +6,14 @@ Used by ``figure1_panels.py``, ``visuals.ipynb`` and
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgba
+
+if TYPE_CHECKING:
+    from scaling_laws.laws import ScalingLaw
 
 
 _HOLDOUT_STYLES: dict[str, dict[str, str | int]] = {
@@ -116,28 +121,17 @@ def _draw_boundary_edges_occlusion(
             if end - start < 2:
                 continue
             slc = slice(start, end)
-            if in_front[start]:
-                ax.plot(
-                    n_arr[slc],
-                    d_arr[slc],
-                    z_self[slc],
-                    color=color,
-                    lw=lw_top,
-                    alpha=alpha_top,
-                    linestyle="-",
-                    zorder=3,
-                )
-            else:
-                ax.plot(
-                    n_arr[slc],
-                    d_arr[slc],
-                    z_self[slc],
-                    color=color,
-                    lw=lw_under,
-                    alpha=alpha_under,
-                    linestyle="--",
-                    zorder=1,
-                )
+            front = in_front[start]  # solid on top, dashed where the other surface hides it
+            ax.plot(
+                n_arr[slc],
+                d_arr[slc],
+                z_self[slc],
+                color=color,
+                lw=lw_top if front else lw_under,
+                alpha=alpha_top if front else alpha_under,
+                linestyle="-" if front else "--",
+                zorder=3 if front else 1,
+            )
 
     front_edges = [
         (L_self_clip[:, -1], N_mesh[:, -1], D_mesh[:, -1]),
@@ -161,7 +155,7 @@ def _compute_intersection_3d(
     D_mesh: np.ndarray,
     L_co: np.ndarray,
     L_nc: np.ndarray,
-    law_obj,
+    law_obj: ScalingLaw,
     co_params: tuple[float, ...] | list[float],
     z_lo: float,
     z_hi: float,

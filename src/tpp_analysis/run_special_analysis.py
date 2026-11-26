@@ -77,68 +77,10 @@ SEED_STRIDE = 137  # BF16 uses stride 137 per appendix
 
 
 def _get_seed_fitters():
-    """Build seed-aware fitters for the three (N, D, L)-shape laws."""
-    from scaling_laws.laws import (
-        _fit_generic,
-        kaplan_loss,
-        chinchilla_loss,
-        droppo_elibol_loss,
-    )
+    """The seed-aware fitters of the three (N, D, L)-shape laws: full_coverage_ci's."""
+    from full_coverage_ci import _SEED_FITTERS  # the same bounds, samplers and seeding
 
-    def _fit_kaplan_seed(N, D, L, n_restarts=300, seed=42):
-        bounds = [(1e3, 1e14), (1e3, 1e14), (0.01, 2.0), (0.01, 2.0)]
-
-        def sampler(rng, L):
-            return [
-                10 ** rng.uniform(5, 12),
-                10 ** rng.uniform(5, 12),
-                rng.uniform(0.05, 1.5),
-                rng.uniform(0.05, 1.5),
-            ]
-
-        return _fit_generic(kaplan_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
-
-    def _fit_chinchilla_seed(N, D, L, n_restarts=300, seed=42):
-        bounds = [(0.0, 10.0), (1e-2, 1e10), (0.01, 2.0), (1e-2, 1e10), (0.01, 2.0)]
-
-        def sampler(rng, L):
-            return [
-                rng.uniform(0.0, min(L) * 0.9),
-                10 ** rng.uniform(0, 8),
-                rng.uniform(0.1, 1.5),
-                10 ** rng.uniform(0, 8),
-                rng.uniform(0.1, 1.5),
-            ]
-
-        return _fit_generic(chinchilla_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
-
-    def _fit_droppo_elibol_seed(N, D, L, n_restarts=300, seed=42):
-        bounds = [
-            (1e-6, 10.0),
-            (1e3, 1e14),
-            (1e3, 1e14),
-            (0.01, 2.0),
-            (0.01, 2.0),
-            (0.01, 2.0),
-        ]
-
-        def sampler(rng, L):
-            return [
-                rng.uniform(0.01, min(L) * 0.8),
-                10 ** rng.uniform(5, 12),
-                10 ** rng.uniform(5, 12),
-                rng.uniform(0.05, 1.5),
-                rng.uniform(0.05, 1.5),
-                rng.uniform(0.05, 1.5),
-            ]
-
-        return _fit_generic(droppo_elibol_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
-
-    return {
-        "Kaplan": (_fit_kaplan_seed, kaplan_loss),
-        "Chinchilla": (_fit_chinchilla_seed, chinchilla_loss),
-        "Droppo-Elibol": (_fit_droppo_elibol_seed, droppo_elibol_loss),
-    }
+    return dict(_SEED_FITTERS)
 
 
 # ============================================================
@@ -179,11 +121,8 @@ def _run_full_coverage_combo(args):
 
     if is_pe:
         # ── PARAMETRIC-EPOCH PATH ──
-        try:
-            from scaling_laws.laws import parametric_epoch_loss, fit_parametric_epoch
-        except ImportError:
-            print(f"  [SKIP] {tag}: parametric_epoch_loss not importable")
-            return []
+        from scaling_laws.laws import parametric_epoch_loss, fit_parametric_epoch
+
         param_names = LAW_PARAM_NAMES["Parametric-Epoch"]
 
         for design_label, train_runs in [
@@ -387,60 +326,77 @@ def _wilson_ci(k, n, z=1.96):
     return p_hat * 100, (center - margin) * 100, (center + margin) * 100
 
 
-def build_tables(df, save_dir, label):
-    """Build summary + winrate tables with LaTeX output."""
+_SPLIT_LABELS = {  # internal split key -> ("CSV label", "LaTeX label")
+    "train": ("Train", r"Train ($\mathcal{D}$)"),
+    "unified": ("Holdout", r"Holdout ($\mathcal{H}$)"),
+    "colinear": ("Holdout-CO", r"Holdout--CO ($\mathcal{H}_{\mathrm{col}}$)"),
+    "noncolinear": ("Holdout-NC", r"Holdout--NC ($\mathcal{H}_{\mathrm{nc}}$)"),
+}
 
-    # SUMMARY TABLE
-    # Internal split key → ("CSV label", "LaTeX label")
-    SPLIT_LABELS = {
-        "train": ("Train", r"Train ($\mathcal{D}$)"),
-        "unified": ("Holdout", r"Holdout ($\mathcal{H}$)"),
-        "colinear": ("Holdout-CO", r"Holdout--CO ($\mathcal{H}_{\mathrm{col}}$)"),
-        "noncolinear": ("Holdout-NC", r"Holdout--NC ($\mathcal{H}_{\mathrm{nc}}$)"),
+
+def _summary_row(combos, r2_col, rmse_col, csv_label, tex_label, design):
+    """One (split, design) row: R² and RMSE over the (law, mode) means, and the seed sigma."""
+    r2_means = combos[r2_col].mean()
+    r2_stds = combos[r2_col].std()
+    rmse_means = combos[rmse_col].mean()
+    rmse_stds = combos[rmse_col].std()
+    mean_n = combos[r2_col].count().mean() or 1
+
+    r2_ci_half = 1.96 * r2_stds.mean() / np.sqrt(mean_n)
+    rmse_ci_half = 1.96 * rmse_stds.mean() / np.sqrt(mean_n)
+
+    return {
+        "Split": csv_label,
+        "Split_tex": tex_label,
+        "Design": design,
+        "R2_Mean": float(r2_means.mean()),
+        "R2_CI_lo": float(r2_means.mean() - r2_ci_half),
+        "R2_CI_hi": float(r2_means.mean() + r2_ci_half),
+        "R2_Median": float(r2_means.median()),
+        "R2_Std": float(r2_means.std()),
+        "R2_Sigma": float(r2_stds.mean()),
+        "RMSE_Mean": float(rmse_means.mean()),
+        "RMSE_CI_lo": float(rmse_means.mean() - rmse_ci_half),
+        "RMSE_CI_hi": float(rmse_means.mean() + rmse_ci_half),
+        "RMSE_Median": float(rmse_means.median()),
+        "RMSE_Std": float(rmse_means.std()),
     }
 
-    summary_rows = []
-    for split, (csv_label, tex_label) in SPLIT_LABELS.items():
-        r2_col = f"r2_{split}"
-        rmse_col = f"rmse_{split}"
-        if r2_col not in df.columns:
-            continue
 
-        for design in ["CO", "NC"]:
-            sub = df[df["design"] == design]
-            if sub[r2_col].dropna().empty:
-                continue
+def _summary_body(summary, best):
+    """The summary rows, one \\multirow block per split, the best design's cells in \\win{}."""
+    tex_lines = []
+    last_split = None
+    for _, row in summary.iterrows():
+        tex_label = row["Split_tex"]
+        design = row["Design"]
+        is_best = best.get(tex_label) == design
 
-            combos = sub.groupby(["law", "mode"])
-            r2_means = combos[r2_col].mean()
-            r2_stds = combos[r2_col].std()
-            rmse_means = combos[rmse_col].mean()
-            rmse_stds = combos[rmse_col].std()
-            mean_n = combos[r2_col].count().mean() or 1
+        def _w(val, fmt=".4f"):
+            s = f"{val:{fmt}}"
+            return rf"\win{{{s}}}" if is_best else s
 
-            r2_ci_half = 1.96 * r2_stds.mean() / np.sqrt(mean_n)
-            rmse_ci_half = 1.96 * rmse_stds.mean() / np.sqrt(mean_n)
+        def _wci(lo, hi):
+            s = f"[{lo:.3f}, {hi:.3f}]"
+            return rf"\win{{{s}}}" if is_best else s
 
-            summary_rows.append(
-                {
-                    "Split": csv_label,
-                    "Split_tex": tex_label,
-                    "Design": design,
-                    "R2_Mean": float(r2_means.mean()),
-                    "R2_CI_lo": float(r2_means.mean() - r2_ci_half),
-                    "R2_CI_hi": float(r2_means.mean() + r2_ci_half),
-                    "R2_Median": float(r2_means.median()),
-                    "R2_Std": float(r2_means.std()),
-                    "R2_Sigma": float(r2_stds.mean()),
-                    "RMSE_Mean": float(rmse_means.mean()),
-                    "RMSE_CI_lo": float(rmse_means.mean() - rmse_ci_half),
-                    "RMSE_CI_hi": float(rmse_means.mean() + rmse_ci_half),
-                    "RMSE_Median": float(rmse_means.median()),
-                    "RMSE_Std": float(rmse_means.std()),
-                }
-            )
+        if tex_label != last_split:
+            if last_split is not None:
+                tex_lines.append(r"\midrule")
+            tex_lines.append(rf"\multirow{{2}}{{*}}{{{tex_label}}}")
+            last_split = tex_label
 
-    summary = pd.DataFrame(summary_rows)
+        tex_lines.append(
+            rf" & {design}  & {_w(row['R2_Mean'])}  & {_wci(row['R2_CI_lo'], row['R2_CI_hi'])} "
+            rf"& {_w(row['R2_Median'])} & {_w(row['R2_Std'])} "
+            rf"& {_w(row['RMSE_Mean'])} & {_wci(row['RMSE_CI_lo'], row['RMSE_CI_hi'])} "
+            rf"& {_w(row['RMSE_Median'])} & {_w(row['RMSE_Std'])} \\"
+        )
+    return tex_lines
+
+
+def _summary_tex(summary, save_dir, label):
+    """summary_<label>.csv and table_summary_<label>.tex (best R² per split bold), echoed."""
     # CSV gets clean labels (no LaTeX label column)
     summary.drop(columns=["Split_tex"]).to_csv(
         os.path.join(save_dir, f"summary_{label}.csv"), index=False
@@ -468,40 +424,10 @@ def build_tables(df, save_dir, label):
         r"\midrule",
     ]
 
-    last_split = None
-    for _, row in summary.iterrows():
-        tex_label = row["Split_tex"]
-        design = row["Design"]
-        is_best = best.get(tex_label) == design
-
-        def _w(val, fmt=".4f"):
-            s = f"{val:{fmt}}"
-            return rf"\win{{{s}}}" if is_best else s
-
-        def _wci(lo, hi):
-            s = f"[{lo:.3f}, {hi:.3f}]"
-            return rf"\win{{{s}}}" if is_best else s
-
-        if tex_label != last_split:
-            if last_split is not None:
-                tex_lines.append(r"\midrule")
-            tex_lines.append(rf"\multirow{{2}}{{*}}{{{tex_label}}}")
-            last_split = tex_label
-
-        tex_lines.append(
-            rf" & {design}  & {_w(row['R2_Mean'])}  & {_wci(row['R2_CI_lo'], row['R2_CI_hi'])} "
-            rf"& {_w(row['R2_Median'])} & {_w(row['R2_Std'])} "
-            rf"& {_w(row['RMSE_Mean'])} & {_wci(row['RMSE_CI_lo'], row['RMSE_CI_hi'])} "
-            rf"& {_w(row['RMSE_Median'])} & {_w(row['RMSE_Std'])} \\"
-        )
+    tex_lines += _summary_body(summary, best)
 
     tex_lines += [r"\bottomrule", r"\end{tabular}", r"\end{table*}"]
-    tex_summary = "\n".join(tex_lines)
-    summary_path = os.path.join(save_dir, f"table_summary_{label}.tex")
-    with open(summary_path, "w") as f:
-        f.write(tex_summary)
-    print(f"\n  Wrote {summary_path}")
-    print(tex_summary)
+    _write_and_echo(tex_lines, os.path.join(save_dir, f"table_summary_{label}.tex"))
     print(f"\n  {label} R² summary:")
     print(
         summary[["Split", "Design", "R2_Mean", "R2_Sigma", "R2_Median"]]
@@ -509,34 +435,21 @@ def build_tables(df, save_dir, label):
         .to_string(index=False)
     )
 
-    # WINRATE TABLE
-    wins_rows = []
-    for (law, mode), group in df.groupby(["law", "mode"]):
-        r2_col = "r2_unified"
-        if r2_col not in group.columns:
-            continue
-        co = group[group["design"] == "CO"].set_index("seed")[r2_col]
-        nc = group[group["design"] == "NC"].set_index("seed")[r2_col]
-        paired_co, paired_nc = co.align(nc, join="inner")
-        if len(paired_co) == 0:
-            continue
-        nc_wins = int((paired_nc > paired_co).sum())
-        wins_rows.append(
-            {
-                "Law": law,
-                "Mode": mode,
-                "NC_wins": nc_wins,
-                "N_paired": len(paired_co),
-                "NC_pct": nc_wins / len(paired_co) * 100,
-            }
-        )
 
-    wins_df = pd.DataFrame(wins_rows)
-    wins_df.to_csv(os.path.join(save_dir, f"winrate_{label}.csv"), index=False)
-    if wins_df.empty:
-        return
+def _win_row(law, mode, nc_wins, n_paired):
+    """One (law, mode) combo's seed-paired NC wins."""
+    return {
+        "Law": law,
+        "Mode": mode,
+        "NC_wins": nc_wins,
+        "N_paired": n_paired,
+        "NC_pct": nc_wins / n_paired * 100,
+    }
 
-    total_nc = int(wins_df["NC_wins"].sum())
+
+def _winrate_head(wins_df, total_nc, label):
+    """The overall NC win rate (printed) and the winrate table's opening through its header,
+    with the per-Law and per-Mode rates it lays out: (tex_lines, slices, columns)."""
     total_n = int(wins_df["N_paired"].sum())
     overall_pct, overall_lo, overall_hi = _wilson_ci(total_nc, total_n)
 
@@ -591,6 +504,52 @@ def build_tables(df, save_dir, label):
         sub_header.append(r"& \textbf{NC\%}")
     tex_lines.append(" & ".join(sub_header) + r" \\")
     tex_lines.append(r"\midrule")
+    return tex_lines, slices, cols_available
+
+
+def build_tables(df, save_dir, label):
+    """Build summary + winrate tables with LaTeX output."""
+    # SUMMARY TABLE
+    summary_rows = []
+    for split, (csv_label, tex_label) in _SPLIT_LABELS.items():
+        r2_col = f"r2_{split}"
+        rmse_col = f"rmse_{split}"
+        if r2_col not in df.columns:
+            continue
+
+        for design in ["CO", "NC"]:
+            sub = df[df["design"] == design]
+            if sub[r2_col].dropna().empty:
+                continue
+
+            combos = sub.groupby(["law", "mode"])
+            summary_rows.append(
+                _summary_row(combos, r2_col, rmse_col, csv_label, tex_label, design)
+            )
+
+    _summary_tex(pd.DataFrame(summary_rows), save_dir, label)
+
+    # WINRATE TABLE
+    wins_rows = []
+    for (law, mode), group in df.groupby(["law", "mode"]):
+        r2_col = "r2_unified"
+        if r2_col not in group.columns:
+            continue
+        co = group[group["design"] == "CO"].set_index("seed")[r2_col]
+        nc = group[group["design"] == "NC"].set_index("seed")[r2_col]
+        paired_co, paired_nc = co.align(nc, join="inner")
+        if len(paired_co) == 0:
+            continue
+        nc_wins = int((paired_nc > paired_co).sum())
+        wins_rows.append(_win_row(law, mode, nc_wins, len(paired_co)))
+
+    wins_df = pd.DataFrame(wins_rows)
+    wins_df.to_csv(os.path.join(save_dir, f"winrate_{label}.csv"), index=False)
+    if wins_df.empty:
+        return
+
+    total_nc = int(wins_df["NC_wins"].sum())
+    tex_lines, slices, cols_available = _winrate_head(wins_df, total_nc, label)
 
     max_rows = max(len(slices[c]) for c in cols_available) if cols_available else 0
     for i in range(max_rows):
@@ -605,15 +564,53 @@ def build_tables(df, save_dir, label):
         tex_lines.append(" & ".join(parts) + r" \\")
 
     tex_lines += [r"\bottomrule", r"\end{tabular}", r"\end{table*}"]
-    tex_winrate = "\n".join(tex_lines)
-    winrate_path = os.path.join(save_dir, f"table_winrate_{label}.tex")
-    with open(winrate_path, "w") as f:
-        f.write(tex_winrate)
-    print(f"  Wrote {winrate_path}")
-    print(tex_winrate)
+    _write_and_echo(tex_lines, os.path.join(save_dir, f"table_winrate_{label}.tex"), lead="")
 
     # APPENDIX WINRATE TABLE - broken down by holdout split definition
     build_holdout_split_winrate(df, save_dir, label=label)
+
+
+def _split_row(df, split, tex, pair_wins):
+    """NC wins, CO wins and NC % on one holdout split, summed over (dataset, law, mode)."""
+    r2_col = f"r2_{split}"
+    nc_total, n_total = 0, 0
+    for _, group in df.groupby(["dataset", "law", "mode"]):
+        nw, np_ = pair_wins(group, r2_col)
+        nc_total += nw
+        n_total += np_
+    return {
+        "split": split,
+        "tex": tex,
+        "nc_wins": nc_total,
+        "co_wins": n_total - nc_total,
+        "total": n_total,
+        "pct": (nc_total / n_total * 100) if n_total else 0.0,
+    }
+
+
+def _write_split_csv(rows, path):
+    """The split rows as a CSV."""
+    pd.DataFrame(
+        [
+            {
+                "Holdout_Split": r["split"],
+                "NC_Wins": r["nc_wins"],
+                "CO_Wins": r["co_wins"],
+                "Total": r["total"],
+                "NC_Pct": round(r["pct"], 2),
+            }
+            for r in rows
+        ]
+    ).to_csv(path, index=False)
+
+
+def _write_and_echo(tex_lines, out_path, lead="\n"):
+    """Write the table's LaTeX to out_path, then print where (after `lead`) and the table."""
+    tex_str = "\n".join(tex_lines)
+    with open(out_path, "w") as f:
+        f.write(tex_str)
+    print(f"{lead}  Wrote {out_path}")
+    print(tex_str)
 
 
 def build_holdout_split_winrate(df, save_dir, label="appendix"):
@@ -642,41 +639,10 @@ def build_holdout_split_winrate(df, save_dir, label="appendix"):
         nc_wins = int((nc_a > co_a).sum())
         return nc_wins, len(co_a)
 
-    rows = []
-    for split in available:
-        r2_col = f"r2_{split}"
-        nc_total, n_total = 0, 0
-        for _, group in df.groupby(["dataset", "law", "mode"]):
-            nw, np_ = _pair_wins(group, r2_col)
-            nc_total += nw
-            n_total += np_
-        rows.append(
-            {
-                "split": split,
-                "tex": SPLIT_NAMES[split],
-                "nc_wins": nc_total,
-                "co_wins": n_total - nc_total,
-                "total": n_total,
-                "pct": (nc_total / n_total * 100) if n_total else 0.0,
-            }
-        )
+    rows = [_split_row(df, split, SPLIT_NAMES[split], _pair_wins) for split in available]
 
     # CSV
-    pd.DataFrame(
-        [
-            {
-                "Holdout_Split": r["split"],
-                "NC_Wins": r["nc_wins"],
-                "CO_Wins": r["co_wins"],
-                "Total": r["total"],
-                "NC_Pct": round(r["pct"], 2),
-            }
-            for r in rows
-        ]
-    ).to_csv(
-        os.path.join(save_dir, f"winrate_by_holdout_split_{label}.csv"),
-        index=False,
-    )
+    _write_split_csv(rows, os.path.join(save_dir, f"winrate_by_holdout_split_{label}.csv"))
 
     # LaTeX
     tex_lines = [
@@ -695,13 +661,9 @@ def build_holdout_split_winrate(df, save_dir, label="appendix"):
             f"{r['tex']} & {r['nc_wins']} & {r['co_wins']} & {r['total']} & {r['pct']:.1f}\\% \\\\"
         )
     tex_lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
-
-    tex_str = "\n".join(tex_lines)
-    out_path = os.path.join(save_dir, f"table_winrate_by_holdout_split_{label}.tex")
-    with open(out_path, "w") as f:
-        f.write(tex_str)
-    print(f"\n  Wrote {out_path}")
-    print(tex_str)
+    _write_and_echo(
+        tex_lines, os.path.join(save_dir, f"table_winrate_by_holdout_split_{label}.tex")
+    )
 
 
 # ============================================================
