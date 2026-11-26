@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
 """Exact-but-fast cluster bootstrap for the CRITERIA Amendment 5 estimators.
 
-The estimator is the one already pre-registered in E2 / A3.1: OLS of the off-ray gap on
-the identifiability-margin regressors with a per-cell fixed effect, and a percentile
-bootstrap that resamples clusters WITHIN cell. This module changes only the arithmetic,
-not the estimator.
-
-By Frisch-Waugh, the coefficients on the regressors of interest are unchanged if the cell
-dummies are replaced by within-cell centring, and the centred normal equations depend on
-the resample only through per-cluster sums. So each cluster's sufficient statistics
-
-    n,  sum x,  sum y,  sum x x^T,  sum x y
-
-are accumulated once, and a bootstrap draw is a weighted sum of them followed by one
-p x p solve. That makes 200000 resamples cost about the same as 2000 did, which is the
-point of A5.2. Agreement with `conditional.regress` is asserted by `estimate.py`
-before any Amendment-5 number is reported.
+The estimator is the pre-registered E2 / A3.1 one (OLS of the off-ray gap on the
+identifiability-margin regressors with a per-cell fixed effect, percentile bootstrap over
+clusters WITHIN cell); only the arithmetic changes. By Frisch-Waugh the coefficients are
+unchanged when cell dummies become within-cell centring, and the centred normal equations
+depend on a resample only through per-cluster sums. So each cluster's n, sum x, sum y,
+sum x x^T and sum x y are accumulated once, and a draw is a weighted sum plus one p x p
+solve: 200000 resamples cost what 2000 did (the point of A5.2). `estimate.py` asserts
+agreement with `conditional.regress` before any Amendment-5 number is reported.
 """
 
 from __future__ import annotations
@@ -61,7 +54,7 @@ class ClusterOLS:
         order_col: str | None = None,
         fe_col: str = "cell",
         group_col: str = "cell",
-    ):
+    ) -> None:
         keep = np.isfinite(df[y].to_numpy(float))
         for c in x_cols:
             keep &= np.isfinite(df[c].to_numpy(float))

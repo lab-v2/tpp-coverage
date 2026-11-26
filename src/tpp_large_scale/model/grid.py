@@ -36,11 +36,9 @@ class FitArrays:
 class LogBandAssigner:
     """Snap a design TPP to the nearest band in **log** space.
 
-    Upstream's ``incremental_coverage.coverage.snap_to_nearest`` snaps on linear
-    distance. Because the bands are quarter-decade spaced, linear snapping is
-    biased toward the lower band near every midpoint (TPP 90 would snap to 67
-    rather than 120), so this project uses the log-distance rule instead. The
-    divergence is deliberate and documented in ``large_scale/UPSTREAM_NOTES.md``.
+    Upstream's ``incremental_coverage.coverage.snap_to_nearest`` snaps on linear distance,
+    which on quarter-decade bands leans to the lower band near every midpoint (TPP 90 to 67,
+    not 120). The divergence is deliberate, see ``large_scale/UPSTREAM_NOTES.md``.
     """
 
     def __init__(self, bands: tuple[float, ...] = TPP_BANDS) -> None:

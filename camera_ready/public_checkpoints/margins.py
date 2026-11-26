@@ -38,7 +38,7 @@ def rebuild(runs_file: str = "runs_normalised.csv", corpus: str = "all") -> pd.D
     if corpus != "all" and "corpus" in runs.columns:
         runs = runs[runs["corpus"].isin({"E": {"E"}, "X": {"E", "X"}}[corpus])]
     runs = runs.reset_index(drop=True)
-    rows: list[dict] = []
+    rows: list[dict[str, object]] = []
     for cell, grp in runs.groupby("cell"):
         if not A.screen_cell(grp, cell).included:
             continue

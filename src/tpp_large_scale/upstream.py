@@ -1,31 +1,15 @@
 """Single import choke point for the companion paper's own analysis code.
 
-Everything this project borrows from the paper's code package (`tpp_analysis`)
-is re-exported here and nowhere else, so the question "what did we reuse and
-what did we write ourselves?" is answered by reading one module.
+Everything borrowed from the paper's package (`tpp_analysis`) is re-exported here and
+nowhere else, so one module answers "what did we reuse?". Its modules import each other by
+bare top-level name (``from scaling_laws.laws import ...``), so ``<repo>/src/tpp_analysis``
+itself goes on ``sys.path``, not ``<repo>/src``; ``TPP_CODE_REPO`` selects another checkout.
 
-Why a path bootstrap instead of a package import
--------------------------------------------------
-The paper's analysis code is ``src/tpp_analysis`` in this repository, and its modules
-import each other by bare top-level name (``from scaling_laws.laws import ...``). The
-directory that must go on ``sys.path`` is therefore ``<repo>/src/tpp_analysis`` itself,
-not ``<repo>/src``.
-
-Set ``TPP_CODE_REPO`` to another checkout of this repository to run the large-scale
-analysis against that copy of the paper's code instead.
-
-Deliberately NOT imported
--------------------------
-``full_coverage_ci``
-    Seed-variance confidence intervals, which this analysis does not use.
-``incremental_coverage.coverage.snap_to_nearest``
-    Snaps on **linear** distance (``min(bins, key=lambda b: abs(b - value))``).
-    Our TPP bands are quarter-decade spaced, so the correct nearest-bin rule is
-    **log** distance; the two disagree for values near a band midpoint (TPP 90
-    snaps to 67 linearly but to 120 in log space). See
-    :class:`tpp_large_scale.model.grid.LogBandAssigner`.
-
-Both are recorded in ``large_scale/UPSTREAM_NOTES.md``.
+Deliberately NOT imported (both recorded in ``large_scale/UPSTREAM_NOTES.md``):
+``full_coverage_ci`` (seed-variance CIs, unused here) and
+``incremental_coverage.coverage.snap_to_nearest``, which snaps on linear distance where
+these quarter-decade bands need log distance (TPP 90 snaps to 67 linearly, to 120 in log
+space; see :class:`tpp_large_scale.model.grid.LogBandAssigner`).
 """
 
 from __future__ import annotations

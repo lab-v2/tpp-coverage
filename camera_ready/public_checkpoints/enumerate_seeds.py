@@ -2,12 +2,10 @@
 """CRITERIA Amendment 5, A5.1 / A5.3: re-fit the E-corpus at many more NC-carve seeds,
 and under alternative window constructions.
 
-Nothing about the carving, the fitting or the diagnostics is re-implemented: the windows,
-the off-ray holdout, the CO enumeration, ``select_nc_bbox``, ``compute_VK``,
-``compute_tauK`` and the two laws all come from `analysis.py`, which in turn imports them
-from the paper's code in src/tpp_analysis/. The only things this file changes are the SEED
-RANGE (A5.1), the window width/stride (A5.3), and the fact that it writes the
-identifiability margins in the same row rather than reconstructing them later.
+The windows, off-ray holdout, CO enumeration, ``select_nc_bbox``, ``compute_VK``,
+``compute_tauK`` and the two laws all come from `analysis.py` (which imports the paper's
+code in src/tpp_analysis/). This file changes only the SEED RANGE (A5.1) and the window
+width/stride (A5.3), and writes the identifiability margins in the same row.
 
 Two economies are declared in A5.1: single-ray CO only, and the off-ray arm only. The
 on-ray secondary of Amendment 1 is untouched and is not recomputed here.
@@ -51,11 +49,9 @@ CONSTRUCTIONS = {
 def build_windows(cell: str, sizes: Sequence[float], width: int, stride: int) -> list[A.Window]:
     """W1 reproduces `analysis.build_windows` exactly; the rest are the A5.3 variants.
 
-    W1 delegates rather than re-deriving, because the pre-registered W1 is not a single
-    (width, stride): CRITERIA W1 prescribes (8, 2) only for cells with >= 12 distinct N and
-    (5, 1) for cells with 8 <= #N < 12. No E-corpus cell falls in that band, so this changes
-    nothing already computed; one X-corpus cell (gpt3, 8 sizes) does, and without the
-    delegation the X-corpus run would silently use a construction W1 does not prescribe.
+    W1 delegates because it is not one (width, stride): CRITERIA W1 prescribes (8, 2) for
+    cells with >= 12 distinct N and (5, 1) for 8 <= #N < 12. No E-corpus cell is in that
+    band; one X-corpus cell (gpt3, 8 sizes) is, and would otherwise get the wrong windows.
     """
     if (width, stride) == CONSTRUCTIONS["W1"]:
         return A.build_windows(cell, sizes)
@@ -79,7 +75,16 @@ class Task:
 
     __slots__ = ("cell", "win_index", "sizes", "hold_idx", "ray", "seed_lo", "seed_hi")
 
-    def __init__(self, cell, win_index, sizes, hold_idx, ray, seed_lo, seed_hi):
+    def __init__(
+        self,
+        cell: str,
+        win_index: int,
+        sizes: tuple[float, ...],
+        hold_idx: tuple[int, ...],
+        ray: int,
+        seed_lo: int,
+        seed_hi: int,
+    ) -> None:
         self.cell, self.win_index, self.sizes = cell, win_index, sizes
         self.hold_idx, self.ray = hold_idx, ray
         self.seed_lo, self.seed_hi = seed_lo, seed_hi
@@ -135,7 +140,7 @@ def make_tasks(
 # Worker
 # ════════════════════════════════════════════════════════════════════════════
 
-_STATE: dict = {}
+_STATE: dict[str, object] = {}
 
 
 def _init_worker(runs: pd.DataFrame, n_restarts: int) -> None:
@@ -281,7 +286,7 @@ def main(argv: list[str] | None = None) -> None:
 
     t0 = time.time()
     ctx = mp.get_context("fork")
-    rows: list[dict] = []
+    rows: list[dict[str, object]] = []
     with ctx.Pool(args.workers, initializer=_init_worker, initargs=(runs, A.N_RESTARTS)) as pool:
         for i, chunk in enumerate(pool.imap_unordered(_rows_for, tasks, chunksize=1), 1):
             rows.extend(chunk)

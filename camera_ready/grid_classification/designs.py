@@ -1,23 +1,15 @@
 """Recovered experimental designs for every included paper (see CRITERIA.md).
 
-Each entry records the distinct TPP ratio list k = D/N of the training runs
-entering one pooled fit (or one slice, for per-slice protocols), its recovery
-mode, the fitting protocol, the paper's OWN fitted data-side exponent
-(beta_eff), and provenance. Populated from the candidate sweep; inclusion
-decisions live in candidates.csv and are outcome-blind (CRITERIA.md).
+Each entry records the distinct TPP ratios k = D/N of the runs in one pooled fit (or one
+slice), its recovery mode, fitting protocol, provenance and the paper's OWN fitted
+data-side exponent beta_eff; inclusion (candidates.csv) is outcome-blind. Hoffmann/
+Besiroglu, Muennighoff and Farseer k-lists come from artifacts/*.txt (derivation in each).
 
-Artifact-derived k-lists (Hoffmann/Besiroglu, Muennighoff, Farseer) are stored
-in artifacts/*.txt with their derivation noted in each file header; the loader
-below reads them so the raw run lists stay auditable.
-
-beta_eff (added 2026-07-31, CRITERIA.md convention 9): tau_K depends on the
-law-specific data-size exponent, and each paper fits its own law with its own
-exponent, so every row now carries the exponent that paper actually reports for
-the D term of the additive core it fits (formal_analysis.tex line 222: beta for
-Chinchilla/repeated-data, alpha_D for Kaplan, gamma_D for Droppo-Elibol; the
-exponent on the D term of the additive core for supersets). Papers that fit a
-law but never print a numeric exponent are marked reported=False and fall back
-to the corpus-wide LITERATURE_BETA_EFF, flagged as such.
+beta_eff (2026-07-31, CRITERIA.md convention 9) is the exponent the paper reports on the D
+term of the additive core it fits (formal_analysis.tex line 222: beta for Chinchilla and
+repeated-data, alpha_D for Kaplan, gamma_D for Droppo-Elibol), since tau_K depends on it.
+A paper that prints no numeric exponent is marked reported=False and falls back to the
+corpus-wide LITERATURE_BETA_EFF.
 """
 
 from __future__ import annotations
@@ -66,13 +58,10 @@ _KAPLAN_FIG9_RUNS: dict[float, tuple[float, ...]] = {
 class BetaEff:
     """One paper's own data-side exponent for the law whose design is classified.
 
-    `value` is the number fed to Prop. 2. `symbol` is the symbol as printed in
-    that paper (notations collide across papers - Rosenfeld's data exponent is
-    called alpha, Sedova's too, while most Chinchilla-form papers call it beta).
-    `from_classified_fit` records whether the exponent was estimated from the
-    very design under test: those rows are the ones where the circularity
-    objection bites, and their robustness across the beta sensitivity grid is
-    what makes them defensible.
+    `value` is fed to Prop. 2; `symbol` is as printed in that paper (Rosenfeld and Sedova
+    call it alpha, most Chinchilla-form papers beta). `from_classified_fit` marks an
+    exponent estimated from the very design under test: there the circularity objection
+    bites, and robustness across the beta sensitivity grid is what defends those rows.
     """
 
     value: float

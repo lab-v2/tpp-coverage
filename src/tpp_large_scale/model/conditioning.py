@@ -29,11 +29,9 @@ CHINCHILLA_SCALE_COLUMNS = (1, 3)
 def _condition_number_on_range(matrix: np.ndarray) -> float:
     """Condition number restricted to the non-null subspace.
 
-    Eigenvalues at or below the floor are dropped rather than clamped, so a
-    rank-deficient design reports the conditioning of the directions it can
-    actually resolve. Used for the *full* Jacobian, where an exactly zero
-    eigenvalue means a parameter is absent from the model rather than
-    collinear with another.
+    Eigenvalues at or below the floor are dropped, not clamped, so a rank-deficient design
+    reports the directions it resolves. For the *full* Jacobian, where a zero eigenvalue
+    means an absent parameter rather than a collinear one.
     """
     eigenvalues = np.linalg.eigvalsh(matrix)
     positive = eigenvalues[eigenvalues > EIGENVALUE_FLOOR]
@@ -45,11 +43,9 @@ def _condition_number_on_range(matrix: np.ndarray) -> float:
 def _condition_number_clamped(matrix: np.ndarray) -> float:
     """Condition number with the smallest eigenvalue clamped, not dropped.
 
-    Used for two-column blocks, where a vanishing smallest eigenvalue is the
-    quantity of interest: it means the two columns are collinear and the
-    coefficients are unidentifiable. Dropping it would report a perfectly
-    conditioned block for an exactly singular one, which is the opposite of
-    the truth. Perfect collinearity yields ``inf``.
+    For two-column blocks, where a vanishing smallest eigenvalue means collinear,
+    unidentifiable columns; dropping it would call a singular block perfectly conditioned.
+    Perfect collinearity yields ``inf``.
     """
     eigenvalues = np.linalg.eigvalsh(matrix)
     largest = float(eigenvalues[-1])

@@ -1,11 +1,9 @@
 """Train/holdout split, bucketed by the paper's own ``organise_runs``.
 
-The paper defines the split as four buckets keyed on two per-run flags,
-``is_colinear`` and ``is_holdout`` (``scaling_laws.data._organise``, re-exported
-as :func:`tpp_large_scale.upstream.organise_runs`). We reuse that bucketer
-rather than re-implementing it: each envelope cell is turned into a run dict in
-the paper's schema, tagged with the two flags per this grid's geometry, and
-handed to the package.
+The paper's split is four buckets keyed on the per-run flags ``is_colinear`` and
+``is_holdout`` (``scaling_laws.data._organise``, re-exported as
+:func:`tpp_large_scale.upstream.organise_runs`); each envelope cell becomes a run dict in
+the paper's schema, tagged per this grid's geometry, and goes to that bucketer.
 
 Geometry (paper Appendix D.2): the holdout is the extrapolation frontier, held
 out *beyond* the training range, not an interior subset. On this grid that is
@@ -30,7 +28,7 @@ NONCOLINEAR_TRAIN = "noncolinear_train"
 NONCOLINEAR_HOLDOUT = "noncolinear_holdout"
 
 
-def _to_run(row: pd.Series, *, is_colinear: bool, is_holdout: bool) -> dict:
+def _to_run(row: pd.Series, *, is_colinear: bool, is_holdout: bool) -> dict[str, object]:
     """One envelope cell as a run dict in the paper's schema."""
     return {
         "N": float(row["N"]),
@@ -54,7 +52,7 @@ class FrontierSplit:
     colinear_holdout: pd.DataFrame
     noncolinear_train: pd.DataFrame
     noncolinear_holdout: pd.DataFrame
-    buckets: dict[str, list[dict]]
+    buckets: dict[str, list[dict[str, object]]]
 
     @property
     def train(self) -> pd.DataFrame:
