@@ -81,21 +81,85 @@ def test_the_guard_listens_to_every_other_workflow() -> None:
     assert set(triggers(ALL["own-runners-guard.yml"])["workflow_run"]["workflows"]) == names
 
 
-def test_ci_runs_the_full_suite_in_parallel_ruff_and_the_privacy_scan() -> None:
+def test_ci_runs_ruff_and_the_privacy_scan() -> None:
     runs = {
         jid: " ".join(s.get("run", "") for s in job["steps"])
         for jid, job in ALL["ci.yml"]["jobs"].items()
     }
-    assert re.search(r"uv run .*pytest -n auto", runs["tests"])
-    assert "tests/" not in runs["tests"].split("pytest", 1)[1]  # the whole suite, no subset
-    # The paper gate refits alone in its own job, beside the suite rather than after it.
-    assert re.search(r"uv run .*pytest -n 0 .*-m paper$", runs["paper"])
-    assert "-m paper" not in runs["tests"]
-    assert not {"needs"} & (
-        ALL["ci.yml"]["jobs"]["paper"].keys() | ALL["ci.yml"]["jobs"]["tests"].keys()
-    )
     assert re.search(r"ruff check( --output-format=github)? \.$", runs["ruff"])
     assert privacy_targets() and all(t.endswith("test_privacy.py") for t in privacy_targets())
+
+
+def steps_of(job: str) -> list[dict[str, object]]:
+    return ALL["ci.yml"]["jobs"][job]["steps"]
+
+
+def step_running(job: str, fragment: str) -> dict[str, object]:
+    (step,) = [s for s in steps_of(job) if fragment in s.get("run", "")]
+    return step
+
+
+@pytest.mark.parametrize("job", ["tests", "paper"])
+def test_each_job_selects_from_mains_map_on_a_pull_request(job: str) -> None:
+    """Both jobs fetch main's map artifacts and run the selector; neither waits on the other."""
+    fetch = step_running(job, "tests/affected.py fetch affected-map.json")
+    assert fetch["if"] == "github.event_name == 'pull_request'"
+    assert '--base "$BASE"' in fetch["run"]  # the newest map at an ancestor of the base
+    pick = step_running(job, "tests/affected.py select")
+    assert pick["id"] == "pick" and pick["if"] == "github.event_name == 'pull_request'"
+    assert '--base "$BASE"' in pick["run"]
+    assert ALL["ci.yml"]["jobs"][job]["permissions"] == {"contents": "read", "actions": "read"}
+    assert "needs" not in ALL["ci.yml"]["jobs"][job]
+    steps = steps_of(job)
+    checkout = [s for s in steps if "checkout" in str(s.get("uses", ""))][0]
+    assert checkout["with"]["fetch-depth"] == 0  # the selector diffs from the map's commit
+    assert not [s for s in steps if "actions/cache" in str(s.get("uses", ""))]  # PR-writable
+
+
+def test_a_pull_request_runs_only_the_selected_test_files() -> None:
+    some = step_running("tests", "$TESTS")
+    assert some["env"] == {"TESTS": "${{ steps.pick.outputs.tests }}"}
+    assert some["run"].rstrip().endswith("pytest -n auto -q --no-header $TESTS")
+    assert "steps.pick.outputs.mode == 'some'" in some["if"]
+    assert not [s for s in steps_of("tests") if "-m paper" in s.get("run", "")]
+
+
+def test_the_paper_gate_runs_on_a_pull_request_only_when_its_inputs_changed() -> None:
+    paper = step_running("paper", "pytest -n 0 -q --no-header -m paper")
+    assert re.search(r"uv run .*pytest -n 0 .*-m paper$", paper["run"].strip())
+    assert paper["if"] == "steps.pick.outputs.mode == 'full' || steps.pick.outputs.paper == 'true'"
+
+
+@pytest.mark.parametrize(
+    ("job", "part", "artifact"),
+    [("tests", "suite", "affected-map"), ("paper", "paper", "affected-map-paper")],
+)
+def test_main_runs_everything_traced_and_keeps_each_part_of_the_map(
+    job: str, part: str, artifact: str
+) -> None:
+    build = step_running(job, f"tests/affected.py build --part {part} {artifact}.json")
+    want = "github.event_name == 'push'"
+    assert build["if"] == (
+        want + " || steps.pick.outputs.mode == 'full'" if job == "tests" else want
+    )
+    steps = steps_of(job)
+    (upload,) = [s for s in steps if str(s.get("uses", "")).startswith("actions/upload-artifact@")]
+    assert upload["if"] == want
+    assert upload["with"] == {
+        "name": artifact,
+        "path": f"{artifact}.json",
+        "if-no-files-found": "error",
+    }
+    assert steps.index(upload) > steps.index(build)  # a failed build keeps no map
+
+
+def test_main_also_runs_the_suite_in_one_parallel_session() -> None:
+    plain = [
+        s
+        for s in steps_of("tests")
+        if s.get("run", "").strip() == "uv run --locked pytest -n auto -q --no-header"
+    ]
+    assert len(plain) == 1 and plain[0]["if"] == "github.event_name == 'push'"
 
 
 def privacy_command() -> str:

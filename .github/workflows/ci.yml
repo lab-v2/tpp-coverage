@@ -18,10 +18,17 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # A pull request runs only the test files its change can affect (the lazy-testing rule);
+  # a push to main runs the whole suite, then once more one traced process per test file, and
+  # keeps the map of what each file reads as an artifact, which the next pull request selects
+  # from (tests/affected.py). The paper job does the same for the paper gate.
   tests:
     name: tests
     runs-on: [self-hosted, linux, primary]
-    timeout-minutes: 45
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read # the selector downloads main's test map artifacts
     steps:
       - name: Mask this runner's paths, account and machine name
         run: |
@@ -38,17 +45,56 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0 # the selector diffs from the commit the map was built on
       - name: Install the locked environment
         run: uv sync --locked --quiet
-      - name: Full test suite, in parallel
+      - name: Fetch the test map of main's newest successful push run
+        if: github.event_name == 'pull_request'
+        # Artifacts of a run on main, which a pull request cannot write (unlike a cache entry
+        # in its own scope). None fetched means the selector runs everything.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: uv run --locked python tests/affected.py fetch affected-map.json --base "$BASE"
+      - name: Choose the tests this change can affect
+        id: pick
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: uv run --locked python tests/affected.py select affected-map.json --base "$BASE" --github-output "$GITHUB_OUTPUT"
+      - name: The affected test files, in parallel
+        if: steps.pick.outputs.mode == 'some' && steps.pick.outputs.tests != ''
+        env:
+          TESTS: ${{ steps.pick.outputs.tests }}
         # -q --no-header: the header would print the worker count of this machine.
+        # $TESTS unquoted: one argument per test file.
+        run: uv run --locked pytest -n auto -q --no-header $TESTS
+      - name: Full test suite, in parallel, in one session (on main)
+        if: github.event_name == 'push'
         run: uv run --locked pytest -n auto -q --no-header
+      - name: Full test suite, one traced process per test file (rebuilds the test map)
+        # On main, and on a pull request whose map is missing or whose shared inputs changed.
+        if: github.event_name == 'push' || steps.pick.outputs.mode == 'full'
+        timeout-minutes: 30
+        run: uv run --locked python tests/affected.py build --part suite affected-map.json
+      - name: Keep the test map for pull requests
+        if: github.event_name == 'push'
+        # Pinned to the commit behind tag v7.0.1.
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: affected-map
+          path: affected-map.json
+          if-no-files-found: error
 
-  # The paper gate is a job of its own, so it runs beside the suite instead of after it.
+  # The paper gate is a job of its own, so it runs beside the suite instead of after it. On a
+  # pull request it runs only when its inputs changed (the same selector as the tests job).
   paper:
     name: paper
     runs-on: [self-hosted, linux, primary]
-    timeout-minutes: 30
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      actions: read # the selector downloads main's test map artifacts
     steps:
       - name: Mask this runner's paths, account and machine name
         run: |
@@ -61,15 +107,43 @@ jobs:
               echo "::add-mask::$(printf '%s' "$v" | sed 's/[/.-]/\\&/g')"
             fi
           done
+      # Pinned to the commit behind tag v7.0.1 (as in the own-runners guard).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0 # the selector diffs from the commit the map was built on
       - name: Install the locked environment
         run: uv sync --locked --quiet
-      - name: The paper's numbers, refit from scratch (alone; it takes every thread)
+      - name: Fetch the test map of main's newest successful push run
+        if: github.event_name == 'pull_request'
+        # Artifacts of a run on main, which a pull request cannot write (unlike a cache entry
+        # in its own scope). None fetched means the selector runs everything.
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: uv run --locked python tests/affected.py fetch affected-map.json --base "$BASE"
+      - name: Choose the tests this change can affect
+        id: pick
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: uv run --locked python tests/affected.py select affected-map.json --base "$BASE" --github-output "$GITHUB_OUTPUT"
+      - name: The paper's numbers, refit from scratch, when their inputs changed (alone; every thread)
+        if: steps.pick.outputs.mode == 'full' || steps.pick.outputs.paper == 'true'
         # The fixture times out the refit at 15 min and prints every process's stack.
         timeout-minutes: 25
         run: uv run --locked pytest -n 0 -q --no-header -m paper
+      - name: The paper's numbers, refit from scratch and traced (on main; rebuilds its map)
+        if: github.event_name == 'push'
+        timeout-minutes: 40
+        run: uv run --locked python tests/affected.py build --part paper affected-map-paper.json
+      - name: Keep the paper gate's map for pull requests
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: affected-map-paper
+          path: affected-map-paper.json
+          if-no-files-found: error
 
   ruff:
     name: ruff
@@ -116,4 +190,6 @@ jobs:
         with:
           persist-credentials: false
       - name: Privacy scan of the tree
-        run: uv run --locked pytest -q --no-header tests/repository/test_privacy.py
+        run: |
+          # lazy-testing: whole-tree - it reads every tracked file, so every change is its input
+          uv run --locked pytest -q --no-header tests/repository/test_privacy.py
