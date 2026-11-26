@@ -183,7 +183,8 @@ def _verdict(passed: bool) -> str:
     return "pass" if passed else "fail"
 
 
-def write_results(rows: list[Classification], out: Path = RESULTS_CSV) -> None:
+def _fieldnames() -> list[str]:
+    """The results CSV columns, in order."""
     own_kappa_cols = [f"verdict_kappa_{kt:g}_own_beta" for kt in KAPPA_TARGET_GRID]
     lit_kappa_cols = [f"verdict_kappa_{kt:g}_beta0.28" for kt in KAPPA_TARGET_GRID]
     fieldnames = [
@@ -223,60 +224,111 @@ def write_results(rows: list[Classification], out: Path = RESULTS_CSV) -> None:
         "is_calibration",
         "provenance",
     ]
+    return fieldnames
+
+
+def _row(r: Classification) -> dict[str, object]:
+    """One design's results CSV row."""
+    beta = r.design.beta_eff
+    return {
+        "key": r.design.key,
+        "citation": r.design.citation,
+        "arxiv_id": r.design.arxiv_id,
+        "K": r.K,
+        "k_distinct": " ".join(f"{k:g}" for k in r.k_distinct),
+        "k_list_source": r.design.k_list_source,
+        "protocol": r.design.protocol,
+        "protocol_source": r.design.protocol_source,
+        "law_family": beta.law_family,
+        "beta_eff_symbol": beta.symbol,
+        "beta_eff": f"{beta.value:g}",
+        "beta_eff_reported": beta.reported,
+        "beta_eff_from_classified_fit": beta.from_classified_fit,
+        "beta_eff_source": beta.source,
+        "beta_eff_range": beta.range_note,
+        "V_K_own_beta": f"{r.own.V_K:.6g}",
+        "tau_K_own_beta": f"{r.own.tau_K:.6g}",
+        "verdict_at_own_beta": _verdict(r.own.verdict_pass),
+        "regime_at_own_beta": r.own.regime,
+        "V_K_beta0.28": f"{r.literature.V_K:.6g}",
+        "tau_K_beta0.28": f"{r.literature.tau_K:.6g}",
+        "verdict_at_0.28": _verdict(r.literature.verdict_pass),
+        "regime_at_0.28": r.literature.regime,
+        "verdict_changed": r.verdict_changed,
+        **{
+            f"verdict_kappa_{kt:g}_own_beta": _verdict(r.own.kappa_verdicts[kt])
+            for kt in KAPPA_TARGET_GRID
+        },
+        **{
+            f"verdict_kappa_{kt:g}_beta0.28": _verdict(r.literature.kappa_verdicts[kt])
+            for kt in KAPPA_TARGET_GRID
+        },
+        "beta_probe_grid": " ".join(f"{b:g}" for b in sorted(r.beta_probe_verdicts)),
+        "beta_probe_verdicts": " ".join(
+            _verdict(r.beta_probe_verdicts[b]) for b in sorted(r.beta_probe_verdicts)
+        ),
+        "flip_on_beta_grid": r.flips_on_beta_grid,
+        "fails_at_every_probed_beta": r.fails_at_every_probed_beta,
+        "flip_on_kappa_grid_own_beta": r.own.flips_on_kappa_grid,
+        "passes_at_most_lenient_kappa_own_beta": r.own.passes_at_most_lenient_kappa,
+        "exponent_circularity": r.exponent_circularity,
+        "is_calibration": r.design.is_calibration,
+        "provenance": r.design.provenance,
+    }
+
+
+def write_results(rows: list[Classification], out: Path = RESULTS_CSV) -> None:
+    fieldnames = _fieldnames()
     tmp = out.with_suffix(".csv.tmp")
     with tmp.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
         writer.writeheader()
         for r in rows:
-            beta = r.design.beta_eff
-            writer.writerow(
-                {
-                    "key": r.design.key,
-                    "citation": r.design.citation,
-                    "arxiv_id": r.design.arxiv_id,
-                    "K": r.K,
-                    "k_distinct": " ".join(f"{k:g}" for k in r.k_distinct),
-                    "k_list_source": r.design.k_list_source,
-                    "protocol": r.design.protocol,
-                    "protocol_source": r.design.protocol_source,
-                    "law_family": beta.law_family,
-                    "beta_eff_symbol": beta.symbol,
-                    "beta_eff": f"{beta.value:g}",
-                    "beta_eff_reported": beta.reported,
-                    "beta_eff_from_classified_fit": beta.from_classified_fit,
-                    "beta_eff_source": beta.source,
-                    "beta_eff_range": beta.range_note,
-                    "V_K_own_beta": f"{r.own.V_K:.6g}",
-                    "tau_K_own_beta": f"{r.own.tau_K:.6g}",
-                    "verdict_at_own_beta": _verdict(r.own.verdict_pass),
-                    "regime_at_own_beta": r.own.regime,
-                    "V_K_beta0.28": f"{r.literature.V_K:.6g}",
-                    "tau_K_beta0.28": f"{r.literature.tau_K:.6g}",
-                    "verdict_at_0.28": _verdict(r.literature.verdict_pass),
-                    "regime_at_0.28": r.literature.regime,
-                    "verdict_changed": r.verdict_changed,
-                    **{
-                        f"verdict_kappa_{kt:g}_own_beta": _verdict(r.own.kappa_verdicts[kt])
-                        for kt in KAPPA_TARGET_GRID
-                    },
-                    **{
-                        f"verdict_kappa_{kt:g}_beta0.28": _verdict(r.literature.kappa_verdicts[kt])
-                        for kt in KAPPA_TARGET_GRID
-                    },
-                    "beta_probe_grid": " ".join(f"{b:g}" for b in sorted(r.beta_probe_verdicts)),
-                    "beta_probe_verdicts": " ".join(
-                        _verdict(r.beta_probe_verdicts[b]) for b in sorted(r.beta_probe_verdicts)
-                    ),
-                    "flip_on_beta_grid": r.flips_on_beta_grid,
-                    "fails_at_every_probed_beta": r.fails_at_every_probed_beta,
-                    "flip_on_kappa_grid_own_beta": r.own.flips_on_kappa_grid,
-                    "passes_at_most_lenient_kappa_own_beta": r.own.passes_at_most_lenient_kappa,
-                    "exponent_circularity": r.exponent_circularity,
-                    "is_calibration": r.design.is_calibration,
-                    "provenance": r.design.provenance,
-                }
-            )
+            writer.writerow(_row(r))
     tmp.replace(out)
+
+
+def _print_beta_comparison(corpus: list[Classification], flips: list[Classification]) -> None:
+    """The verdicts at the old corpus-wide beta_eff, and the designs whose verdict flips."""
+    print("-" * 72)
+    lit_pass = sum(r.literature.verdict_pass for r in corpus)
+    print(
+        f"comparison at the old corpus-wide beta_eff = {COMPARISON_BETA_EFF}: "
+        f"{lit_pass} pass / {len(corpus) - lit_pass} fail"
+    )
+    print(f"verdict changes under per-paper exponents: {len(flips)}")
+    for r in flips:
+        beta = r.design.beta_eff
+        print(
+            f"  {r.design.key:<24s} {_verdict(r.literature.verdict_pass)} -> "
+            f"{_verdict(r.own.verdict_pass)}   ({beta.symbol} = {beta.value:g})"
+        )
+
+
+def _print_circularity(fails: list[Classification]) -> None:
+    """Failing rows whose beta_eff came from the classified fit, and whether they hold."""
+    print("-" * 72)
+    circular = [r for r in fails if r.exponent_circularity]
+    print(f"failing rows whose beta_eff came from the classified fit itself: {len(circular)}")
+    for r in circular:
+        robust = (
+            "fails at every probed beta"
+            if r.fails_at_every_probed_beta
+            else "VERDICT DEPENDS ON beta"
+        )
+        print(f"  {r.design.key:<24s} beta_eff={r.design.beta_eff.value:<7g} {robust}")
+
+
+def _print_calibrations(rows: list[Classification]) -> None:
+    """Each calibration design's verdicts."""
+    for r in (r for r in rows if r.design.is_calibration):
+        print("-" * 72)
+        print(
+            f"calibration [{r.design.key}]: K={r.K} "
+            f"verdict_at_own_beta={_verdict(r.own.verdict_pass)} "
+            f"({r.design.beta_eff.symbol}={r.design.beta_eff.value:g}) "
+            f"verdict_at_0.28={_verdict(r.literature.verdict_pass)}"
+        )
 
 
 def print_summary(candidates: list[dict[str, str]], rows: list[Classification]) -> None:
@@ -325,39 +377,9 @@ def print_summary(candidates: list[dict[str, str]], rows: list[Classification]) 
         + (f" [{', '.join(r.design.key for r in unreported)}]" if unreported else "")
     )
 
-    print("-" * 72)
-    lit_pass = sum(r.literature.verdict_pass for r in corpus)
-    print(
-        f"comparison at the old corpus-wide beta_eff = {COMPARISON_BETA_EFF}: "
-        f"{lit_pass} pass / {len(corpus) - lit_pass} fail"
-    )
-    print(f"verdict changes under per-paper exponents: {len(flips)}")
-    for r in flips:
-        beta = r.design.beta_eff
-        print(
-            f"  {r.design.key:<24s} {_verdict(r.literature.verdict_pass)} -> "
-            f"{_verdict(r.own.verdict_pass)}   ({beta.symbol} = {beta.value:g})"
-        )
-
-    print("-" * 72)
-    circular = [r for r in fails if r.exponent_circularity]
-    print(f"failing rows whose beta_eff came from the classified fit itself: {len(circular)}")
-    for r in circular:
-        robust = (
-            "fails at every probed beta"
-            if r.fails_at_every_probed_beta
-            else "VERDICT DEPENDS ON beta"
-        )
-        print(f"  {r.design.key:<24s} beta_eff={r.design.beta_eff.value:<7g} {robust}")
-
-    for r in (r for r in rows if r.design.is_calibration):
-        print("-" * 72)
-        print(
-            f"calibration [{r.design.key}]: K={r.K} "
-            f"verdict_at_own_beta={_verdict(r.own.verdict_pass)} "
-            f"({r.design.beta_eff.symbol}={r.design.beta_eff.value:g}) "
-            f"verdict_at_0.28={_verdict(r.literature.verdict_pass)}"
-        )
+    _print_beta_comparison(corpus, flips)
+    _print_circularity(fails)
+    _print_calibrations(rows)
     print("=" * 72)
 
 
