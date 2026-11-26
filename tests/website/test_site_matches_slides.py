@@ -21,7 +21,9 @@ def frame_titles(tex: str) -> list[str]:
 
 
 def page_sections(html: str) -> list[str]:
-    return [t for t in re.findall(r'<h2 class="title is-3">([^<]*)</h2>', html) if t not in PAGE_ONLY]
+    return [
+        t for t in re.findall(r'<h2 class="title is-3">([^<]*)</h2>', html) if t not in PAGE_ONLY
+    ]
 
 
 def test_one_section_per_slide_in_order() -> None:
@@ -42,6 +44,8 @@ def test_every_page_citation_resolves() -> None:
 
 
 def test_page_shows_only_figures_the_deck_shows() -> None:
-    deck_figs = {Path(f).stem for f in re.findall(r"\\includegraphics(?:\[[^]]*\])?\{([^}]*)\}", DECK)}
+    deck_figs = {
+        Path(f).stem for f in re.findall(r"\\includegraphics(?:\[[^]]*\])?\{([^}]*)\}", DECK)
+    }
     page_figs = {Path(f).stem for f in re.findall(r'<img src="static/images/([^"]+)"', PAGE)}
     assert page_figs <= deck_figs, page_figs - deck_figs
