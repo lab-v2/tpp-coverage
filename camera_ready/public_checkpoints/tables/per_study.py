@@ -48,10 +48,10 @@ def admitted(runs: pd.DataFrame, corpus: str) -> list[str]:
     return [c for c, g in sub.groupby("cell") if screen_cell(g, c).included]
 
 
-def study_row(prefix: str, g: pd.DataFrame) -> dict:
+def study_row(prefix: str, g: pd.DataFrame) -> dict[str, object]:
     tpp = g["D"] / g["N"]
     per_cell = g.groupby("cell")["N"].nunique()
-    in_win: set = set()
+    in_win: set[tuple[str, float]] = set()
     n_windows = 0
     for c, gc in g.groupby("cell"):
         ws = build_windows(c, gc["N"].unique())

@@ -17,6 +17,7 @@ import argparse
 import multiprocessing as mp
 import os
 import zlib
+from collections.abc import Sequence
 from pathlib import Path
 
 for _v in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
@@ -104,9 +105,9 @@ def est(
     y: str,
     x: str | list[str],
     fe: str = "cell",
-    cluster=("cell", "window"),
+    cluster: Sequence[str] = ("cell", "window"),
     group: str = "cell",
-    weights=None,
+    weights: np.ndarray | None = None,
     n_boot: int = BIG,
     block: int = 1,
     seed: int = 20260802,
@@ -161,7 +162,9 @@ def cluster_medians(
     return d2
 
 
-def _median_job(job):
+def _median_job(
+    job: tuple[tuple[object, ...], np.ndarray, list[list[np.ndarray]], str],
+) -> tuple[tuple[object, ...], dict[str, float]]:
     tag, vals, groups, seedkey = job
     # crc32, not hash(): str hashes are salted per process, which made these CIs irreproducible.
     rng = np.random.default_rng(zlib.crc32(seedkey.encode()))
@@ -203,18 +206,22 @@ def window_groups(sub: pd.DataFrame) -> list[list[np.ndarray]]:
 
     These are the units `_median_job` resamples within cell, as CRITERIA E2 does.
     """
-    by_cell: dict[str, list] = {}
+    by_cell: dict[str, list[np.ndarray]] = {}
     for (cc, _), ix in sub.reset_index(drop=True).groupby(["cell", "window"]).indices.items():
         by_cell.setdefault(cc, []).append(np.asarray(ix))
     return list(by_cell.values())
 
 
-def median_task(tag: tuple, sub: pd.DataFrame, gap: str, seedkey: str) -> tuple:
+def median_task(
+    tag: tuple[object, ...], sub: pd.DataFrame, gap: str, seedkey: str
+) -> tuple[tuple[object, ...], np.ndarray, list[list[np.ndarray]], str]:
     """The `_median_job` input for the gaps of `sub`; `seedkey` names its random stream."""
     return tag, sub[gap].to_numpy(float), window_groups(sub), seedkey
 
 
-def dose_jobs(df: pd.DataFrame, label: str):
+def dose_jobs(
+    df: pd.DataFrame, label: str
+) -> list[tuple[tuple[object, ...], np.ndarray, list[list[np.ndarray]], str]]:
     """One job per (arm, kappa, joint regime cell) - the A3.2 table, unmodified."""
     jobs = []
     for arm, gap in (("NC", "gap_offray"), ("NCM", "gap_offray_ncm")):
@@ -247,7 +254,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--skip-x", action="store_true")
     args = ap.parse_args(argv)
 
-    rows: list[dict] = []
+    rows: list[dict[str, object]] = []
 
     def rec(section, spec, arm, corpus, stratum, e5: Estimate, e512: Estimate, note=""):
         chg = ""
@@ -366,21 +373,21 @@ def main(argv: list[str] | None = None) -> None:
         ]
         for spec, y, x, fe, w, arm in specs:
 
-            def f(ns, y=y, x=x, fe=fe, w=w):
+            def f(ns: int, y: str = y, x: str = x, fe: str = fe, w: str | None = w) -> Estimate:
                 d = big[big["seed"] < ns]
                 return est(d, y, x, fe=fe, weights=suite_weights(d) if w else None)
 
             rec("1 primary", spec, arm, corpus, "all", *pair(f))
         for law in sorted(big["law"].unique()):
 
-            def f(ns, law=law):
+            def f(ns: int, law: str = law) -> Estimate:
                 d = big[(big["seed"] < ns) & (big["law"] == law)]
                 return est(d, "gap_offray", "Delta_NC")
 
             rec("1 primary", f"law = {law}", "NC", corpus, "all", *pair(f))
         for b in C.BETA_GRID:
 
-            def f(ns, b=b):
+            def f(ns: int, b: float = b) -> Estimate:
                 return est(beta_delta(big[big["seed"] < ns], b), "gap_offray", "Delta_NC")
 
             rec("1 primary", f"C2 beta_eff = {b}", "NC", corpus, "all", *pair(f))
@@ -394,7 +401,7 @@ def main(argv: list[str] | None = None) -> None:
         for suite in sorted(big["suite"].unique()):
             sd = float(big.loc[big["suite"] == suite, "Delta_NC"].std())
 
-            def f(ns, suite=suite):
+            def f(ns: int, suite: str = suite) -> Estimate:
                 d = big[(big["seed"] < ns) & (big["suite"] == suite)]
                 fe = "cell" if d["cell"].nunique() > 1 else "_one"
                 return est(d, "gap_offray", "Delta_NC", fe=fe, n_boot=50_000)
@@ -404,7 +411,7 @@ def main(argv: list[str] | None = None) -> None:
         print(f"\n  --- {corpus}-corpus: leave-one-suite-out, pooled no-FE (POST-HOC) ---")
         for suite in sorted(big["suite"].unique()):
 
-            def f(ns, suite=suite):
+            def f(ns: int, suite: str = suite) -> Estimate:
                 d = big[(big["seed"] < ns) & (big["suite"] != suite)]
                 return est(d, "gap_offray", "Delta_NC", fe="_one")
 
@@ -412,7 +419,7 @@ def main(argv: list[str] | None = None) -> None:
         print(f"\n  --- {corpus}-corpus: leave-one-suite-out, cell FE (POST-HOC) ---")
         for suite in sorted(big["suite"].unique()):
 
-            def f(ns, suite=suite):
+            def f(ns: int, suite: str = suite) -> Estimate:
                 d = big[(big["seed"] < ns) & (big["suite"] != suite)]
                 return est(d, "gap_offray", "Delta_NC", fe="cell")
 
@@ -427,7 +434,7 @@ def main(argv: list[str] | None = None) -> None:
             ("no FE, suite-weighted", "_one", "sw"),
         ):
 
-            def f(ns, fe=fe, w=w):
+            def f(ns: int, fe: str = fe, w: str | None = w) -> Estimate:
                 d = big[(big["seed"] < ns) & (big["CO_k_min"] >= 1.0)]
                 return est(
                     d, "gap_offray", "Delta_NC", fe=fe, weights=suite_weights(d) if w else None
@@ -447,7 +454,7 @@ def main(argv: list[str] | None = None) -> None:
         for arm, gap in (("NC", "gap_offray"), ("NCM", "gap_offray_ncm")):
             for i, term in enumerate(("b0 Delta", "b1 Delta x logN", "b2 logN")):
 
-                def f(ns, arm=arm, gap=gap, i=i):
+                def f(ns: int, arm: str = arm, gap: str = gap, i: int = i) -> Estimate:
                     d = big[big["seed"] < ns].copy()
                     d["logN_c"] = d["logN"] - big["logN"].mean()
                     d["_ix"] = d[f"Delta_{arm}"] * d["logN_c"]

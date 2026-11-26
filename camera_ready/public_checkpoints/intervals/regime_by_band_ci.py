@@ -48,7 +48,7 @@ def load_corpora(results: str, results_x: str | None) -> dict[str, pd.DataFrame]
     return {corpus: EST.prepare(path) for corpus, path in paths.items()}
 
 
-def median_table(jobs: list[tuple], keys: Sequence[str], workers: int) -> pd.DataFrame:
+def median_table(jobs: list[tuple[object, ...]], keys: Sequence[str], workers: int) -> pd.DataFrame:
     """Run `estimate._median_job` over `jobs` in parallel, one row per job.
 
     The job's tag fills the columns `keys`; `n_cells` is the number of cells its windows
@@ -66,7 +66,7 @@ def median_table(jobs: list[tuple], keys: Sequence[str], workers: int) -> pd.Dat
     return out
 
 
-def band_jobs(df: pd.DataFrame, corpus: str) -> list[tuple]:
+def band_jobs(df: pd.DataFrame, corpus: str) -> list[tuple[object, ...]]:
     """One job per (kappa_target, regime cell, stratum) that holds any pair."""
     jobs = []
     for kappa in C.KAPPA_GRID:

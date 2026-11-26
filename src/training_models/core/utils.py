@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 import tiktoken
 from tqdm import tqdm
@@ -28,7 +29,7 @@ from training_models.models import ModelConfig
 # ============================================================================
 
 # Round target → architecture spec
-_ROUND_TARGET_TO_ARCHITECTURE: dict[int, dict] = {
+_ROUND_TARGET_TO_ARCHITECTURE: dict[int, dict[str, int]] = {
     5_000_000: dict(d_model=24, n_layers=24, n_heads=12, d_ff=96),
     10_000_000: dict(d_model=48, n_layers=12, n_heads=1, d_ff=192),
     14_000_000: dict(d_model=64, n_layers=24, n_heads=32, d_ff=256),
@@ -49,7 +50,7 @@ _ROUND_TARGET_TO_ARCHITECTURE: dict[int, dict] = {
 }
 
 # True parameter count → architecture spec (HF filename `m{N}` → architecture)
-_TRUE_N_TO_ARCHITECTURE: dict[int, dict] = {
+_TRUE_N_TO_ARCHITECTURE: dict[int, dict[str, int]] = {
     5_035_656: dict(d_model=24, n_layers=24, n_heads=12, d_ff=96),
     10_070_160: dict(d_model=48, n_layers=12, n_heads=1, d_ff=192),
     14_411_456: dict(d_model=64, n_layers=24, n_heads=32, d_ff=256),
@@ -67,7 +68,7 @@ _TRUE_N_TO_ARCHITECTURE: dict[int, dict] = {
 }
 
 # Combined lookup: accepts either a round target or a true parameter count.
-PUBLISHED_ARCHITECTURES: dict[int, dict] = {
+PUBLISHED_ARCHITECTURES: dict[int, dict[str, int]] = {
     **_ROUND_TARGET_TO_ARCHITECTURE,
     **_TRUE_N_TO_ARCHITECTURE,
 }

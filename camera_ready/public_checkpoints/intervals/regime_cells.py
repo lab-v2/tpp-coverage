@@ -49,7 +49,9 @@ from regime_by_band_ci import GAP, band_jobs, load_corpora
 KEYS = ["family", "corpus", "kappa", "cell", "band"]
 
 
-def table7_jobs(df: pd.DataFrame, corpus: str) -> list[tuple]:
+def table7_jobs(
+    df: pd.DataFrame, corpus: str
+) -> list[tuple[tuple[object, ...], np.ndarray, list[list[np.ndarray]], str]]:
     """The Regime-A pairs of the collinear-subset rule at each law's own exponent."""
     m = np.where(df["law"].to_numpy() == "Kaplan", df["CO_m_beta0.1"], df["CO_m_beta0.28"])
     m = np.where(np.isfinite(m.astype(float)), m.astype(float), -np.inf)
@@ -64,7 +66,9 @@ def table7_jobs(df: pd.DataFrame, corpus: str) -> list[tuple]:
     return jobs
 
 
-def jobs_for(df: pd.DataFrame, corpus: str) -> list[tuple]:
+def jobs_for(
+    df: pd.DataFrame, corpus: str
+) -> list[tuple[tuple[object, ...], np.ndarray, list[list[np.ndarray]], str]]:
     """Every job of the four families for one corpus, tagged with `KEYS`."""
     out = [
         (("joint", corpus, kappa, cell, "all"), *rest)

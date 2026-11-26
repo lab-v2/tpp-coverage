@@ -65,7 +65,7 @@ def draws(task: tuple[str, int, int]) -> tuple[str, int, np.ndarray]:
     )
 
 
-def row(name: str, stream: str, seed: int, d: np.ndarray) -> dict:
+def row(name: str, stream: str, seed: int, d: np.ndarray) -> dict[str, object]:
     lo, hi = np.percentile(d, [2.5, 97.5])
     return {
         "statistic": name,
