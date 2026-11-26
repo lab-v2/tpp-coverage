@@ -427,6 +427,24 @@ def _site_files(repo: Path) -> set[str]:
     return out
 
 
+def title_logos(tex: str) -> tuple[list[str], list[str]]:
+    """Logo stems above and below the title on the deck's title slide, in order."""
+    body = re.search(r"\\begin\{frame\}\[plain\](.*?)\\end\{frame\}", tex, re.S)[1]
+    cut = body.index("\\inserttitle")
+    stems = lambda t: [
+        Path(g).stem for g in re.findall(r"\\includegraphics(?:\[[^]]*\])?\{([^}]*)\}", t)
+    ]
+    return stems(body[:cut]), stems(body[cut:])
+
+
+def page_logos(page: str) -> tuple[list[str], list[str]]:
+    """Logo stems above and below the page's h1, in order."""
+    hero = page[: page.index("</section>")]
+    cut = hero.index("<h1")
+    stems = lambda t: [Path(g).stem for g in re.findall(r'<img src="images/([^"]*)"', t)]
+    return stems(hero[:cut]), stems(hero[cut:])
+
+
 def problems(deck: str, page: str, repo: Path = REPO) -> list[str]:
     """Every way the page departs from the deck; empty when it follows it."""
     out: list[str] = []
@@ -435,6 +453,10 @@ def problems(deck: str, page: str, repo: Path = REPO) -> list[str]:
             out.append(f"{label}: em dash")
         out += [f"{label}: author name {bad!r}" for bad in WRONG_NAME.findall(text)]
     p = parse_page(page)
+
+    # The header places each logo above or below the title as the deck's title slide does.
+    if page_logos(page) != title_logos(deck):
+        out.append(f"header logos {page_logos(page)} != title slide logos {title_logos(deck)}")
 
     # The header's and the BibTeX's authors are the deck's.
     authors = deck_authors(deck)
@@ -666,6 +688,11 @@ PLANTED = [
         "alt text replaced",
         'alt="Holdout R^2 vs. share of TPP levels used, Kaplan on RedPajama"',
         'alt="A figure"',
+    ),
+    (
+        "NeurIPS logo moved below the title",
+        '<div class="logos mb-3">\n        <a href="https://neurips.cc/"><img src="images/neurips.svg" alt="NeurIPS"></a>\n      </div>\n',
+        "",
     ),
     (
         "extra text in a citation link",
