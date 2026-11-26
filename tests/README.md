@@ -7,7 +7,7 @@ component of the same name; `conftest.py` holds the shared paths and helpers.
 
 | Folder | Tests |
 |---|---|
-| `tpp_analysis/` | `src/tpp_analysis/`: law recovery on synthetic data, the Skaling law, the job generator against the released runs, the anonymous download, the paper's main analysis refit from scratch against the released results, and characterization tests of the analysis modules (subfolders mirror `src/tpp_analysis/`) |
+| `tpp_analysis/` | `src/tpp_analysis/`: law recovery on synthetic data, the Skaling law, the job generator against the released runs, the anonymous download, the paper's main analysis refit from scratch against the released results, and characterization tests of the analysis modules (subfolders mirror `src/tpp_analysis/`; `scripts/` holds its top-level scripts) |
 | `training_models/` | `src/training_models/`: the trainer's loss masking, gradient accumulation, optimizers and schedules |
 | `large_scale/` | `large_scale/` and `src/tpp_large_scale/`: correctness, determinism, the pipeline |
 | `camera_ready/` | `camera_ready/`: both analyses rerun against their committed outputs |
