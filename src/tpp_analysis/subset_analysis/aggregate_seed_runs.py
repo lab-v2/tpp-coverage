@@ -597,6 +597,16 @@ def plot_raw_wins_combined_per_dataset_ci(
 # ─────────────────────────────────────────────────────────────────────────
 # Plots
 # ─────────────────────────────────────────────────────────────────────────
+def _percent_ylim(ax: plt.Axes, top: float = 100.0) -> None:
+    """Frame a win-percentage y axis at (0, top), widened to any plotted point outside it.
+
+    A percentage lies in [0, 100], so the frame is unchanged for one; `top` above 100 leaves
+    room for labels drawn above the bars, and the same room is kept above data that pass 100.
+    """
+    lo, hi = ax.dataLim.intervaly
+    ax.set_ylim(min(0.0, lo), max(top, hi + (top - 100.0)))
+
+
 def plot_per_law_ci(agg_law: pd.DataFrame, kappa_targets: np.ndarray, out_dir: Path, mode="first"):
     """Stacked 3-panel dual-axis plot: line with shaded CI + |Regime A|
     with its own lighter-grey CI band."""
@@ -621,7 +631,7 @@ def plot_per_law_ci(agg_law: pd.DataFrame, kappa_targets: np.ndarray, out_dir: P
             sub["log10_kappa_target"], sub["ci_lo"], sub["ci_hi"], color=color, alpha=0.25
         )
         ax_w.axhline(50, color="black", linestyle=":", linewidth=1.0, alpha=0.5)
-        ax_w.set_ylim(0, 100)
+        _percent_ylim(ax_w)
         ax_w.set_xlim(xmin, xmax)
         ax_w.set_ylabel(f"{law}\nNC-wins % in Regime A", color=color)
         ax_w.tick_params(axis="y", labelcolor=color)
@@ -698,7 +708,7 @@ def plot_small_multiples_ci(agg_cell: pd.DataFrame, kappa_targets, out_dir: Path
                 cell["log10_kappa_target"], cell["ci_lo"], cell["ci_hi"], color=color, alpha=0.25
             )
             ax.axhline(50, color="black", linestyle=":", linewidth=0.8, alpha=0.5)
-            ax.set_ylim(0, 100)
+            _percent_ylim(ax)
             ax.set_xlim(xmin, xmax)
             ax.grid(True, alpha=0.25, linewidth=0.4)
             ax.xaxis.set_major_locator(mticker.MultipleLocator(1))
@@ -810,7 +820,7 @@ def plot_bars_ci(
     ax.set_xticklabels([rf"$10^{{{int(np.log10(k))}}}$" for k in kt_values])
     ax.set_xlabel(r"$\kappa_{\mathrm{target}}$")
     ax.set_ylabel("NC-wins % within predicted Regime A (mean ± 95% CI)")
-    ax.set_ylim(0, 115)
+    _percent_ylim(ax, top=115.0)
     ax.legend(loc="upper right")
     ax.grid(True, axis="y", alpha=0.25, linewidth=0.5)
     fig.tight_layout()

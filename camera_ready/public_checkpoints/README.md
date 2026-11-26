@@ -8,9 +8,10 @@ per-run losses with recoverable (N, D) and a two-dimensional core of model sizes
 ratios: Farseer, the Chinchilla isoFLOP sweep, Gemstones (annealed and constant-LR), Gadre et
 al., the OLMo ladder, DataDecide, MAD, GPT-3 curves and OPT trajectories. The first five give
 984 fully trained runs (the E corpus); the last five add 11,547 mid-training checkpoints,
-each a further (N, D) point (the X corpus: 12,531 points, the 984 included). Within a study and a window of adjacent model sizes, we carve a collinear and a
-non-collinear training subset of equal size, classify both with V_K and tau_K, fit the law to
-each, and score both on the same held-out runs off their TPP range. The protocol was
+each a further (N, D) point (the X corpus: 12,531 points, the 984 included). Within a study and a window of adjacent
+model sizes, we carve a collinear and a non-collinear training subset of equal size. We classify
+both with V_K and tau_K, fit the law to each, and score both on the same held-out runs off their
+TPP range. The protocol was
 pre-registered before any loss was read: [`CRITERIA.md`](CRITERIA.md).
 
 ## Headline numbers
@@ -31,11 +32,11 @@ The two ratio intervals pool 30 seeds' window-cluster draws (300,000); one strea
 draws (`vk_ratio_boot.csv`, `ratio_of_medians_boot.csv`) gives [2.1, 5.5] and [0.20, 1.32].
 
 Win rates by regime are in `results/regime_cells.csv` (intervals at 200,000 draws) and
-`results/doseresponse_seeds512.csv` (2,000): where the criterion puts CO in Regime A and NC in
-Regime B, NC wins 59%, 61% and 76% of pairs at kappa_target = 1e4, 1e5 and 1e6; in the large
+`results/doseresponse_seeds512.csv` (2,000). Where the criterion puts CO in Regime A and NC in
+Regime B, NC wins 59%, 61% and 76% of pairs at kappa_target = 1e4, 1e5 and 1e6. In the large
 same-regime cells it wins 44-47%. The `band` rows of `regime_cells.csv` repeat these arms
 inside each size band. Classified by its collinear design alone (the `coonly` rows), every
-pair is in Regime A at kappa_target = 100, where NC wins 47% (E) and 50% (X); at 1e4, 1e5 and
+pair is in Regime A at kappa_target = 100, where NC wins 47% (E) and 50% (X). At 1e4, 1e5 and
 1e6 it wins 58%, 61% and 76% (E) and 58%, 56% and 76% (X).
 
 ## Reproduce
@@ -78,9 +79,7 @@ uv run python tables/tables_tex.py
 uv run python tables/tables_a5_tex.py
 ```
 
-The times are on 480 cores. The table writers read the committed CSVs in `results/` by
-default; pass `--per-study`, `--estimates`, `--regime-cells` or `--amendment5` to build the
-tables from a rerun.
+The times are on 480 cores.
 
 `get_runs.py` downloads the two normalised tables published with the paper
 ([`leibnitz-lab/public_checkpoint_reanalysis`](https://huggingface.co/datasets/leibnitz-lab/public_checkpoint_reanalysis));
@@ -128,25 +127,5 @@ Each folder has a README with what the appendix prints from each output:
 | Scale paragraph and the two Amendment-5 tables | `amendments/amendment5_1b.py`, `tables/tables_a5_tex.py` | `amendment5_1b.csv`, `tables/public_checkpoints_1b.tex`, `tables/public_checkpoints_windows.tex` |
 | The margin ratio and its intervals | `vk_ratio.py`, `intervals/vk_ratio_seeds.py`, `intervals/vk_ratio_boot.py` | `vk_ratio.csv`, `vk_ratio_seeds.csv`, `vk_ratio_boot_ge1B_windows.csv` |
 
-`tests/camera_ready/test_public_checkpoints.py` refits two studies from the downloaded tables and requires
-the committed rows back, rebuilds every margin, and checks the 5-seed estimates and the
-headline numbers above. A full rerun of the E corpus reproduces `results_E.csv` exactly.
-`tests/camera_ready/test_public_checkpoints_intervals.py` and `test_public_checkpoints_amendments.py`
-check the values the appendix prints against the committed outputs of `intervals/` and
-`amendments/`, run each script on the committed seeds 0-7 slice against a direct computation,
-and, when `results_E_seeds512.csv` and `results_X_seeds512.csv.gz` (and, for Amendment 5, the
-`results_E_win<V>.csv` tables) are in the work directory, rerun each script and require its
-committed output back. The repository ships only seeds 0-7 of the E enumeration
-(`results/results_E_seeds512_seeds0-7.csv.gz`), so without the full tables the rerun tests skip
-and name the missing file. A passing suite has then checked the printed values against the
-committed outputs and each script on the seeds 0-7 slice; it has not rebuilt the 512-seed
-outputs. Writing the tables with `enumerate_seeds.py` (see Reproduce) runs those tests too.
-`tests/camera_ready/test_public_checkpoints_tables.py` rebuilds the five table bodies from the
-committed CSVs byte for byte, checks the printed study counts, and reruns `per_study.py` on the
-downloaded tables.
-
-The interval columns of the committed `results/doseresponse_seeds512.csv` were drawn with
-Python's per-process string hash as the seed, which changes from one process to the next, so no
-rerun repeats them. `estimate.py` now seeds them with a CRC32 of the cell label, and a rerun
-gives slightly different bounds. The table's medians and win rates do not depend on that seed,
-and the appendix takes its regime intervals from `regime_cells.csv` (200,000 draws) instead.
+The tests, building the tables from a rerun, and why the committed dose-response intervals do
+not repeat: [Public-checkpoint tests and reruns](../../docs/PUBLIC_CHECKPOINTS_TESTS.md).

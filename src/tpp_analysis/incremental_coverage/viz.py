@@ -77,6 +77,17 @@ def _apply_ylim(ax, y_min: Optional[float], y_max: Optional[float]):
         ax.set_ylim(new_min, new_max)
 
 
+def _coverage_xlim(ax: plt.Axes) -> None:
+    """Frame a coverage-fraction x axis at (-0.02, 1.05), widened to any plotted point outside it.
+
+    Coverage fractions lie in [0, 1], so the frame is unchanged for them; a column plotted on x
+    that leaves that range widens it instead of being cut. `dataLim` is (inf, -inf) before
+    anything is drawn, which leaves the frame as it is.
+    """
+    lo, hi = ax.dataLim.intervalx
+    ax.set_xlim(min(-0.02, lo - 0.02), max(1.05, hi + 0.02))
+
+
 def _filter_mode(df: pd.DataFrame, mode_filter: Optional[str]) -> pd.DataFrame:
     """Filter dataframe to a single mode if specified."""
     if mode_filter is None:
@@ -138,7 +149,7 @@ def plot_r2_convergence(
             )
             laws_seen.append(law_name)
         _style_ax(ax, "Coverage Fraction", ylabel if ax == axes[0] else "", f"{design}-Trained")
-        ax.set_xlim(-0.02, 1.05)
+        _coverage_xlim(ax)
         _apply_ylim(ax, y_min, y_max)
         _law_legend(ax, laws_seen)
 
@@ -202,7 +213,7 @@ def plot_delta_convergence(
             f"ΔR² ({label})" if ax == axes[0] else "",
             f"{design}-Trained",
         )
-        ax.set_xlim(-0.02, 1.05)
+        _coverage_xlim(ax)
         _apply_ylim(ax, y_min, y_max)
         _law_legend(ax, laws_seen, loc="lower right")
 
@@ -260,7 +271,7 @@ def plot_co_vs_nc_overlay(
                 label=design,
             )
         _style_ax(ax, "Coverage Fraction", ylabel if c == 0 else "", law_name)
-        ax.set_xlim(-0.02, 1.05)
+        _coverage_xlim(ax)
         _apply_ylim(ax, y_min, y_max)
         ax.legend(fontsize=9, loc="lower right", framealpha=0.9)
 
@@ -465,7 +476,7 @@ def plot_summary_dashboard(
             )
             laws_seen.append(law_name)
         _style_ax(ax, "", ylabel_r2 if col_idx == 0 else "", f"{design}-Trained")
-        ax.set_xlim(-0.02, 1.05)
+        _coverage_xlim(ax)
         _apply_ylim(ax, y_min_r2, y_max_r2)
         _law_legend(ax, laws_seen)
 
@@ -490,7 +501,7 @@ def plot_summary_dashboard(
             f"ΔR² ({label_short})" if col_idx == 0 else "",
             "",
         )
-        ax.set_xlim(-0.02, 1.05)
+        _coverage_xlim(ax)
         _apply_ylim(ax, y_min_delta, y_max_delta)
 
     for col_idx in range(len(designs), 2):
@@ -558,7 +569,7 @@ def plot_r2_rate_of_change(
             f"dR²/d(coverage) - {label}" if ax == axes[0] else "",
             f"{design}-Trained",
         )
-        ax.set_xlim(-0.02, 1.05)
+        _coverage_xlim(ax)
         _apply_ylim(ax, y_min, y_max)
         _law_legend(ax, laws_seen, loc="upper right")
 
@@ -629,7 +640,7 @@ def plot_mode_comparison(
             )
             modes_seen.append(mode_name)
         _style_ax(ax, "Coverage Fraction", ylabel if ax == axes[0] else "", f"{design}-Trained")
-        ax.set_xlim(-0.02, 1.05)
+        _coverage_xlim(ax)
         _apply_ylim(ax, y_min, y_max)
         handles = [
             Line2D(
@@ -732,7 +743,7 @@ def plot_single_comparison(
     ax.set_ylabel(ylabel, fontsize=label_fontsize)
     ax.tick_params(labelsize=tick_fontsize)
     ax.grid(True, alpha=0.3)
-    ax.set_xlim(-0.02, 1.05)
+    _coverage_xlim(ax)
     _apply_ylim(ax, y_min, y_max)
 
     ax.legend(fontsize=legend_fontsize, loc=legend_loc, framealpha=0.9)

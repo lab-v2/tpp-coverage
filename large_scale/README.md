@@ -15,7 +15,7 @@ uv run python large_scale/scripts/run_analysis.py --check-only  # parity with th
 uv run pytest tests/large_scale -n auto                         # this module's tests
 ```
 
-The analysis writes `results/results.json` and `results/envelope.csv`; results do not depend on
+The analysis writes `results/results.json` and `results/envelope.csv` (the min-loss grid); results do not depend on
 the worker count (`--workers`). `report.tex` hardcodes its numbers, so after a rerun that moves a
 number, compare `results/results.json` against the report's tables before rebuilding
 `report.pdf` (`latexmk -pdf report.tex`).
@@ -51,7 +51,7 @@ are [`tests/large_scale/`](../tests/large_scale) (correctness, determinism, pipe
 
 ![Design grid](figures/design_grid.png)
 
-The 29-cell envelope (best-loss run per (N, D)): blue = train (N <= 85M, 24 cells), red = 354M
+The 29-cell min-loss grid (best-loss run per (N, D)): blue = train (N <= 85M, 24 cells), red = 354M
 holdout frontier (5 cells). TikZ port of the paper's appendix grid; source in `figures/tikz/`.
 
 ## CO vs NC surface (representative pair)
@@ -82,11 +82,11 @@ training split (the $24$ cells with $N \le 85\text{M}$), new to this grid, is
 $$\mathrm{CO}(S) = \lbrace  (N_i, D_i, L_i) \in \mathcal{D}_{\mathrm{train}} : t(i) \in S \rbrace , \qquad t(i) \in \mathrm{argmin}_{\ell \in \lbrace 1, \ldots, 7\rbrace} \left| \log k_\ell - \log ( D_i / N_i^{\mathrm{tot}} ) \right|,$$
 
 where $N^{\mathrm{tot}}$ is the total (embedding-inclusive) parameter count and $N$ the
-non-embedding count used in the fit; on this grid the argmin is a singleton for every training
-cell, so $t(i)$ is well defined. Cardinality $n_S = |\mathrm{CO}(S)|$; subsets with
+non-embedding count used in the fit. On this grid the argmin is a singleton for every training
+cell $i$, so $t(i)$ is well defined. Cardinality $n_S = |\mathrm{CO}(S)|$; subsets with
 $n_S < 6$ are dropped (the Chinchilla law has five parameters).
 
-**Coverage.** Following the paper's holdout $R^2$ proposition,
+**Coverage.** Following the paper's proposition on the holdout coefficient of determination $R^2$,
 
 $$V_{K_S}(S;\ \beta_{\mathrm{eff}}) = \mathrm{Var}\left( \lbrace  k_\ell^{-\beta_{\mathrm{eff}}} : \ell \in S \rbrace  \right), \qquad \beta_{\mathrm{eff}} = 0.971,$$
 
@@ -134,7 +134,7 @@ The figure plots the win rate of the prefix sets
 $$\mathcal{P}_n' = \lbrace  \mathcal{C}_{(1)}, \ldots, \mathcal{C}_{(n)} \rbrace$$
 
 against $n = 1, \ldots, 100$: the pairs with the largest coverage ratio, where the ratio forces
-$S_{\mathrm{CO}}$ to be genuinely collinear (small denominator) rather than merely less diverse
+$S_{\mathrm{CO}}$ to be genuinely collinear (small denominator), not merely less diverse
 than $S_{\mathrm{NC}}$.
 
 ![win rate over top pairs](figures/winrate_vs_npairs.png)

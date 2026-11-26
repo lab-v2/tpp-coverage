@@ -45,8 +45,7 @@ CO_COLOR, NC_COLOR = "steelblue", "indianred"
 SIDE_ELEV, SIDE_AZIM = 16, -50
 TARGETS = np.array([20, 29, 43, 63, 93, 136, 200], float)
 BETA_EFF = 0.971
-FULL = [29, 43, 63, 93]  # (unused; kept for reference)
-CO_TPPS = [136, 200]  # representative pair (max R2 margin) from scripts/co_nc_sweep.py
+CO_TPPS = [136, 200]  # the pair with the widest R2 margin in scripts/co_nc_sweep.py
 NC_TPPS = [20, 43]
 HOLDOUT_N = 354196480  # 354M frontier = extrapolation holdout
 N_RESTARTS = 20  # match the sweep (co_nc_sweep.py)
@@ -225,6 +224,7 @@ ax.set_zlim(zlo, zhi)
 ax.view_init(elev=SIDE_ELEV, azim=SIDE_AZIM)
 ax.legend(fontsize=int(LEGEND_FS * 0.6), loc="upper left", framealpha=LEGEND_ALPHA)
 style_ticks_3d(ax)
+ax.grid(True)  # the pane grid a 3D axes draws by default, stated (Axes3D.grid takes no alpha)
 plt.tight_layout()
 out = REPO / "figures" / "surface_co_vs_nc.png"
 out.parent.mkdir(exist_ok=True)
