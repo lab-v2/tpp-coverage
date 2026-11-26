@@ -28,7 +28,7 @@ def work(pc_work):
     return pc_work
 
 
-def test_run_tables_downloaded(work):
+def test_run_tables_downloaded(work) -> None:
     path, _ = work
     expanded = pd.read_csv(path / "artifacts" / "runs_expanded.csv")
     assert set(expanded["corpus"]) == {"E", "X"}
@@ -36,7 +36,7 @@ def test_run_tables_downloaded(work):
     np.testing.assert_allclose(expanded["k"], expanded["D"] / expanded["N"], rtol=1e-9)
 
 
-def test_fits_reproduce_committed_rows(work):
+def test_fits_reproduce_committed_rows(work) -> None:
     """Fit two cells from scratch: every row equals the committed 5-seed table."""
     path, env = work
     run(
@@ -67,7 +67,7 @@ def test_fits_reproduce_committed_rows(work):
     assert_same_rows(screen, ref[ref["cell"].isin(SMALL_CELLS)], ["cell"])
 
 
-def test_margins_reproduce(work):
+def test_margins_reproduce(work) -> None:
     """margins.py rebuilds every E-corpus design and must match the committed margins."""
     path, env = work
     shutil.copy(RESULTS / "results_E.csv", path / "results_E.csv")
@@ -92,7 +92,7 @@ def test_margins_reproduce(work):
     )
 
 
-def test_seed_enumeration_reproduces_committed_rows(work):
+def test_seed_enumeration_reproduces_committed_rows(work) -> None:
     """The 512-seed enumeration, seeds 0-7, two cells: equal to the committed slice."""
     path, env = work
     run(
@@ -124,7 +124,7 @@ def test_seed_enumeration_reproduces_committed_rows(work):
     )
 
 
-def test_five_seed_estimates_match_committed():
+def test_five_seed_estimates_match_committed() -> None:
     """Point estimates on the committed 5-seed tables equal the beta_5 column of the estimates."""
     sys.path.insert(0, str(A2))
     import conditional as C
@@ -152,7 +152,7 @@ def test_five_seed_estimates_match_committed():
         ("b1 Delta x logN", "all", -14, -40, 18),  # size interaction
     ],
 )
-def test_headline_estimates(spec, stratum, pct, lo, hi):
+def test_headline_estimates(spec: str, stratum: str, pct: int, lo: int, hi: int) -> None:
     est = pd.read_csv(RESULTS / "estimates_seeds512.csv")
     row = est[
         (est["corpus"] == "E")
@@ -167,7 +167,7 @@ def test_headline_estimates(spec, stratum, pct, lo, hi):
     )
 
 
-def test_datadecide_and_vk_ratio_headlines():
+def test_datadecide_and_vk_ratio_headlines() -> None:
     est = pd.read_csv(RESULTS / "estimates_seeds512.csv")
     dd = est[(est["corpus"] == "X") & (est["spec"] == "suite = datadecide")].iloc[0]
     assert (round(dd["pct_512"]), round(dd["pct_lo_512"]), round(dd["pct_hi_512"])) == (19, 4, 35)
@@ -175,7 +175,7 @@ def test_datadecide_and_vk_ratio_headlines():
     assert round(vk[">=1B"], 1) == 3.7 and round(vk["<1B"], 1) == 5.8
 
 
-def test_regime_win_rates():
+def test_regime_win_rates() -> None:
     dr = pd.read_csv(RESULTS / "doseresponse_seeds512.csv")
     dr = dr[(dr["corpus"] == "E") & (dr["arm"] == "NC")]
     sep = dr[dr["regime_cell"] == "CO=A,NC=B"].set_index("kappa")["win_512"]
@@ -210,7 +210,7 @@ def _pct3(row: pd.Series) -> tuple[int, int, int]:
     return round(row["pct_512"]), round(row["pct_lo_512"]), round(row["pct_hi_512"])
 
 
-def test_results_paragraph_five_releases():
+def test_results_paragraph_five_releases() -> None:
     """The appendix's Results paragraph, the five fully trained releases."""
     e = _rows("E")
     suite = _rows("E", "2 per suite")
@@ -243,7 +243,7 @@ def test_results_paragraph_five_releases():
     assert _pct3(pooled.loc["drop olmo_ladder"])[1:] == (-1, 20)
 
 
-def test_results_paragraph_all_ten():
+def test_results_paragraph_all_ten() -> None:
     """The appendix's Results paragraph, all ten releases."""
     x = _rows("X")
     assert _pct3(x.loc["cell FE (PRIMARY)"]) == (4, -10, 21)
@@ -276,7 +276,7 @@ def test_results_paragraph_all_ten():
     assert _pct3(cell.loc["drop mad"]) == (28, 16, 41)
 
 
-def test_scale_paragraph_bands():
+def test_scale_paragraph_bands() -> None:
     x = _rows("X", "3 stratum")
     x = x[x["arm"] == "NC"]
     assert [round(x.loc[f"stratum {b}", "pct_512"]) for b in ("<100M", "100M-1B", ">=1B")] == [

@@ -6,13 +6,12 @@ Cluster unit = the CO subset S, i.e. the design. Comparisons sharing a design ar
 dependent; they ALSO share trained cells across designs, so this remains
 anti-conservative and is labelled as such.
 
-Vectorised: per design we precompute (wins, count), so a bootstrap replicate is
-one gather plus two sums, and all B replicates are drawn as a single
-(B, n_designs) index matrix. The whole computation is ~15 ms, so it is
-deliberately SERIAL -- a process pool here costs minutes of worker startup to
-save microseconds. The heavy fitting that produces bbox_strata.csv is what uses
-every core.
+Vectorised: (wins, count) per design, so all B replicates are one (B, n_designs) index
+gather plus two sums. It takes ~15 ms, so it is deliberately SERIAL: a process pool would
+cost minutes of startup; the fitting that produces bbox_strata.csv uses every core.
 """
+
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd

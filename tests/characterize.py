@@ -8,7 +8,6 @@ paper gate and the other tests check the numbers against the paper.
 
 Refreezing is deliberate: `TPP_FREEZE=1 uv run pytest <test>` rewrites the frozen files from the
 code as it now stands, so run it only on the base commit, never to make a failing test pass.
-
 Figures are compared by their data (line and scatter coordinates, collection vertices and
 colours, bar geometry, labels, limits, legend entries), never by image bytes.
 """
@@ -19,7 +18,7 @@ import json
 import math
 import os
 from pathlib import Path
-from typing import Any
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -45,7 +44,7 @@ def released(*patterns: str) -> Path:
     return Path(root)
 
 
-def summarize(values: Any) -> Any:
+def summarize(values: object) -> list[float] | list[str] | dict[str, object]:
     """A float array as its values when small; else its size, NaN count, sums and extremes.
 
     `wsum` weights element i by cos(i), so a reordering or a change in any one element moves it.
@@ -70,7 +69,7 @@ def summarize(values: Any) -> Any:
     }
 
 
-def observe(obj: Any) -> Any:
+def observe(obj: object) -> object:
     """A JSON-friendly view of `obj`: frames by column, arrays summarised, numbers as floats."""
     if isinstance(obj, pd.DataFrame):
         return {
@@ -99,7 +98,7 @@ def observe(obj: Any) -> Any:
     return str(obj)
 
 
-def observe_column(col: pd.Series) -> Any:
+def observe_column(col: pd.Series) -> object:
     """A numeric column summarised as an array; any other column as its values."""
     if pd.api.types.is_bool_dtype(col):
         return summarize(col.astype(float).to_numpy())
@@ -108,7 +107,7 @@ def observe_column(col: pd.Series) -> Any:
     return [observe(v) for v in col.tolist()]
 
 
-def assert_matches(observed: Any, frozen: Any, where: str = "") -> None:
+def assert_matches(observed: object, frozen: object, where: str = "") -> None:
     """Equal structure and strings; numbers equal to RTOL (NaN equals NaN)."""
     if isinstance(frozen, dict):
         assert isinstance(observed, dict), f"{where}: expected a mapping, got {observed!r:.200}"
@@ -142,7 +141,7 @@ def assert_matches(observed: Any, frozen: Any, where: str = "") -> None:
         assert observed == frozen, f"{where}: {observed!r:.300} != frozen {frozen!r:.300}"
 
 
-def _rounded(view: Any) -> Any:
+def _rounded(view: object) -> object:
     """Floats to 12 significant digits (far inside RTOL), to keep the frozen files small."""
     if isinstance(view, dict):
         return {k: _rounded(v) for k, v in view.items()}
@@ -153,7 +152,7 @@ def _rounded(view: Any) -> Any:
     return view
 
 
-def check_frozen(path: Path, observed: Any) -> None:
+def check_frozen(path: Path, observed: object) -> None:
     """Compare `observed` with the frozen file at `path`; with TPP_FREEZE=1, write it instead."""
     view = json.loads(json.dumps(observe(observed)))
     if FREEZE:
@@ -168,7 +167,7 @@ def check_frozen(path: Path, observed: Any) -> None:
 # ── Figure data ──────────────────────────────────────────────────────────
 
 
-def _color(c: Any) -> Any:
+def _color(c: object) -> object:
     from matplotlib.colors import to_hex
 
     try:
@@ -177,10 +176,10 @@ def _color(c: Any) -> Any:
         return summarize(c)
 
 
-def _lines(lines: list) -> dict:
+def _lines(lines: list[object]) -> dict[str, object]:
     """All lines of an axes: per line its size, colour, style and label; their data pooled."""
     data = [ln.get_data_3d() if hasattr(ln, "get_data_3d") else ln.get_data() for ln in lines]
-    out: dict[str, Any] = {
+    out: dict[str, object] = {
         "points": [len(d[0]) for d in data],
         "colors": [_color(ln.get_color()) for ln in lines],
         "styles": [f"{ln.get_linestyle()}|{ln.get_marker()}|{ln.get_linewidth()}" for ln in lines],
@@ -191,15 +190,15 @@ def _lines(lines: list) -> dict:
     return out
 
 
-def _pooled(arrays: list) -> np.ndarray:
+def _pooled(arrays: Iterable[object]) -> np.ndarray:
     try:
         return np.concatenate([np.asarray(a, dtype=float).ravel() for a in arrays])
     except (TypeError, ValueError):
         return np.asarray([str(v) for a in arrays for v in np.ravel(a)], dtype=object)
 
 
-def _collection(coll) -> dict:
-    out: dict[str, Any] = {"kind": type(coll).__name__}
+def _collection(coll) -> dict[str, object]:
+    out: dict[str, object] = {"kind": type(coll).__name__}
     if hasattr(coll, "_offsets3d"):
         out["xyz"] = [summarize(np.asarray(v, dtype=float)) for v in coll._offsets3d]
     elif getattr(coll, "_vec", None) is not None:
@@ -219,7 +218,7 @@ def _collection(coll) -> dict:
     return out
 
 
-def _patches(patches: list) -> dict:
+def _patches(patches: list[object]) -> dict[str, object]:
     """All patches of an axes: kinds and colours per patch, bar and polygon geometry pooled."""
     from matplotlib.patches import Polygon, Rectangle
 
@@ -236,7 +235,7 @@ def _patches(patches: list) -> dict:
     }
 
 
-def figure_data(fig) -> dict:
+def figure_data(fig) -> dict[str, object]:
     """Everything a figure shows, as data: per axes its artists, labels, limits and legend."""
     axes = []
     for ax in fig.axes:
@@ -284,10 +283,10 @@ class FigureCapture:
             fig._characterized = True
             self.figures.append(figure_data(fig))
 
-    def _open(self) -> list:
+    def _open(self) -> list[object]:
         return [self.plt.figure(n) for n in self.plt.get_fignums()]
 
-    def _on_show(self, *args, **kwargs) -> None:
+    def _on_show(self, *args: object, **kwargs: object) -> None:
         for fig in self._open():
             self._read(fig)
 
@@ -301,7 +300,7 @@ class FigureCapture:
                 self._read(f)
         self._close(fig) if fig is not None else self._close()
 
-    def __exit__(self, *exc) -> None:
+    def __exit__(self, *exc: object) -> None:
         for fig in self._open():
             self._read(fig)
         self.plt.show, self.plt.close = self._show, self._close
@@ -319,7 +318,7 @@ PARAM_COLUMNS = {
 EPOCH_PARAMS = ["A", "alpha", "B", "beta", "E", "R_star_D", "R_star_N"]
 
 
-def released_fits(table: pd.DataFrame, seed: int = 0) -> list[dict]:
+def released_fits(table: pd.DataFrame, seed: int = 0) -> list[dict[str, object]]:
     """One result dict per (dataset, law, mode, design) of the released per-seed table.
 
     The dicts have the keys `run_dataset_fits` returns (design "Colinear" / "Non-Colinear", mode
@@ -332,7 +331,9 @@ def released_fits(table: pd.DataFrame, seed: int = 0) -> list[dict]:
     for row in rows.to_dict("records"):
         law, mode = row["law"], row["mode"]
         if law == "Parametric-Epoch":
-            params: Any = {p: float(row[f"param_{p}"]) for p in EPOCH_PARAMS}
+            params: dict[str, float] | np.ndarray = {
+                p: float(row[f"param_{p}"]) for p in EPOCH_PARAMS
+            }
         else:
             params = np.array([float(row[c]) for c in PARAM_COLUMNS[law]])
         entry = {
