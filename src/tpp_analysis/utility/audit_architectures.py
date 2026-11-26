@@ -39,15 +39,16 @@ from tqdm import tqdm
 # Llama param-count formula (RoPE, SwiGLU, RMSNorm, no bias)
 # ============================================================
 
+
 def llama_param_count(d_model, n_layers, d_ff, vocab_size):
     """Parameter count for a Llama-style transformer with rotary position
     embeddings (no learned positional embeddings), SwiGLU FFN (3 weight
     matrices: gate_proj, up_proj, down_proj), and RMSNorm (1 weight, no bias).
     Matches state_dict.numel() exactly."""
     embed_params = vocab_size * d_model
-    attn_params = 4 * d_model * d_model           # Q, K, V, O - no bias
-    ff_params = d_model * d_ff * 3                # SwiGLU: gate, up, down
-    ln_params = 2 * d_model                       # 2 RMSNorm per layer
+    attn_params = 4 * d_model * d_model  # Q, K, V, O - no bias
+    ff_params = d_model * d_ff * 3  # SwiGLU: gate, up, down
+    ln_params = 2 * d_model  # 2 RMSNorm per layer
     layer_params = attn_params + ff_params + ln_params
     transformer_params = n_layers * layer_params
     final_params = d_model + vocab_size * d_model  # final RMSNorm + LM head
@@ -57,6 +58,7 @@ def llama_param_count(d_model, n_layers, d_ff, vocab_size):
 # ============================================================
 # Checkpoint inspection
 # ============================================================
+
 
 def inspect_checkpoint(path: Path):
     """Read architecture from a .pt checkpoint without GPU."""
@@ -93,6 +95,7 @@ def inspect_checkpoint(path: Path):
 # Walk + audit
 # ============================================================
 
+
 def find_checkpoints(root: Path, only_epoch=None):
     """Yield all .pt files under root."""
     for p in root.rglob("*.pt"):
@@ -114,11 +117,9 @@ def categorize_path(path: Path, root: Path):
                 "N_folder": parts[2],
                 "filename": parts[-1],
             }
-        return {"dataset": "?", "design": "?", "N_folder": "?",
-                "filename": path.name}
+        return {"dataset": "?", "design": "?", "N_folder": "?", "filename": path.name}
     except ValueError:
-        return {"dataset": "?", "design": "?", "N_folder": "?",
-                "filename": path.name}
+        return {"dataset": "?", "design": "?", "N_folder": "?", "filename": path.name}
 
 
 def audit_checkpoint(path: Path, root: Path):
@@ -146,11 +147,10 @@ def audit_checkpoint(path: Path, root: Path):
     actual_params = info["actual_total_params"]
 
     if None in (d_model, n_layers, d_ff, vocab_size):
-        return {**base, "error": "missing_config_field",
-                "internally_consistent": None, **info}
+        return {**base, "error": "missing_config_field", "internally_consistent": None, **info}
 
     predicted_params = llama_param_count(d_model, n_layers, d_ff, vocab_size)
-    consistent = (predicted_params == actual_params)
+    consistent = predicted_params == actual_params
 
     return {
         **base,
@@ -159,8 +159,7 @@ def audit_checkpoint(path: Path, root: Path):
         "n_layers": info["n_layers"],
         "n_heads": info["n_heads"],
         "d_ff": info["d_ff"],
-        "head_dim": (info["d_model"] // info["n_heads"]
-                     if info["n_heads"] else None),
+        "head_dim": (info["d_model"] // info["n_heads"] if info["n_heads"] else None),
         "vocab_size": vocab_size,
         "max_seq_len": info["max_seq_len"],
         "actual_total_params": actual_params,
@@ -177,12 +176,25 @@ def audit_checkpoint(path: Path, root: Path):
 # ============================================================
 
 AUDIT_COLS = [
-    "path", "dataset", "design", "N_folder", "filename",
-    "internally_consistent", "error",
-    "d_model", "n_layers", "n_heads", "d_ff", "head_dim",
-    "actual_total_params", "predicted_total_params",
-    "vocab_size", "max_seq_len",
-    "epoch", "train_loss", "seed",
+    "path",
+    "dataset",
+    "design",
+    "N_folder",
+    "filename",
+    "internally_consistent",
+    "error",
+    "d_model",
+    "n_layers",
+    "n_heads",
+    "d_ff",
+    "head_dim",
+    "actual_total_params",
+    "predicted_total_params",
+    "vocab_size",
+    "max_seq_len",
+    "epoch",
+    "train_loss",
+    "seed",
 ]
 
 
@@ -198,18 +210,22 @@ def write_audit(rows, out_path):
 # Main
 # ============================================================
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Audit architectures across training-run checkpoints",
     )
-    parser.add_argument("root", type=Path,
-                        help="Root directory containing .pt checkpoints")
-    parser.add_argument("--out", type=Path,
-                        default=Path("architecture_audit.csv"),
-                        help="Per-checkpoint audit CSV")
-    parser.add_argument("--only-epoch", type=int, default=None,
-                        help="Only audit checkpoints with _epoch{N} in filename "
-                             "(e.g. --only-epoch 3 for final-epoch only)")
+    parser.add_argument("root", type=Path, help="Root directory containing .pt checkpoints")
+    parser.add_argument(
+        "--out", type=Path, default=Path("architecture_audit.csv"), help="Per-checkpoint audit CSV"
+    )
+    parser.add_argument(
+        "--only-epoch",
+        type=int,
+        default=None,
+        help="Only audit checkpoints with _epoch{N} in filename "
+        "(e.g. --only-epoch 3 for final-epoch only)",
+    )
     args = parser.parse_args()
 
     if not args.root.exists():
@@ -251,10 +267,11 @@ def main():
         shown = 0
         for r in rows:
             if r.get("internally_consistent") is False:
-                print(f"  {r['dataset']}/{r['design']}/{r['N_folder']}/"
-                      f"{r['filename']}")
-                print(f"    config: d_model={r['d_model']}, n_layers={r['n_layers']}, "
-                      f"n_heads={r['n_heads']}, d_ff={r['d_ff']}")
+                print(f"  {r['dataset']}/{r['design']}/{r['N_folder']}/{r['filename']}")
+                print(
+                    f"    config: d_model={r['d_model']}, n_layers={r['n_layers']}, "
+                    f"n_heads={r['n_heads']}, d_ff={r['d_ff']}"
+                )
                 print(f"    actual params:    {r['actual_total_params']:,}")
                 print(f"    predicted params: {r['predicted_total_params']:,}")
                 shown += 1

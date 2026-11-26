@@ -38,6 +38,7 @@ def rounded(row: pd.Series, cols=("pct", "pct_lo", "pct_hi")) -> list[int]:
 
 # ── 1. the committed outputs carry the printed values ──────────────────────────────────────
 
+
 @pytest.fixture(scope="module")
 def a5() -> pd.DataFrame:
     return pd.read_csv(RESULTS / "amendment5_1b.csv").set_index(["corpus", "spec", "arm"])
@@ -55,14 +56,21 @@ def test_amendment5_as_printed(a5):
     assert rounded(smooth) == [29, 5, 50] and round(smooth["pct_one_sided_lo"]) == 9
     assert round(smooth["N_at"] / 1e9, 1) == 1.8
     # disjoint windows: two intervals contain zero, the one with 4 windows is degenerate
-    disjoint = [e.loc[(f"A5.3 {v}, 128 seeds, window cluster", "NC")]
-                for v in ("V2 (8,8)", "V3 (5,5)", "V7 (4,4)")]
+    disjoint = [
+        e.loc[(f"A5.3 {v}, 128 seeds, window cluster", "NC")]
+        for v in ("V2 (8,8)", "V3 (5,5)", "V7 (4,4)")
+    ]
     assert [int(r["n_windows"]) for r in disjoint] == [4, 6, 8]
     assert disjoint[0]["lo"] == pytest.approx(disjoint[0]["beta"], abs=1e-12)
     assert [bool(r["excludes0"]) for r in disjoint[1:]] == [False, False]
     # attenuation: the 95th percentile of the share lost, unpooled and smooth
-    assert round(100 * e.loc[("A5.4d attenuation fraction, unpooled", "NC"), "pct_one_sided_lo"]) == 112
-    assert round(100 * e.loc[("A5.4d attenuation fraction, smooth", "NC"), "pct_one_sided_lo"]) == 77
+    assert (
+        round(100 * e.loc[("A5.4d attenuation fraction, unpooled", "NC"), "pct_one_sided_lo"])
+        == 112
+    )
+    assert (
+        round(100 * e.loc[("A5.4d attenuation fraction, smooth", "NC"), "pct_one_sided_lo"]) == 77
+    )
     x = a5.loc["X"]
     assert rounded(x.loc[(pre, "NCM")]) == [40, 17, 61]
     assert rounded(x.loc[(centroid, "NC")]) == [-41, -64, -10]
@@ -73,14 +81,19 @@ def test_amendment5_agrees_with_the_estimates(a5):
     """The pre-registered row and the b1 rows are the estimates_seeds512.csv rows, recomputed."""
     est = pd.read_csv(RESULTS / "estimates_seeds512.csv")
     for corpus in ("E", "X"):
-        band = est[(est["corpus"] == corpus) & (est["spec"] == "stratum >=1B")
-                   & (est["arm"] == "NC")].iloc[0]
+        band = est[
+            (est["corpus"] == corpus) & (est["spec"] == "stratum >=1B") & (est["arm"] == "NC")
+        ].iloc[0]
         row = a5.loc[(corpus, "pre-registered (W1, window cluster)", "NC")]
-        np.testing.assert_allclose(row[["beta", "lo", "hi"]].astype(float),
-                                   band[["beta_512", "lo_512", "hi_512"]].astype(float), rtol=1e-9)
+        np.testing.assert_allclose(
+            row[["beta", "lo", "hi"]].astype(float),
+            band[["beta_512", "lo_512", "hi_512"]].astype(float),
+            rtol=1e-9,
+        )
         for arm in ("NC", "NCM"):
-            b1 = est[(est["corpus"] == corpus) & (est["spec"] == "b1 Delta x logN")
-                     & (est["arm"] == arm)].iloc[0]
+            b1 = est[
+                (est["corpus"] == corpus) & (est["spec"] == "b1 Delta x logN") & (est["arm"] == arm)
+            ].iloc[0]
             row = a5.loc[(corpus, "A5.4c smooth linear, interaction b1", arm)]
             assert row["beta"] == pytest.approx(b1["beta_512"], rel=1e-9)
     # the second subset's own size interaction on the ten, -25% [-43%, -8%]
@@ -115,12 +128,24 @@ def test_three_study_estimate_as_printed():
 
 # ── 2. each script on the committed slice, against a direct computation ────────────────────
 
+
 def test_three_study_pooled_on_slice(tmp_path):
-    run(["python", SCRIPTS / "three_study_pooled.py", "--results", SLICE,
-         "--out", tmp_path / "t.csv"], cwd=A2)
+    run(
+        [
+            "python",
+            SCRIPTS / "three_study_pooled.py",
+            "--results",
+            SLICE,
+            "--out",
+            tmp_path / "t.csv",
+        ],
+        cwd=A2,
+    )
     out = pd.read_csv(tmp_path / "t.csv").set_index(["seeds", "spec"])
     d = pd.read_csv(SLICE)
-    d = d[d["cell"].str.split("/").str[0].isin(["farseer", "chinchilla_isoflop", "gadre_overtrain"])]
+    d = d[
+        d["cell"].str.split("/").str[0].isin(["farseer", "chinchilla_isoflop", "gadre_overtrain"])
+    ]
     for seeds in (5, 512):
         sub = d[d["seed"] < seeds].copy()
         m = sub["CO_m_beta0.28"].replace(-np.inf, np.nan)
@@ -133,46 +158,82 @@ def test_three_study_pooled_on_slice(tmp_path):
 
 
 def test_interaction_check_on_slice(tmp_path):
-    run(["python", SCRIPTS / "interaction_check.py", "--skip-x", "--results", SLICE,
-         "--out", tmp_path / "i.csv"], cwd=A2)
+    run(
+        [
+            "python",
+            SCRIPTS / "interaction_check.py",
+            "--skip-x",
+            "--results",
+            SLICE,
+            "--out",
+            tmp_path / "i.csv",
+        ],
+        cwd=A2,
+    )
     out = pd.read_csv(tmp_path / "i.csv").set_index("spec")
     d = pd.read_csv(SLICE)
     logn = np.log10(d["N_gm"])
     assert out.loc["b0, at the centre", "N_centre"] == pytest.approx(10 ** logn.mean(), rel=1e-12)
-    assert out.loc["b0 + b1, one decade above the centre", "N_at"] == \
-        pytest.approx(10 ** (logn.mean() + 1), rel=1e-12)
+    assert out.loc["b0 + b1, one decade above the centre", "N_at"] == pytest.approx(
+        10 ** (logn.mean() + 1), rel=1e-12
+    )
     assert (out["n_pairs"] == len(d)).all()
 
 
 def test_amendment5_on_slice(tmp_path):
-    run(["python", SCRIPTS / "amendment5_1b.py", "--skip-x", "--windows-dir", "none",
-         "--results", SLICE, "--out", tmp_path / "a.csv"], cwd=A2, timeout=3600)
+    run(
+        [
+            "python",
+            SCRIPTS / "amendment5_1b.py",
+            "--skip-x",
+            "--windows-dir",
+            "none",
+            "--results",
+            SLICE,
+            "--out",
+            tmp_path / "a.csv",
+        ],
+        cwd=A2,
+        timeout=3600,
+    )
     out = pd.read_csv(tmp_path / "a.csv").set_index(["spec", "arm"])
     d = pd.read_csv(SLICE)
     top = d["N_gm"] >= 1e9
     assert out.loc[("pre-registered (W1, window cluster)", "NC"), "n_pairs"] == top.sum()
-    assert out.loc[("pre-registered (W1, window cluster)", "NC"), "n_windows"] == \
-        d[top].groupby(["cell", "window"]).ngroups
+    assert (
+        out.loc[("pre-registered (W1, window cluster)", "NC"), "n_windows"]
+        == d[top].groupby(["cell", "window"]).ngroups
+    )
     logn = np.log10(d["N_gm"])
-    assert out.loc[("A5.4c smooth linear, at the >=1B centroid", "NC"), "N_at"] == \
-        pytest.approx(10 ** logn[top].mean(), rel=1e-12)
+    assert out.loc[("A5.4c smooth linear, at the >=1B centroid", "NC"), "N_at"] == pytest.approx(
+        10 ** logn[top].mean(), rel=1e-12
+    )
     # the slope at log10 N = 9 lies between the readings either side of it
-    lin = [out.loc[(f"A5.4c smooth linear, at log10 N = {lg}", "NC"), "beta"] for lg in (9.0, 9.5, 10.0)]
+    lin = [
+        out.loc[(f"A5.4c smooth linear, at log10 N = {lg}", "NC"), "beta"]
+        for lg in (9.0, 9.5, 10.0)
+    ]
     assert lin[1] == pytest.approx((lin[0] + lin[2]) / 2, rel=1e-9)  # linear in log N
 
 
 # ── 3. with the full tables, each script gives back its committed output ───────────────────
 
+
 def _needs(*paths):
     missing = [str(p) for p in paths if not p.exists()]
-    return pytest.mark.skipif(bool(missing), reason=f"needs {', '.join(missing)} "
-                              "(written by enumerate_seeds.py; not shipped)")
+    return pytest.mark.skipif(
+        bool(missing),
+        reason=f"needs {', '.join(missing)} (written by enumerate_seeds.py; not shipped)",
+    )
 
 
-@pytest.mark.parametrize("script,out,keys,args", [
-    ("three_study_pooled.py", "three_study_pooled.csv", ["seeds", "spec"], []),
-    ("interaction_check.py", "interaction_check.csv", ["corpus", "spec"], []),
-])
+@pytest.mark.parametrize(
+    "script,out,keys,args",
+    [
+        ("three_study_pooled.py", "three_study_pooled.csv", ["seeds", "spec"], []),
+        ("interaction_check.py", "interaction_check.csv", ["corpus", "spec"], []),
+    ],
+)
 @_needs(FULL_E, FULL_X)
 def test_full_small_scripts_reproduce(tmp_path, script, out, keys, args):
     run(["python", SCRIPTS / script, "--out", tmp_path / out, *args], cwd=A2)
@@ -181,7 +242,6 @@ def test_full_small_scripts_reproduce(tmp_path, script, out, keys, args):
 
 @_needs(FULL_E, FULL_X, *WINDOWS)
 def test_full_amendment5_reproduces(tmp_path):
-    run(["python", SCRIPTS / "amendment5_1b.py", "--out", tmp_path / "a.csv"], cwd=A2,
-        timeout=3600)
+    run(["python", SCRIPTS / "amendment5_1b.py", "--out", tmp_path / "a.csv"], cwd=A2, timeout=3600)
     fresh, ref = pd.read_csv(tmp_path / "a.csv"), pd.read_csv(RESULTS / "amendment5_1b.csv")
     assert_same_rows(fresh, ref, ["corpus", "spec", "arm"])

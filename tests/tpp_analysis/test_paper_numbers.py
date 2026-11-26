@@ -28,12 +28,26 @@ from conftest import ANALYSIS, run
 
 pytestmark = [pytest.mark.network, pytest.mark.slow, pytest.mark.paper]
 
-TABLES = ["summary_table.csv", "table_summary_full.tex", "table_winrate.tex",
-          "table_winrate_by_holdout_split_appendix.tex", "winrate_by_holdout_split_appendix.csv",
-          "winrate_per_combo.csv", "appendix_fitted_params.tex"]
+TABLES = [
+    "summary_table.csv",
+    "table_summary_full.tex",
+    "table_winrate.tex",
+    "table_winrate_by_holdout_split_appendix.tex",
+    "winrate_by_holdout_split_appendix.csv",
+    "winrate_per_combo.csv",
+    "appendix_fitted_params.tex",
+]
 SAME_LINES = ["appendix_full_metrics.tex"]
-MASTERS = {"full_coverage_results/full_coverage_all_seeds.parquet": ["dataset", "law", "mode", "design", "seed"],
-           "seed_variance_results/seed_variance_all.parquet": None}
+MASTERS = {
+    "full_coverage_results/full_coverage_all_seeds.parquet": [
+        "dataset",
+        "law",
+        "mode",
+        "design",
+        "seed",
+    ],
+    "seed_variance_results/seed_variance_all.parquet": None,
+}
 
 
 @pytest.fixture(scope="module")
@@ -43,14 +57,38 @@ def refit(tmp_path_factory):
     """(released dir, refit dir): the released results, and a from-scratch refit of them."""
     root = tmp_path_factory.mktemp("paper")
     released = root / "released"
-    run(["python", ANALYSIS / "download_and_extract.py", "--results-only",
-         "--repo-dir", root / "hf", "--results-dest", released])
+    run(
+        [
+            "python",
+            ANALYSIS / "download_and_extract.py",
+            "--results-only",
+            "--repo-dir",
+            root / "hf",
+            "--results-dest",
+            released,
+        ]
+    )
     losses = released / "extracted_losses"
     out = root / "refit"
     workers = str(len(os.sched_getaffinity(0)))
-    for mode, sub in (("full_coverage", "full_coverage_results"), ("seed_variance", "seed_variance_results")):
-        run(["python", ANALYSIS / "run_analysis.py", mode, "--data-dir", losses, "-o", out / sub,
-             "--n-workers", workers], timeout=900)  # each takes 1-4 min
+    for mode, sub in (
+        ("full_coverage", "full_coverage_results"),
+        ("seed_variance", "seed_variance_results"),
+    ):
+        run(
+            [
+                "python",
+                ANALYSIS / "run_analysis.py",
+                mode,
+                "--data-dir",
+                losses,
+                "-o",
+                out / sub,
+                "--n-workers",
+                workers,
+            ],
+            timeout=900,
+        )  # each takes 1-4 min
     run(["python", ANALYSIS / "generate_appendix_tables.py", out / "full_coverage_results"])
     yield released, out
     shutil.rmtree(root, ignore_errors=True)
@@ -67,7 +105,9 @@ def test_every_per_combo_fit_is_bit_identical(refit):
     released, out = refit
     names = per_combo(released)
     assert len(names) == 95, names
-    differ = [n for n in names if not pd.read_parquet(out / n).equals(pd.read_parquet(released / n))]
+    differ = [
+        n for n in names if not pd.read_parquet(out / n).equals(pd.read_parquet(released / n))
+    ]
     assert differ == []
 
 
@@ -78,7 +118,11 @@ def test_master_files_hold_the_same_rows(refit, name):
     assert sorted(new.columns) == sorted(old.columns)
     keys = MASTERS[name] or list(new.columns)
     old = old[new.columns]
-    assert new.sort_values(keys).reset_index(drop=True).equals(old.sort_values(keys).reset_index(drop=True))
+    assert (
+        new.sort_values(keys)
+        .reset_index(drop=True)
+        .equals(old.sort_values(keys).reset_index(drop=True))
+    )
 
 
 @pytest.mark.parametrize("name", TABLES)
@@ -93,4 +137,5 @@ def test_appendix_tables_hold_the_same_lines(refit, name):
     released, out = refit
     sub = "full_coverage_results"
     assert sorted((out / sub / name).read_text().splitlines()) == sorted(
-        (released / sub / name).read_text().splitlines())
+        (released / sub / name).read_text().splitlines()
+    )

@@ -26,7 +26,10 @@ def test_a_dirty_tree_is_refused(tmp_path):
     subprocess.run(["git", "clone", "-q", "--depth", "1", f"file://{REPO}", str(clone)], check=True)
     shutil.copy(REPO / "tests" / "measure_coverage.py", clone / "tests" / "measure_coverage.py")
     (clone / "README.md").write_text("dirty\n")
-    p = subprocess.run([sys.executable, str(clone / "tests" / "measure_coverage.py"), str(tmp_path / "out")],
-                       capture_output=True, text=True)
+    p = subprocess.run(
+        [sys.executable, str(clone / "tests" / "measure_coverage.py"), str(tmp_path / "out")],
+        capture_output=True,
+        text=True,
+    )
     assert p.returncode == 2 and "uncommitted" in p.stdout, p.stdout + p.stderr
     assert not (tmp_path / "out").exists()

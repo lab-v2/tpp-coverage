@@ -53,10 +53,17 @@ def _style_ax(ax, xlabel: str, ylabel: str, title: str = ""):
 def _law_legend(ax, laws_present=None, loc="lower right"):
     keys = laws_present if laws_present else list(LAW_COLORS.keys())
     handles = [
-        Line2D([0], [0], color=LAW_COLORS.get(law, "gray"),
-               marker=LAW_MARKERS.get(law, "."),
-               markersize=6, linewidth=1.5, label=law)
-        for law in keys if law in LAW_COLORS
+        Line2D(
+            [0],
+            [0],
+            color=LAW_COLORS.get(law, "gray"),
+            marker=LAW_MARKERS.get(law, "."),
+            markersize=6,
+            linewidth=1.5,
+            label=law,
+        )
+        for law in keys
+        if law in LAW_COLORS
     ]
     if handles:
         ax.legend(handles=handles, loc=loc, fontsize=9, framealpha=0.9)
@@ -87,6 +94,7 @@ def _mode_label(mode_filter: Optional[str]) -> str:
 # ═══════════════════════════════════════════════════════════════════════════
 # 1. R² convergence
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def plot_r2_convergence(
     df: pd.DataFrame,
@@ -120,15 +128,16 @@ def plot_r2_convergence(
         for law_name, grp in sub.groupby("law"):
             grp = grp.sort_values(x_col)
             ax.plot(
-                grp[x_col], grp[holdout_col],
+                grp[x_col],
+                grp[holdout_col],
                 color=LAW_COLORS.get(law_name, "gray"),
                 marker=LAW_MARKERS.get(law_name, "."),
-                markersize=5, linewidth=1.5,
+                markersize=5,
+                linewidth=1.5,
                 label=law_name,
             )
             laws_seen.append(law_name)
-        _style_ax(ax, "Coverage Fraction", ylabel if ax == axes[0] else "",
-                   f"{design}-Trained")
+        _style_ax(ax, "Coverage Fraction", ylabel if ax == axes[0] else "", f"{design}-Trained")
         ax.set_xlim(-0.02, 1.05)
         _apply_ylim(ax, y_min, y_max)
         _law_legend(ax, laws_seen)
@@ -142,6 +151,7 @@ def plot_r2_convergence(
 # ═══════════════════════════════════════════════════════════════════════════
 # 2. ΔR² from full coverage
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def plot_delta_convergence(
     df: pd.DataFrame,
@@ -176,16 +186,19 @@ def plot_delta_convergence(
         for law_name, grp in sub.groupby("law"):
             grp = grp.sort_values(x_col)
             ax.plot(
-                grp[x_col], grp[delta_col],
+                grp[x_col],
+                grp[delta_col],
                 color=LAW_COLORS.get(law_name, "gray"),
                 marker=LAW_MARKERS.get(law_name, "."),
-                markersize=5, linewidth=1.5,
+                markersize=5,
+                linewidth=1.5,
             )
             laws_seen.append(law_name)
         ax.axhline(0, color="black", linestyle="--", linewidth=0.8, alpha=0.5)
         label = holdout_col.replace("r2_", "").replace("_", " ").title()
         _style_ax(
-            ax, "Coverage Fraction",
+            ax,
+            "Coverage Fraction",
             f"ΔR² ({label})" if ax == axes[0] else "",
             f"{design}-Trained",
         )
@@ -202,6 +215,7 @@ def plot_delta_convergence(
 # ═══════════════════════════════════════════════════════════════════════════
 # 3. CO vs NC direct overlay
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def plot_co_vs_nc_overlay(
     df: pd.DataFrame,
@@ -237,10 +251,12 @@ def plot_co_vs_nc_overlay(
             sub = df[(df["law"] == law_name) & (df["design"] == design) & df["success"]]
             sub = sub.sort_values(x_col)
             ax.plot(
-                sub[x_col], sub[holdout_col],
+                sub[x_col],
+                sub[holdout_col],
                 color=DESIGN_COLORS.get(design, "gray"),
                 marker="o" if design == "Colinear" else "s",
-                markersize=5, linewidth=1.5,
+                markersize=5,
+                linewidth=1.5,
                 label=design,
             )
         _style_ax(ax, "Coverage Fraction", ylabel if c == 0 else "", law_name)
@@ -262,6 +278,7 @@ def plot_co_vs_nc_overlay(
 # 4. Parameter trajectories
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 def _extract_param_series(df: pd.DataFrame, law_name: str, design: str) -> pd.DataFrame:
     sub = df[(df["law"] == law_name) & (df["design"] == design) & df["success"]].copy()
     sub = sub.sort_values("step")
@@ -273,7 +290,9 @@ def _extract_param_series(df: pd.DataFrame, law_name: str, design: str) -> pd.Da
     if isinstance(sample, dict):
         keys = list(sample.keys())
         for k in keys:
-            sub[f"param_{k}"] = sub["params"].apply(lambda p: p[k] if isinstance(p, dict) else np.nan)
+            sub[f"param_{k}"] = sub["params"].apply(
+                lambda p: p[k] if isinstance(p, dict) else np.nan
+            )
     elif isinstance(sample, (list, np.ndarray)):
         for i in range(len(sample)):
             sub[f"param_{i}"] = sub["params"].apply(
@@ -295,6 +314,7 @@ def plot_parameter_trajectories(
     df = _filter_mode(df, mode_filter)
 
     from scaling_laws.laws import LAWS as _LAWS
+
     law_info = next((l for l in _LAWS if l.name == law_name), None)
     if param_names is None and law_info is not None:
         param_names = law_info.param_names
@@ -326,10 +346,12 @@ def plot_parameter_trajectories(
             if sub.empty or pcol not in sub.columns:
                 continue
             ax.plot(
-                sub["coverage_frac"], sub[pcol],
+                sub["coverage_frac"],
+                sub[pcol],
                 color=DESIGN_COLORS.get(design, "gray"),
                 marker="o" if design == "Colinear" else "s",
-                markersize=4, linewidth=1.2,
+                markersize=4,
+                linewidth=1.2,
                 label=design,
             )
         _style_ax(ax, "Coverage", nice_name, "")
@@ -349,6 +371,7 @@ def plot_parameter_trajectories(
 # 5. R² heatmap (law × step)
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 def plot_r2_heatmap(
     df: pd.DataFrame,
     design: str,
@@ -362,7 +385,10 @@ def plot_r2_heatmap(
     df = _filter_mode(df, mode_filter)
     sub = df[(df["design"] == design) & df["success"]].copy()
     pivot = sub.pivot_table(
-        index="law", columns="step", values=holdout_col, aggfunc="first",
+        index="law",
+        columns="step",
+        values=holdout_col,
+        aggfunc="first",
     )
 
     fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -381,8 +407,7 @@ def plot_r2_heatmap(
             val = pivot.values[i, j]
             if not np.isnan(val):
                 color = "white" if val < 0.5 else "black"
-                ax.text(j, i, f"{val:.3f}", ha="center", va="center",
-                        fontsize=7, color=color)
+                ax.text(j, i, f"{val:.3f}", ha="center", va="center", fontsize=7, color=color)
 
     fig.colorbar(im, ax=ax, shrink=0.8, label="R²")
     fig.tight_layout()
@@ -392,6 +417,7 @@ def plot_r2_heatmap(
 # ═══════════════════════════════════════════════════════════════════════════
 # 6. Summary dashboard (multi-panel)
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def plot_summary_dashboard(
     df: pd.DataFrame,
@@ -430,10 +456,12 @@ def plot_summary_dashboard(
         for law_name, grp in sub.groupby("law"):
             grp = grp.sort_values("coverage_frac")
             ax.plot(
-                grp["coverage_frac"], grp[holdout_col],
+                grp["coverage_frac"],
+                grp[holdout_col],
                 color=LAW_COLORS.get(law_name, "gray"),
                 marker=LAW_MARKERS.get(law_name, "."),
-                markersize=5, linewidth=1.5,
+                markersize=5,
+                linewidth=1.5,
             )
             laws_seen.append(law_name)
         _style_ax(ax, "", ylabel_r2 if col_idx == 0 else "", f"{design}-Trained")
@@ -448,14 +476,17 @@ def plot_summary_dashboard(
                 grp = grp.sort_values("coverage_frac")
                 if delta_col in grp.columns:
                     ax.plot(
-                        grp["coverage_frac"], grp[delta_col],
+                        grp["coverage_frac"],
+                        grp[delta_col],
                         color=LAW_COLORS.get(law_name, "gray"),
                         marker=LAW_MARKERS.get(law_name, "."),
-                        markersize=5, linewidth=1.5,
+                        markersize=5,
+                        linewidth=1.5,
                     )
             ax.axhline(0, color="black", linestyle="--", linewidth=0.8, alpha=0.5)
         _style_ax(
-            ax, "Coverage Fraction",
+            ax,
+            "Coverage Fraction",
             f"ΔR² ({label_short})" if col_idx == 0 else "",
             "",
         )
@@ -475,6 +506,7 @@ def plot_summary_dashboard(
 # ═══════════════════════════════════════════════════════════════════════════
 # 7. Rate of change
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def plot_r2_rate_of_change(
     df: pd.DataFrame,
@@ -510,17 +542,22 @@ def plot_r2_rate_of_change(
             dr2 = np.diff(r2) / np.diff(cov)
             mid_cov = (cov[:-1] + cov[1:]) / 2
             ax.plot(
-                mid_cov, dr2,
+                mid_cov,
+                dr2,
                 color=LAW_COLORS.get(law_name, "gray"),
                 marker=LAW_MARKERS.get(law_name, "."),
-                markersize=4, linewidth=1.2,
+                markersize=4,
+                linewidth=1.2,
             )
             laws_seen.append(law_name)
         ax.axhline(0, color="black", linestyle="--", linewidth=0.8, alpha=0.5)
         label = holdout_col.replace("r2_", "").replace("_", " ").title()
-        _style_ax(ax, "Coverage Fraction",
-                   f"dR²/d(coverage) - {label}" if ax == axes[0] else "",
-                   f"{design}-Trained")
+        _style_ax(
+            ax,
+            "Coverage Fraction",
+            f"dR²/d(coverage) - {label}" if ax == axes[0] else "",
+            f"{design}-Trained",
+        )
         ax.set_xlim(-0.02, 1.05)
         _apply_ylim(ax, y_min, y_max)
         _law_legend(ax, laws_seen, loc="upper right")
@@ -582,21 +619,28 @@ def plot_mode_comparison(
         for mode_name, grp in dsub.groupby("mode"):
             grp = grp.sort_values(x_col)
             ax.plot(
-                grp[x_col], grp[holdout_col],
+                grp[x_col],
+                grp[holdout_col],
                 color=MODE_COLORS.get(mode_name, "gray"),
                 marker=MODE_MARKERS.get(mode_name, "."),
-                markersize=5, linewidth=1.5,
+                markersize=5,
+                linewidth=1.5,
                 label=mode_name,
             )
             modes_seen.append(mode_name)
-        _style_ax(ax, "Coverage Fraction", ylabel if ax == axes[0] else "",
-                   f"{design}-Trained")
+        _style_ax(ax, "Coverage Fraction", ylabel if ax == axes[0] else "", f"{design}-Trained")
         ax.set_xlim(-0.02, 1.05)
         _apply_ylim(ax, y_min, y_max)
         handles = [
-            Line2D([0], [0], color=MODE_COLORS.get(m, "gray"),
-                   marker=MODE_MARKERS.get(m, "."),
-                   markersize=6, linewidth=1.5, label=m)
+            Line2D(
+                [0],
+                [0],
+                color=MODE_COLORS.get(m, "gray"),
+                marker=MODE_MARKERS.get(m, "."),
+                markersize=6,
+                linewidth=1.5,
+                label=m,
+            )
             for m in modes_seen
         ]
         ax.legend(handles=handles, loc="lower right", fontsize=9, framealpha=0.9)
@@ -610,6 +654,7 @@ def plot_mode_comparison(
 # ═══════════════════════════════════════════════════════════════════════════
 # 9. Single focused comparison - CO vs NC on one square plot
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def plot_single_comparison(
     df: pd.DataFrame,
@@ -649,19 +694,21 @@ def plot_single_comparison(
     marker_size    : data point size
     line_width     : line thickness
     """
-    sub = df[
-        (df["law"] == law_name)
-        & (df["mode"] == mode_filter)
-        & df["success"]
-    ].copy()
+    sub = df[(df["law"] == law_name) & (df["mode"] == mode_filter) & df["success"]].copy()
 
     if min_coverage is not None:
         sub = sub[sub[x_col] >= min_coverage]
 
     if sub.empty:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
-        ax.text(0.5, 0.5, f"No data for {law_name} / {mode_filter}",
-                ha="center", va="center", fontsize=14)
+        ax.text(
+            0.5,
+            0.5,
+            f"No data for {law_name} / {mode_filter}",
+            ha="center",
+            va="center",
+            fontsize=14,
+        )
         return fig
 
     fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -671,7 +718,8 @@ def plot_single_comparison(
         if dsub.empty:
             continue
         ax.plot(
-            dsub[x_col], dsub[holdout_col],
+            dsub[x_col],
+            dsub[holdout_col],
             color=DESIGN_COLORS.get(design, "gray"),
             marker="o" if design == "Colinear" else "s",
             markersize=marker_size,

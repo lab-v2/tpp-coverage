@@ -66,8 +66,13 @@ def resolve_worker_count(requested: Optional[int], item_count: int) -> int:
 
 def _init_worker() -> None:
     """Re-assert the BLAS thread cap inside a freshly spawned worker."""
-    for var in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
-                "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
+    for var in (
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+    ):
         os.environ[var] = "1"
 
 

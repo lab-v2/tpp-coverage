@@ -125,9 +125,7 @@ def run_comparison(trial: ComparisonTrial) -> Optional[ComparisonOutcome]:
             )
         )
     collinear, non_collinear = scores
-    if not (
-        np.isfinite(collinear["rmse_holdout"]) and np.isfinite(non_collinear["rmse_holdout"])
-    ):
+    if not (np.isfinite(collinear["rmse_holdout"]) and np.isfinite(non_collinear["rmse_holdout"])):
         return None
     return ComparisonOutcome(
         index=trial.index,

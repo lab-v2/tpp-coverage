@@ -17,10 +17,15 @@ import numpy as np
 import pandas as pd
 
 from scaling_laws.data import (
-    PreparedData, prepare_arrays, prepare_epoch_expanded,
+    PreparedData,
+    prepare_arrays,
+    prepare_epoch_expanded,
 )
 from scaling_laws.laws import (
-    LAWS, ScalingLaw, evaluate, evaluate_parametric_epoch,
+    LAWS,
+    ScalingLaw,
+    evaluate,
+    evaluate_parametric_epoch,
 )
 
 
@@ -33,9 +38,9 @@ BASE_TPP_BINS = [1.0, 1.5, 1.9, 2.0, 2.5, 2.7, 3.0, 3.3, 3.5, 4.0, 4.5, 5.0]
 
 # Epoch multiplier per mode (matches prepare_arrays D-scaling logic)
 MODE_MULTIPLIER = {
-    "first":  1,
+    "first": 1,
     "second": 2,
-    "final":  3,
+    "final": 3,
 }
 
 # Standard and epoch law modes
@@ -84,6 +89,7 @@ def assign_tpp_bins(
 # Step builders
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 def build_colinear_steps(
     train_data: List[Dict],
     mode: str = "final",
@@ -106,14 +112,16 @@ def build_colinear_steps(
     for tpp_val in unique_tpps:
         included.add(tpp_val)
         subset = [d for d, t in zip(train_data, binned) if t in included]
-        steps.append({
-            "step": len(steps) + 1,
-            "n_levels": len(included),
-            "levels": sorted(included),
-            "data": subset,
-            "n_runs": len(subset),
-            "coverage_frac": len(included) / total,
-        })
+        steps.append(
+            {
+                "step": len(steps) + 1,
+                "n_levels": len(included),
+                "levels": sorted(included),
+                "data": subset,
+                "n_runs": len(subset),
+                "coverage_frac": len(included) / total,
+            }
+        )
 
     return steps
 
@@ -156,14 +164,16 @@ def build_noncolinear_steps(
         for d_val in pair:
             included.add(d_val)
         subset = [d for d, dv in zip(train_data, d_values) if dv in included]
-        steps.append({
-            "step": len(steps) + 1,
-            "n_levels": len(included),
-            "levels": sorted(included),
-            "data": subset,
-            "n_runs": len(subset),
-            "coverage_frac": len(included) / total,
-        })
+        steps.append(
+            {
+                "step": len(steps) + 1,
+                "n_levels": len(included),
+                "levels": sorted(included),
+                "data": subset,
+                "n_runs": len(subset),
+                "coverage_frac": len(included) / total,
+            }
+        )
 
     return steps
 
@@ -171,6 +181,7 @@ def build_noncolinear_steps(
 # ═══════════════════════════════════════════════════════════════════════════
 # Fitting at a single step
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def _fit_standard_law(
     law: ScalingLaw,
@@ -213,7 +224,11 @@ def _fit_epoch_law(
         return {"law": law.name, "success": False}
 
     params_dict, loss_val, success = law.fit_fn(
-        N_tr, U_D_tr, R_tr, L_tr, n_restarts=n_restarts,
+        N_tr,
+        U_D_tr,
+        R_tr,
+        L_tr,
+        n_restarts=n_restarts,
     )
     if params_dict is None:
         return {"law": law.name, "success": False}
@@ -223,8 +238,15 @@ def _fit_epoch_law(
     for ho_label, ho_data in holdouts.items():
         N_ho, U_D_ho, R_ho, _ep_ho, L_ho = prepare_epoch_expanded(ho_data)
         metrics = evaluate_parametric_epoch(
-            params_dict, N_tr, U_D_tr, R_tr, L_tr,
-            N_ho, U_D_ho, R_ho, L_ho,
+            params_dict,
+            N_tr,
+            U_D_tr,
+            R_tr,
+            L_tr,
+            N_ho,
+            U_D_ho,
+            R_ho,
+            L_ho,
         )
         row["r2_train"] = metrics["r2_train"]
         row["rmse_train"] = metrics["rmse_train"]
@@ -267,10 +289,16 @@ def fit_at_step(
 # ═══════════════════════════════════════════════════════════════════════════
 
 _R2_COLS = [
-    "r2_train", "r2_unified", "r2_colinear", "r2_noncolinear",
+    "r2_train",
+    "r2_unified",
+    "r2_colinear",
+    "r2_noncolinear",
 ]
 _RMSE_COLS = [
-    "rmse_train", "rmse_unified", "rmse_colinear", "rmse_noncolinear",
+    "rmse_train",
+    "rmse_unified",
+    "rmse_colinear",
+    "rmse_noncolinear",
 ]
 _METRIC_COLS = _R2_COLS + _RMSE_COLS + ["sse"]
 
@@ -337,11 +365,11 @@ def run_incremental_analysis(
             elapsed = time.time() - t0
             successful = [r for r in fit_results if r.get("success")]
             law_summary = "  ".join(
-                f"{r['law'][:4]}/{r.get('mode','')[:3]}={r.get('r2_unified', float('nan')):.4f}"
+                f"{r['law'][:4]}/{r.get('mode', '')[:3]}={r.get('r2_unified', float('nan')):.4f}"
                 for r in successful[:6]
             )
             if len(successful) > 6:
-                law_summary += f"  +{len(successful)-6} more"
+                law_summary += f"  +{len(successful) - 6} more"
             print(f"  ({elapsed:.0f}s) {law_summary}")
 
     return pd.DataFrame(all_rows)
@@ -350,6 +378,7 @@ def run_incremental_analysis(
 # ═══════════════════════════════════════════════════════════════════════════
 # Delta computation
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def compute_deltas(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -373,11 +402,7 @@ def compute_deltas(df: pd.DataFrame) -> pd.DataFrame:
             if full_vals.empty or full_vals.isna().all():
                 continue
             full_val = full_vals.values[0]
-            mask = (
-                (df["design"] == design)
-                & (df["law"] == law)
-                & (df["mode"] == mode)
-            )
+            mask = (df["design"] == design) & (df["law"] == law) & (df["mode"] == mode)
             df.loc[mask, delta_col] = df.loc[mask, col] - full_val
             df.loc[mask, abs_col] = (df.loc[mask, col] - full_val).abs()
 
@@ -387,6 +412,7 @@ def compute_deltas(df: pd.DataFrame) -> pd.DataFrame:
 # ═══════════════════════════════════════════════════════════════════════════
 # Convenience: build steps + run for a full PreparedData
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 def run_full_incremental(
     data: PreparedData,
@@ -414,9 +440,9 @@ def run_full_incremental(
     # ── Colinear steps (per-mode, since TPP bins scale with mode) ──
     if data.colinear_train:
         if verbose:
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"  COLINEAR incremental - {data.dataset_name}")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
 
         standard_laws = [l for l in LAWS if not l.is_epoch_law]
         epoch_laws = [l for l in LAWS if l.is_epoch_law]
@@ -429,10 +455,13 @@ def run_full_incremental(
                 print(f"\n  Mode={mode} | {len(co_steps)} TPP levels: {bins}")
 
             df_co = run_incremental_analysis(
-                co_steps, holdouts, "Colinear",
+                co_steps,
+                holdouts,
+                "Colinear",
                 modes=[mode],
                 laws_to_fit=standard_laws,
-                n_restarts=n_restarts, verbose=verbose,
+                n_restarts=n_restarts,
+                verbose=verbose,
             )
             df_co["dataset"] = data.dataset_name
             frames.append(df_co)
@@ -446,10 +475,13 @@ def run_full_incremental(
             if verbose:
                 print(f"  {len(co_steps_epoch)} TPP levels: {bins}")
             df_co_epoch = run_incremental_analysis(
-                co_steps_epoch, holdouts, "Colinear",
+                co_steps_epoch,
+                holdouts,
+                "Colinear",
                 modes=["first"],  # placeholder; epoch law ignores mode
                 laws_to_fit=epoch_laws,
-                n_restarts=n_restarts, verbose=verbose,
+                n_restarts=n_restarts,
+                verbose=verbose,
             )
             df_co_epoch["dataset"] = data.dataset_name
             frames.append(df_co_epoch)
@@ -457,19 +489,24 @@ def run_full_incremental(
     # ── Non-colinear steps (D-based, paired extremes, same for all modes) ──
     if data.noncolinear_train:
         if verbose:
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"  NON-COLINEAR incremental - {data.dataset_name}")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
         nc_steps = build_noncolinear_steps(data.noncolinear_train)
         if verbose:
             for s in nc_steps:
-                print(f"    Step {s['step']}: {s['n_levels']} D levels, {s['n_runs']} runs, coverage={s['coverage_frac']:.0%}")
+                print(
+                    f"    Step {s['step']}: {s['n_levels']} D levels, {s['n_runs']} runs, coverage={s['coverage_frac']:.0%}"
+                )
 
         # All modes + all laws at each step
         df_nc = run_incremental_analysis(
-            nc_steps, holdouts, "Non-Colinear",
+            nc_steps,
+            holdouts,
+            "Non-Colinear",
             modes=None,  # all modes
-            n_restarts=n_restarts, verbose=verbose,
+            n_restarts=n_restarts,
+            verbose=verbose,
         )
         df_nc["dataset"] = data.dataset_name
         frames.append(df_nc)

@@ -151,11 +151,7 @@ class TrainingGrid:
 
     def ray_bands(self, min_cells: int = MIN_CELLS_FOR_RAY) -> dict[float, pd.DataFrame]:
         """Bands with enough cells to serve as a collinear (CO) training design."""
-        return {
-            b: sub
-            for b in self.populated_bands
-            if len(sub := self.band(b)) >= min_cells
-        }
+        return {b: sub for b in self.populated_bands if len(sub := self.band(b)) >= min_cells}
 
     def median_envelope(self) -> pd.DataFrame:
         """Envelope built from the median over (LR, WD) instead of the minimum.

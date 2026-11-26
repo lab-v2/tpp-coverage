@@ -28,6 +28,7 @@ warnings.filterwarnings("ignore")
 # Loss functions
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def kaplan_loss(N, D, N_c, D_c, alpha_N, alpha_D):
     """Kaplan et al. (2020) - no irreducible loss term."""
     ratio = alpha_N / alpha_D
@@ -75,6 +76,7 @@ def skaling_loss(N, D, A, alpha, B, beta, k, E):
 # Generic multi-start fitter
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def _fit_generic(
     loss_fn: Callable,
     N: np.ndarray,
@@ -94,6 +96,7 @@ def _fit_generic(
     bounds    : list of (lo, hi) for each parameter
     sampler   : callable(rng) -> list of initial guesses
     """
+
     def objective(params):
         try:
             pred = loss_fn(N, D, *params)
@@ -110,7 +113,10 @@ def _fit_generic(
         x0 = sampler(rng, L)
         try:
             result = minimize(
-                objective, x0, method="L-BFGS-B", bounds=bounds,
+                objective,
+                x0,
+                method="L-BFGS-B",
+                bounds=bounds,
                 options={"maxiter": 2000},
             )
             if result.fun < best_loss:
@@ -122,7 +128,11 @@ def _fit_generic(
     # Differential evolution as a global fallback
     try:
         de = differential_evolution(
-            objective, bounds, seed=seed, maxiter=1000, polish=True,
+            objective,
+            bounds,
+            seed=seed,
+            maxiter=1000,
+            polish=True,
         )
         if de.fun < best_loss:
             best_loss = de.fun
@@ -138,6 +148,7 @@ def _fit_generic(
 # ════════════════════════════════════════════════════════════════════════════
 # Specific fitters
 # ════════════════════════════════════════════════════════════════════════════
+
 
 def fit_kaplan(N, D, L, n_restarts=300):
     """Fit Kaplan law. Returns (params, sse, success)."""
@@ -174,8 +185,11 @@ def fit_droppo_elibol(N, D, L, n_restarts=300):
     """Fit Droppo-Elibol law. Returns (params, sse, success)."""
     bounds = [
         (1e-6, min(L) * 0.99),
-        (1e3, 1e14), (1e3, 1e14),
-        (0.01, 2.0), (0.01, 2.0), (0.01, 2.0),
+        (1e3, 1e14),
+        (1e3, 1e14),
+        (0.01, 2.0),
+        (0.01, 2.0),
+        (0.01, 2.0),
     ]
 
     def sampler(rng, L):
@@ -232,12 +246,12 @@ def fit_skaling(N, D, L, n_restarts=300, seed=42):
     duplicating the log-coefficient reparameterisation.
     """
     bounds = [
-        (np.log(1e-2), np.log(1e10)),   # log A
-        (0.01, 2.0),                    # alpha
-        (np.log(1e-2), np.log(1e10)),   # log B
-        (0.01, 2.0),                    # beta
-        (0.01, 4.0),                    # k  widened from Table 4's 2.0, see above
-        (0.0, 10.0),                    # E
+        (np.log(1e-2), np.log(1e10)),  # log A
+        (0.01, 2.0),  # alpha
+        (np.log(1e-2), np.log(1e10)),  # log B
+        (0.01, 2.0),  # beta
+        (0.01, 4.0),  # k  widened from Table 4's 2.0, see above
+        (0.0, 10.0),  # E
     ]
 
     def sampler(rng, L):
@@ -246,12 +260,19 @@ def fit_skaling(N, D, L, n_restarts=300, seed=42):
             rng.uniform(0.1, 1.5),
             np.log(10 ** rng.uniform(0, 8)),
             rng.uniform(0.1, 1.5),
-            rng.uniform(0.5, 3.0),      # k starts must reach above the old ceiling
+            rng.uniform(0.5, 3.0),  # k starts must reach above the old ceiling
             rng.uniform(0.0, min(L) * 0.9),
         ]
 
     params, sse, success = _fit_generic(
-        _skaling_loss_logcoef, N, D, L, bounds, sampler, n_restarts, seed=seed,
+        _skaling_loss_logcoef,
+        N,
+        D,
+        L,
+        bounds,
+        sampler,
+        n_restarts,
+        seed=seed,
     )
     if params is None:
         return None, sse, success
@@ -268,11 +289,16 @@ def fit_skaling(N, D, L, n_restarts=300, seed=42):
 # Evaluation
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def evaluate(
     loss_fn: Callable,
     params,
-    N_train, D_train, L_train,
-    N_hold, D_hold, L_hold,
+    N_train,
+    D_train,
+    L_train,
+    N_hold,
+    D_hold,
+    L_hold,
 ) -> Dict[str, float]:
     """Compute R² and RMSE on train and holdout sets."""
     pred_train = loss_fn(N_train, D_train, *params)
@@ -303,6 +329,7 @@ def evaluate(
 # 7 params: A, α, B, β, E, R*_D, R*_N
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def effective_data(U_D, R, R_star_D):
     """D' = U_D + U_D · R*_D · (1 − exp(−R / R*_D)).  R=0 → D'=U_D."""
     return U_D + U_D * R_star_D * (1.0 - np.exp(-R / R_star_D))
@@ -326,11 +353,16 @@ def parametric_epoch_loss(N, U_D, R, A, alpha, B, beta, E, R_star_D, R_star_N):
 def _parametric_predict(params_dict, N, U_D, R):
     """Convenience: predict from a params dict."""
     return parametric_epoch_loss(
-        N, U_D, R,
-        params_dict["A"], params_dict["alpha"],
-        params_dict["B"], params_dict["beta"],
+        N,
+        U_D,
+        R,
+        params_dict["A"],
+        params_dict["alpha"],
+        params_dict["B"],
+        params_dict["beta"],
         params_dict["E"],
-        params_dict["R_star_D"], params_dict["R_star_N"],
+        params_dict["R_star_D"],
+        params_dict["R_star_N"],
     )
 
 
@@ -340,13 +372,13 @@ def fit_parametric_epoch(N, U_D, R, L, n_restarts=300, seed=42):
     Returns (params_dict, loss, success).
     """
     bounds = [
-        (1e-2, 1e12),   # A
-        (0.01, 2.0),    # alpha
-        (1e-2, 1e12),   # B
-        (0.01, 2.0),    # beta
-        (0.0, 10.0),    # E
-        (0.1, 50.0),    # R*_D
-        (0.1, 50.0),    # R*_N
+        (1e-2, 1e12),  # A
+        (0.01, 2.0),  # alpha
+        (1e-2, 1e12),  # B
+        (0.01, 2.0),  # beta
+        (0.0, 10.0),  # E
+        (0.1, 50.0),  # R*_D
+        (0.1, 50.0),  # R*_N
     ]
     delta = 0.5  # Huber threshold
 
@@ -377,7 +409,10 @@ def fit_parametric_epoch(N, U_D, R, L, n_restarts=300, seed=42):
         ]
         try:
             result = minimize(
-                objective, x0, method="L-BFGS-B", bounds=bounds,
+                objective,
+                x0,
+                method="L-BFGS-B",
+                bounds=bounds,
                 options={"maxiter": 3000, "ftol": 1e-15},
             )
             if result.fun < best_loss:
@@ -388,8 +423,14 @@ def fit_parametric_epoch(N, U_D, R, L, n_restarts=300, seed=42):
     # Differential evolution fallback
     try:
         de = differential_evolution(
-            objective, bounds, seed=seed, maxiter=2000, polish=True,
-            tol=1e-12, mutation=(0.5, 1.5), recombination=0.9,
+            objective,
+            bounds,
+            seed=seed,
+            maxiter=2000,
+            polish=True,
+            tol=1e-12,
+            mutation=(0.5, 1.5),
+            recombination=0.9,
         )
         if de.fun < best_loss:
             best_loss, best_result = de.fun, de
@@ -401,14 +442,18 @@ def fit_parametric_epoch(N, U_D, R, L, n_restarts=300, seed=42):
 
     A, alpha, B, beta, E_val, R_star_D, R_star_N = best_result.x
     params_dict = {
-        "A": A, "alpha": alpha, "B": B, "beta": beta,
-        "E": E_val, "R_star_D": R_star_D, "R_star_N": R_star_N,
+        "A": A,
+        "alpha": alpha,
+        "B": B,
+        "beta": beta,
+        "E": E_val,
+        "R_star_D": R_star_D,
+        "R_star_N": R_star_N,
     }
     return params_dict, best_loss, best_result.success
 
 
-def evaluate_parametric_epoch(params_dict, N_tr, U_D_tr, R_tr, L_tr,
-                               N_ho, U_D_ho, R_ho, L_ho):
+def evaluate_parametric_epoch(params_dict, N_tr, U_D_tr, R_tr, L_tr, N_ho, U_D_ho, R_ho, L_ho):
     """Compute R² and RMSE for the epoch law on train and holdout."""
     pred_tr = _parametric_predict(params_dict, N_tr, U_D_tr, R_tr)
     r2_tr = r2_score(L_tr, pred_tr)
@@ -422,8 +467,10 @@ def evaluate_parametric_epoch(params_dict, N_tr, U_D_tr, R_tr, L_tr,
         r2_ho, rmse_ho = np.nan, np.nan
 
     return {
-        "r2_train": r2_tr, "r2_holdout": r2_ho,
-        "rmse_train": rmse_tr, "rmse_holdout": rmse_ho,
+        "r2_train": r2_tr,
+        "r2_holdout": r2_ho,
+        "rmse_train": rmse_tr,
+        "rmse_holdout": rmse_ho,
     }
 
 
@@ -431,20 +478,32 @@ def evaluate_parametric_epoch(params_dict, N_tr, U_D_tr, R_tr, L_tr,
 # Registry - makes looping over the paper's laws easy
 # ════════════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class ScalingLaw:
     name: str
     loss_fn: Callable
     fit_fn: Callable
     param_names: List[str]
-    is_epoch_law: bool = False   # True = uses (N, U_D, R) interface
+    is_epoch_law: bool = False  # True = uses (N, U_D, R) interface
+
 
 LAWS: List[ScalingLaw] = [
-    ScalingLaw("Kaplan",        kaplan_loss,        fit_kaplan,        ["N_c", "D_c", "α_N", "α_D"]),
-    ScalingLaw("Chinchilla",    chinchilla_loss,    fit_chinchilla,    ["E", "A", "α", "B", "β"]),
-    ScalingLaw("Droppo-Elibol", droppo_elibol_loss, fit_droppo_elibol, ["L_∞", "N_c", "D_c", "α_N", "α_D", "α"]),
-    ScalingLaw("Parametric-Epoch", parametric_epoch_loss, fit_parametric_epoch,
-               ["A", "α", "B", "β", "E", "R*_D", "R*_N"], is_epoch_law=True),
+    ScalingLaw("Kaplan", kaplan_loss, fit_kaplan, ["N_c", "D_c", "α_N", "α_D"]),
+    ScalingLaw("Chinchilla", chinchilla_loss, fit_chinchilla, ["E", "A", "α", "B", "β"]),
+    ScalingLaw(
+        "Droppo-Elibol",
+        droppo_elibol_loss,
+        fit_droppo_elibol,
+        ["L_∞", "N_c", "D_c", "α_N", "α_D", "α"],
+    ),
+    ScalingLaw(
+        "Parametric-Epoch",
+        parametric_epoch_loss,
+        fit_parametric_epoch,
+        ["A", "α", "B", "β", "E", "R*_D", "R*_N"],
+        is_epoch_law=True,
+    ),
 ]
 
 # Laws that are not part of the paper's analysis. Kept out of LAWS so that the paper's

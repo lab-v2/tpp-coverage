@@ -104,8 +104,7 @@ class FullGridFitsSection(AnalysisSection):
                 record.update(conditioning.report().to_dict())
                 record["ci_inflation_approx"] = 1.0 / max(fit.exponent_gap, 1e-9)
                 extra = (
-                    f"  kappa_AB={record['kappa_AB']:.3g}"
-                    f"  kappa_full={record['kappa_full']:.3g}"
+                    f"  kappa_AB={record['kappa_AB']:.3g}  kappa_full={record['kappa_full']:.3g}"
                 )
             results[law.name] = record
             print(
@@ -489,8 +488,10 @@ class RobustnessSection(AnalysisSection):
         if params is None:
             return None
         _, alpha, _, beta = (float(p) for p in params)
-        print(f"  R1a E={FIXED_IRREDUCIBLE_LOSS} fixed: alpha={alpha:.3f} beta={beta:.3f} "
-              f"eps={abs(alpha - beta):.3f}")
+        print(
+            f"  R1a E={FIXED_IRREDUCIBLE_LOSS} fixed: alpha={alpha:.3f} beta={beta:.3f} "
+            f"eps={abs(alpha - beta):.3f}"
+        )
         return {"alpha": alpha, "beta": beta, "eps": abs(alpha - beta)}
 
     def _random_two_d_designs(self, context: AnalysisContext) -> Optional[dict[str, object]]:
@@ -691,15 +692,13 @@ class FormalValidationSection(AnalysisSection):
         beta_eff = context.require_chinchilla().beta_eff
         criterion = DiversityCriterion(beta_eff)
         target = KAPPA_TARGETS[0]
-        r_min = criterion.minimum_two_ray_spread(
-            target, points=context.config.rmin_sweep_points
-        )
+        r_min = criterion.minimum_two_ray_spread(target, points=context.config.rmin_sweep_points)
 
         fitter = LawFitter(restarts=SUBSET_RESTARTS, global_search=False)
         bands = grid.populated_bands
         measured: list[dict[str, float]] = []
         for i, first in enumerate(bands):
-            for second in bands[i + 1:]:
+            for second in bands[i + 1 :]:
                 left = grid.band(first).drop_duplicates("N")
                 right = grid.band(second).drop_duplicates("N")
                 if len(left) < 2 or len(right) < 2:

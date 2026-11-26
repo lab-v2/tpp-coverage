@@ -23,6 +23,7 @@ import pandas as pd
 # Build a tidy DataFrame from pipeline results
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def build_summary_df(results: List[Dict]) -> pd.DataFrame:
     """
     Convert the list of result dicts (from `run_dataset_fits`) into a
@@ -31,20 +32,22 @@ def build_summary_df(results: List[Dict]) -> pd.DataFrame:
     """
     rows = []
     for r in results:
-        rows.append({
-            "Dataset":          r["dataset"],
-            "Epoch Mode":       r["mode"],
-            "Law":              r["law"],
-            "Design":           r["design"],
-            "R² Train":         r.get("r2_train", np.nan),
-            "RMSE Train":       r.get("rmse_train", np.nan),
-            "R² Unified":       r.get("r2_unified", np.nan),
-            "RMSE Unified":     r.get("rmse_unified", np.nan),
-            "R² Colinear":      r.get("r2_colinear", np.nan),
-            "RMSE Colinear":    r.get("rmse_colinear", np.nan),
-            "R² Non-Colinear":  r.get("r2_noncolinear", np.nan),
-            "RMSE Non-Colinear":r.get("rmse_noncolinear", np.nan),
-        })
+        rows.append(
+            {
+                "Dataset": r["dataset"],
+                "Epoch Mode": r["mode"],
+                "Law": r["law"],
+                "Design": r["design"],
+                "R² Train": r.get("r2_train", np.nan),
+                "RMSE Train": r.get("rmse_train", np.nan),
+                "R² Unified": r.get("r2_unified", np.nan),
+                "RMSE Unified": r.get("rmse_unified", np.nan),
+                "R² Colinear": r.get("r2_colinear", np.nan),
+                "RMSE Colinear": r.get("rmse_colinear", np.nan),
+                "R² Non-Colinear": r.get("r2_noncolinear", np.nan),
+                "RMSE Non-Colinear": r.get("rmse_noncolinear", np.nan),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -53,15 +56,16 @@ def build_summary_df(results: List[Dict]) -> pd.DataFrame:
 # ════════════════════════════════════════════════════════════════════════════
 
 HOLDOUT_COLUMNS = {
-    "unified":      "R² Unified",
-    "colinear":     "R² Colinear",
-    "noncolinear":  "R² Non-Colinear",
+    "unified": "R² Unified",
+    "colinear": "R² Colinear",
+    "noncolinear": "R² Non-Colinear",
 }
 
 
 # ════════════════════════════════════════════════════════════════════════════
 # LaTeX helpers
 # ════════════════════════════════════════════════════════════════════════════
+
 
 def _fmt(val: float, precision: int = 4) -> str:
     """Format a float for LaTeX, returning ' - ' for NaN."""
@@ -88,6 +92,7 @@ def _pct_fmt(val: float) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 # Per-dataset comparison table (LaTeX)
 # ════════════════════════════════════════════════════════════════════════════
+
 
 def _latex_one_table(
     df: pd.DataFrame,
@@ -185,6 +190,7 @@ def _latex_one_table(
 # Aggregated stats tables (LaTeX)
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def _latex_stats_table(
     df: pd.DataFrame,
     r2_col: str,
@@ -203,12 +209,12 @@ def _latex_stats_table(
     for design in designs:
         sub = df[df["Design"] == design]
         stats[design] = {
-            "r2_mean":   sub[r2_col].mean(),
+            "r2_mean": sub[r2_col].mean(),
             "r2_median": sub[r2_col].median(),
-            "r2_std":    sub[r2_col].std(),
-            "rmse_mean":   sub[rmse_col].mean(),
+            "r2_std": sub[r2_col].std(),
+            "rmse_mean": sub[rmse_col].mean(),
             "rmse_median": sub[rmse_col].median(),
-            "rmse_std":    sub[rmse_col].std(),
+            "rmse_std": sub[rmse_col].std(),
         }
 
     def _best(metric_key: str, higher_better: bool) -> str:
@@ -218,12 +224,12 @@ def _latex_stats_table(
         else:
             return min(vals, key=vals.get)
 
-    best_r2_mean   = _best("r2_mean", True)
+    best_r2_mean = _best("r2_mean", True)
     best_r2_median = _best("r2_median", True)
-    best_r2_std    = _best("r2_std", False)
-    best_rmse_mean   = _best("rmse_mean", False)
+    best_r2_std = _best("r2_std", False)
+    best_rmse_mean = _best("rmse_mean", False)
     best_rmse_median = _best("rmse_median", False)
-    best_rmse_std    = _best("rmse_std", False)
+    best_rmse_std = _best("rmse_std", False)
 
     def _cell(design, key, best_design):
         v = stats[design][key]
@@ -234,7 +240,9 @@ def _latex_stats_table(
     lines.append(r"\centering")
     lines.append(r"\begin{tabular}{l l c c c}")
     lines.append(r"\toprule")
-    lines.append(r"\textbf{Metric} & \textbf{Design} & \textbf{Mean} & \textbf{Median} & \textbf{Std} \\")
+    lines.append(
+        r"\textbf{Metric} & \textbf{Design} & \textbf{Mean} & \textbf{Median} & \textbf{Std} \\"
+    )
     lines.append(r"\midrule")
 
     lines.append(r"\multirow{2}{*}{$R^2$}")
@@ -267,11 +275,13 @@ def _latex_stats_table(
 # Win-rate breakdown table (LaTeX)
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def _winrate_ci(n_wins: int, n_total: int, confidence: float = 0.95) -> tuple:
     """Wilson score interval for binomial proportion."""
     if n_total == 0:
         return 0.0, 0.0, 0.0
     from scipy.stats import norm
+
     z = norm.ppf(1 - (1 - confidence) / 2)
     p = n_wins / n_total
     denom = 1 + z**2 / n_total
@@ -315,17 +325,30 @@ def _latex_winrate_table(winners: pd.DataFrame, win_threshold: float = 60.0) -> 
             rows_data.append((f"{label}: {val}", nc, co, total, pct))
 
     # Find max rows per breakdown for column layout
-    ds_rows = [(v, r) for v, r in [(val, _pct_row(uni[uni["Dataset"] == val]))
-                for val in sorted(uni["Dataset"].unique())]]
-    law_rows = [(v, r) for v, r in [(val, _pct_row(uni[uni["Law"] == val]))
-                 for val in sorted(uni["Law"].unique())]]
-    mode_rows = [(v, r) for v, r in [(val, _pct_row(uni[uni["Epoch Mode"] == val]))
-                  for val in sorted(uni["Epoch Mode"].unique())]]
+    ds_rows = [
+        (v, r)
+        for v, r in [
+            (val, _pct_row(uni[uni["Dataset"] == val])) for val in sorted(uni["Dataset"].unique())
+        ]
+    ]
+    law_rows = [
+        (v, r)
+        for v, r in [(val, _pct_row(uni[uni["Law"] == val])) for val in sorted(uni["Law"].unique())]
+    ]
+    mode_rows = [
+        (v, r)
+        for v, r in [
+            (val, _pct_row(uni[uni["Epoch Mode"] == val]))
+            for val in sorted(uni["Epoch Mode"].unique())
+        ]
+    ]
 
     # Build side-by-side table matching paper Table 4 format
     n_rows = max(len(ds_rows), len(law_rows), len(mode_rows))
+
     def pad(lst):
         return lst + [("", (0, 0, 0, 0.0, 0.0, 0.0))] * (n_rows - len(lst))
+
     ds_rows, law_rows, mode_rows = pad(ds_rows), pad(law_rows), pad(mode_rows)
 
     lines = []
@@ -348,9 +371,7 @@ def _latex_winrate_table(winners: pd.DataFrame, win_threshold: float = 60.0) -> 
         r"\multicolumn{2}{c}{\textbf{Eval.\ Mode}} \\"
     )
     lines.append(r"\cmidrule(lr){1-2} \cmidrule(lr){3-4} \cmidrule(lr){5-6}")
-    lines.append(
-        r"& \textbf{NC\%} & & \textbf{NC\%} & & \textbf{NC\%} \\"
-    )
+    lines.append(r"& \textbf{NC\%} & & \textbf{NC\%} & & \textbf{NC\%} \\")
     lines.append(r"\midrule")
 
     for i in range(n_rows):
@@ -391,7 +412,9 @@ def _latex_winrate_table_appendix(winners: pd.DataFrame) -> str:
     lines.append(r"\resizebox{\textwidth}{!}{")
     lines.append(r"\begin{tabular}{lcccc}")
     lines.append(r"\toprule")
-    lines.append(r"\textbf{Category} & \textbf{NC Wins} & \textbf{CO Wins} & \textbf{Total} & \textbf{NC \%} \\")
+    lines.append(
+        r"\textbf{Category} & \textbf{NC Wins} & \textbf{CO Wins} & \textbf{Total} & \textbf{NC \%} \\"
+    )
     lines.append(r"\midrule")
 
     # Per holdout type
@@ -422,6 +445,7 @@ def _latex_winrate_table_appendix(winners: pd.DataFrame) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 # Public API
 # ════════════════════════════════════════════════════════════════════════════
+
 
 def display_comparison_tables(
     results: List[Dict],
@@ -485,10 +509,18 @@ def display_aggregated_stats(
     winners = get_winners_summary(results)
 
     holdout_specs = [
-        ("R² Train",         "RMSE Train",         "Train - $R^2$ and RMSE summary (black = best)"),
-        ("R² Unified",       "RMSE Unified",       "Unified holdout - $R^2$ and RMSE summary (black = best)"),
-        ("R² Colinear",      "RMSE Colinear",      "Colinear holdout - $R^2$ and RMSE summary (black = best)"),
-        ("R² Non-Colinear",  "RMSE Non-Colinear",  "Non-colinear holdout - $R^2$ and RMSE summary (black = best)"),
+        ("R² Train", "RMSE Train", "Train - $R^2$ and RMSE summary (black = best)"),
+        ("R² Unified", "RMSE Unified", "Unified holdout - $R^2$ and RMSE summary (black = best)"),
+        (
+            "R² Colinear",
+            "RMSE Colinear",
+            "Colinear holdout - $R^2$ and RMSE summary (black = best)",
+        ),
+        (
+            "R² Non-Colinear",
+            "RMSE Non-Colinear",
+            "Non-colinear holdout - $R^2$ and RMSE summary (black = best)",
+        ),
     ]
 
     tables = []
@@ -519,13 +551,15 @@ def get_winners_summary(results: List[Dict]) -> pd.DataFrame:
                 if len(grp) < 2:
                     continue
                 best_row = grp.loc[grp[r2_col].idxmax()]
-                rows.append({
-                    "Dataset": ds,
-                    "Holdout": holdout_key.title(),
-                    "Epoch Mode": mode,
-                    "Law": law,
-                    "Winner": best_row["Design"],
-                    "R²": best_row[r2_col],
-                })
+                rows.append(
+                    {
+                        "Dataset": ds,
+                        "Holdout": holdout_key.title(),
+                        "Epoch Mode": mode,
+                        "Law": law,
+                        "Winner": best_row["Design"],
+                        "R²": best_row[r2_col],
+                    }
+                )
 
     return pd.DataFrame(rows)

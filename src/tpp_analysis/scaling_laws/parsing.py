@@ -68,14 +68,16 @@ def parse_epoch_results(filepath: str) -> List[Dict]:
                     continue
 
         if epoch_losses:
-            runs.append({
-                "N": N,
-                "D": D,
-                "run_type": run_type,
-                "is_holdout": is_holdout,
-                "is_colinear": is_colinear,
-                "epoch_losses": epoch_losses,
-                "n_epochs": len(epoch_losses),
-            })
+            runs.append(
+                {
+                    "N": N,
+                    "D": D,
+                    "run_type": run_type,
+                    "is_holdout": is_holdout,
+                    "is_colinear": is_colinear,
+                    "epoch_losses": epoch_losses,
+                    "n_epochs": len(epoch_losses),
+                }
+            )
 
     return runs

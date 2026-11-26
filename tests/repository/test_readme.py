@@ -12,8 +12,13 @@ from conftest import REPO
 README = (REPO / "README.md").read_text()
 
 TITLE = "Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation"
-AUTHORS = ["Joshua Shay Kricheli", "Alexander Lawrence Reid", "Soumajyoti Sarkar",
-           "Venkata Gandikota", "Paulo Shakarian"]
+AUTHORS = [
+    "Joshua Shay Kricheli",
+    "Alexander Lawrence Reid",
+    "Soumajyoti Sarkar",
+    "Venkata Gandikota",
+    "Paulo Shakarian",
+]
 ARXIV_ID = "2605.08541"
 
 
@@ -40,7 +45,11 @@ def test_local_images_exist_and_are_images(src: str):
 
 
 def test_logos_of_the_three_institutions():
-    for alt in ("Syracuse University", "College of Engineering and Computer Science", "Leibniz Lab"):
+    for alt in (
+        "Syracuse University",
+        "College of Engineering and Computer Science",
+        "Leibniz Lab",
+    ):
         assert re.search(rf'<img alt="[^"]*{alt}[^"]*" src="images/', README), alt
 
 

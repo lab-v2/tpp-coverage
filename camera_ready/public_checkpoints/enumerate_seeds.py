@@ -29,6 +29,7 @@ import pandas as pd
 import analysis as A
 
 from paths import ARTIFACTS, WORK
+
 ARMS = ("CO", "NC", "NCM")
 
 
@@ -37,12 +38,12 @@ ARMS = ("CO", "NC", "NCM")
 # ════════════════════════════════════════════════════════════════════════════
 
 CONSTRUCTIONS = {
-    "W1": (8, 2),   # pre-registered
+    "W1": (8, 2),  # pre-registered
     "V1": (8, 1),
     "V2": (8, 8),
     "V3": (5, 5),
     "V4": (5, 1),
-    "V5": (4, 1),   # CRITERIA Amendment 6: narrowest admissible width, stride 1
+    "V5": (4, 1),  # CRITERIA Amendment 6: narrowest admissible width, stride 1
     "V7": (4, 4),
 }
 
@@ -63,7 +64,7 @@ def build_windows(cell: str, sizes: Sequence[float], width: int, stride: int) ->
     if n < width:
         return [A.Window(cell, 0, tuple(ordered))]
     return [
-        A.Window(cell, j, tuple(ordered[i:i + width]))
+        A.Window(cell, j, tuple(ordered[i : i + width]))
         for j, i in enumerate(range(0, n - width + 1, stride))
     ]
 
@@ -71,6 +72,7 @@ def build_windows(cell: str, sizes: Sequence[float], width: int, stride: int) ->
 # ════════════════════════════════════════════════════════════════════════════
 # Task construction
 # ════════════════════════════════════════════════════════════════════════════
+
 
 class Task:
     """One (cell, window, ray) design family over a contiguous block of seeds."""
@@ -83,9 +85,15 @@ class Task:
         self.seed_lo, self.seed_hi = seed_lo, seed_hi
 
 
-def make_tasks(runs: pd.DataFrame, width: int, stride: int, n_seeds: int,
-               block: int, max_ngm: float = np.inf,
-               cells: Sequence[str] | None = None) -> list[Task]:
+def make_tasks(
+    runs: pd.DataFrame,
+    width: int,
+    stride: int,
+    n_seeds: int,
+    block: int,
+    max_ngm: float = np.inf,
+    cells: Sequence[str] | None = None,
+) -> list[Task]:
     """`max_ngm` is the CRITERIA A6.2a compute economy: fit only the windows of one coarse
     band. Windows are carved and scored independently, so this changes no estimate inside
     the band - it only leaves the other bands unfitted for that construction."""
@@ -109,8 +117,17 @@ def make_tasks(runs: pd.DataFrame, width: int, stride: int, n_seeds: int,
                 if len(co) < 4 or co["N"].nunique() < A.MIN_DISTINCT_N_IN_DESIGN:
                     continue
                 for lo in range(0, n_seeds, block):
-                    tasks.append(Task(cell, window.index, tuple(window.sizes), hold,
-                                      b0, lo, min(lo + block, n_seeds)))
+                    tasks.append(
+                        Task(
+                            cell,
+                            window.index,
+                            tuple(window.sizes),
+                            hold,
+                            b0,
+                            lo,
+                            min(lo + block, n_seeds),
+                        )
+                    )
     return tasks
 
 
@@ -160,11 +177,19 @@ def _rows_for(task: Task) -> list[dict]:
     for seed in range(task.seed_lo, task.seed_hi):
         bbox_seed = A.repo.stable_hash(task.cell, task.win_index, task.ray, 1, seed) & 0x7FFFFFFF
         nc_runs, *_ = A.repo.select_nc_bbox(
-            target_n_points=n, target_tpps=[task.ray], run_tpp=run_tpp,
-            grid_info=grid_info, bbox_seed=bbox_seed)
+            target_n_points=n,
+            target_tpps=[task.ray],
+            run_tpp=run_tpp,
+            grid_info=grid_info,
+            bbox_seed=bbox_seed,
+        )
         ncm_runs, *_ = A.repo.select_nc_bbox(
-            target_n_points=n, target_tpps=[task.ray], run_tpp=run_tpp_m,
-            grid_info=grid_m, bbox_seed=bbox_seed)
+            target_n_points=n,
+            target_tpps=[task.ray],
+            run_tpp=run_tpp_m,
+            grid_info=grid_m,
+            bbox_seed=bbox_seed,
+        )
         if len(nc_runs) != n or len(ncm_runs) != n:
             continue
         nc_idx = [r["_row"] for r in nc_runs]
@@ -173,16 +198,24 @@ def _rows_for(task: Task) -> list[dict]:
         A.repo.GLOBAL_SEED = seed
         for law_name, (fit_fn, loss_fn, min_pts) in A.LAWS.items():
             row = {
-                "cell": task.cell, "window": task.win_index, "N_gm": n_gm,
-                "N_min": min(task.sizes), "N_max": max(task.sizes),
-                "ray_bin": task.ray, "seed": seed, "law": law_name, "n_train": n,
+                "cell": task.cell,
+                "window": task.win_index,
+                "N_gm": n_gm,
+                "N_min": min(task.sizes),
+                "N_max": max(task.sizes),
+                "ray_bin": task.ray,
+                "seed": seed,
+                "law": law_name,
+                "n_train": n,
                 "nc_key": A.repo.stable_hash(tuple(sorted(nc_idx))),
                 "ncm_key": A.repo.stable_hash(tuple(sorted(ncm_idx))),
             }
             ok = True
-            for label, idx, marg in (("CO", co_idx, co_marg),
-                                     ("NC", nc_idx, None),
-                                     ("NCM", ncm_idx, None)):
+            for label, idx, marg in (
+                ("CO", co_idx, co_marg),
+                ("NC", nc_idx, None),
+                ("NCM", ncm_idx, None),
+            ):
                 sub = runs.loc[idx]
                 if len(sub) < min_pts:
                     ok = False
@@ -190,8 +223,9 @@ def _rows_for(task: Task) -> list[dict]:
                 m = marg if marg is not None else _margins(sub["k"].tolist())
                 row.update({f"{label}_{k}": v for k, v in m.items()})
                 row[f"{label}_n_sizes"] = int(sub["N"].nunique())
-                params, _, _ = fit_fn(sub["N"].to_numpy(float), sub["D"].to_numpy(float),
-                                      sub["loss"].to_numpy(float))
+                params, _, _ = fit_fn(
+                    sub["N"].to_numpy(float), sub["D"].to_numpy(float), sub["loss"].to_numpy(float)
+                )
                 row[f"{label}_rmse_offray"] = A._rmse(loss_fn, params, holdout)
             if not ok:
                 continue
@@ -199,7 +233,11 @@ def _rows_for(task: Task) -> list[dict]:
             row["CO_k_max"] = float(runs.loc[co_idx, "k"].max())
 
             def gap(num, den):
-                return float(np.log10(num / den)) if np.isfinite(num) and np.isfinite(den) and den > 0 else np.nan
+                return (
+                    float(np.log10(num / den))
+                    if np.isfinite(num) and np.isfinite(den) and den > 0
+                    else np.nan
+                )
 
             row["gap_offray"] = gap(row["CO_rmse_offray"], row["NC_rmse_offray"])
             row["gap_offray_ncm"] = gap(row["CO_rmse_offray"], row["NCM_rmse_offray"])
@@ -209,6 +247,7 @@ def _rows_for(task: Task) -> list[dict]:
 
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description="Re-fit the designs over many NC-carve seeds.")
     ap.add_argument("--construction", default="W1", choices=sorted(CONSTRUCTIONS))
@@ -217,8 +256,12 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--workers", type=int, default=min(480, os.cpu_count() or 8))
     ap.add_argument("--runs", default="runs_expanded.csv")
     ap.add_argument("--corpus", default="E")
-    ap.add_argument("--max-ngm", type=float, default=float("inf"),
-                    help="CRITERIA A6.2a: fit only windows with N_gm below this")
+    ap.add_argument(
+        "--max-ngm",
+        type=float,
+        default=float("inf"),
+        help="CRITERIA A6.2a: fit only windows with N_gm below this",
+    )
     ap.add_argument("--out", required=True)
     ap.add_argument("--cells", nargs="+", default=None, help="fit only these cells")
     args = ap.parse_args(argv)
@@ -230,8 +273,11 @@ def main(argv: list[str] | None = None) -> None:
     runs = runs.reset_index(drop=True)
 
     tasks = make_tasks(runs, width, stride, args.seeds, args.block, args.max_ngm, args.cells)
-    print(f"construction {args.construction} = (width {width}, stride {stride}); "
-          f"seeds 0-{args.seeds - 1}; {len(tasks)} tasks on {args.workers} workers", flush=True)
+    print(
+        f"construction {args.construction} = (width {width}, stride {stride}); "
+        f"seeds 0-{args.seeds - 1}; {len(tasks)} tasks on {args.workers} workers",
+        flush=True,
+    )
 
     t0 = time.time()
     ctx = mp.get_context("fork")
@@ -241,8 +287,11 @@ def main(argv: list[str] | None = None) -> None:
             rows.extend(chunk)
             if i % 200 == 0:
                 el = time.time() - t0
-                print(f"  {i}/{len(tasks)} tasks  {len(rows)} rows  {el:.0f}s "
-                      f"(eta {el / i * (len(tasks) - i):.0f}s)", flush=True)
+                print(
+                    f"  {i}/{len(tasks)} tasks  {len(rows)} rows  {el:.0f}s "
+                    f"(eta {el / i * (len(tasks) - i):.0f}s)",
+                    flush=True,
+                )
 
     out = pd.DataFrame(rows).sort_values(["cell", "window", "ray_bin", "law", "seed"])
 

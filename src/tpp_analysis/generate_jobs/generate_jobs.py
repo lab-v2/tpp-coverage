@@ -63,8 +63,16 @@ NAME_PREFIX = {
 }
 
 TRAIN_SIZES = [
-    5_000_000, 10_000_000, 14_000_000, 19_000_000, 22_000_000,
-    28_000_000, 32_000_000, 35_000_000, 40_000_000, 45_000_000,
+    5_000_000,
+    10_000_000,
+    14_000_000,
+    19_000_000,
+    22_000_000,
+    28_000_000,
+    32_000_000,
+    35_000_000,
+    40_000_000,
+    45_000_000,
 ]
 HOLDOUT_SIZES = [54_566_912, 60_884_992, 64_044_032, 70_362_112]
 
@@ -85,9 +93,20 @@ class Design:
 
 DESIGNS = {
     "main": Design(
-        nc_tokens=(10_000_000, 35_000_000, 60_000_000, 80_000_000, 100_000_000,
-                   130_000_000, 150_000_000, 180_000_000, 200_000_000, 225_000_000,
-                   250_000_000, 275_000_000),
+        nc_tokens=(
+            10_000_000,
+            35_000_000,
+            60_000_000,
+            80_000_000,
+            100_000_000,
+            130_000_000,
+            150_000_000,
+            180_000_000,
+            200_000_000,
+            225_000_000,
+            250_000_000,
+            275_000_000,
+        ),
         nc_holdout_tokens=(300_000_000, 325_000_000, 350_000_000, 375_000_000, 400_000_000),
         # 3.0 (not 3) reproduces the released run names, e.g. C4_COLINEAR_N10.00M_TPP3.0_D30M
         co_tpp=(1, 1.5, 1.9, 2, 2.5, 2.7, 3.0, 3.3, 3.5, 4, 4.5, 5),
@@ -97,8 +116,7 @@ DESIGNS = {
         prefix="",
     ),
     "bigtpp": Design(
-        nc_tokens=(100_000_000, 225_000_000, 400_000_000, 550_000_000, 700_000_000,
-                   825_000_000),
+        nc_tokens=(100_000_000, 225_000_000, 400_000_000, 550_000_000, 700_000_000, 825_000_000),
         nc_holdout_tokens=(900_000_000, 1_100_000_000, 1_400_000_000),
         co_tpp=(10, 11, 12, 13, 14, 15),
         co_holdout_tpp=(16, 18, 20),
@@ -108,7 +126,7 @@ DESIGNS = {
     ),
 }
 
-BATCH_SIZE = 96   # per GPU; with 4 GPUs the global batch is 384 sequences
+BATCH_SIZE = 96  # per GPU; with 4 GPUs the global batch is 384 sequences
 SEQ_LEN = 256
 WEIGHT_DECAY = 0.1
 ARCH = "llama"
@@ -116,7 +134,7 @@ ARCH = "llama"
 
 @dataclass(frozen=True)
 class Run:
-    kind: str        # "nxd", "colinear", "holdout", "colinear_holdout"
+    kind: str  # "nxd", "colinear", "holdout", "colinear_holdout"
     n: int
     d: int
     tpp: float | None
@@ -156,8 +174,12 @@ def expand(design: Design) -> list[Run]:
 
 def run_name(dataset: str, design: Design, bf16: bool, run: Run) -> str:
     stem = ("BF16" if bf16 else "") + design.prefix + NAME_PREFIX[dataset]
-    tag = {"nxd": "NxD_GRID", "colinear": "COLINEAR", "holdout": "HOLDOUT",
-           "colinear_holdout": "COLINEAR_HOLDOUT"}[run.kind]
+    tag = {
+        "nxd": "NxD_GRID",
+        "colinear": "COLINEAR",
+        "holdout": "HOLDOUT",
+        "colinear_holdout": "COLINEAR_HOLDOUT",
+    }[run.kind]
     if run.tpp is None:
         return f"{stem}_{tag}_N{_fmt_m(run.n)}_D{_fmt_m(run.d)}"
     return f"{stem}_{tag}_N{run.n / 1e6:.2f}M_TPP{_fmt_tpp(run.tpp)}_D{_fmt_m(run.d, 1)}"
@@ -207,8 +229,11 @@ def write_scripts(args: argparse.Namespace) -> list[Path]:
     lr = LEARNING_RATES[args.dataset] if args.learning_rate is None else args.learning_rate
 
     optional = ""
-    for flag, value in (("partition", args.partition), ("account", args.account),
-                        ("exclude", args.exclude)):
+    for flag, value in (
+        ("partition", args.partition),
+        ("account", args.account),
+        ("exclude", args.exclude),
+    ):
         if value:
             optional += f"#SBATCH --{flag}={value}\n"
 
@@ -216,18 +241,34 @@ def write_scripts(args: argparse.Namespace) -> list[Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     scripts: list[Path] = []
     for b, lo in enumerate(range(0, len(runs), args.runs_per_job), 1):
-        chunk = runs[lo:lo + args.runs_per_job]
+        chunk = runs[lo : lo + args.runs_per_job]
         job_name = f"{args.dataset}_{args.design}_{args.precision}_{b:03d}"
-        body = HEADER.format(job_name=job_name, time=args.time, gpus=args.gpus,
-                             optional=optional, log_dir=args.log_dir, data_dir=data_dir,
-                             work_dir=work_dir, venv=venv)
+        body = HEADER.format(
+            job_name=job_name,
+            time=args.time,
+            gpus=args.gpus,
+            optional=optional,
+            log_dir=args.log_dir,
+            data_dir=data_dir,
+            work_dir=work_dir,
+            venv=venv,
+        )
         for i, run in enumerate(chunk, 1):
             holdout = run.kind in ("holdout", "colinear_holdout")
             body += EXPERIMENT.format(
-                i=i, total=len(chunk), name=run_name(args.dataset, design, bf16, run),
-                gpus=args.gpus, n=run.n, d=run.d, lr=lr, wd=WEIGHT_DECAY,
-                epochs=design.epochs, batch_size=BATCH_SIZE, seq_len=SEQ_LEN,
-                dataset=args.dataset, arch=ARCH,
+                i=i,
+                total=len(chunk),
+                name=run_name(args.dataset, design, bf16, run),
+                gpus=args.gpus,
+                n=run.n,
+                d=run.d,
+                lr=lr,
+                wd=WEIGHT_DECAY,
+                epochs=design.epochs,
+                batch_size=BATCH_SIZE,
+                seq_len=SEQ_LEN,
+                dataset=args.dataset,
+                arch=ARCH,
                 mode_flag="--use-train-as-val \\\n    " if holdout else "--skip-val \\\n    ",
                 bf16_flag="--use-bf16 \\\n    " if bf16 else "",
             )
@@ -237,29 +278,45 @@ def write_scripts(args: argparse.Namespace) -> list[Path]:
         scripts.append(path)
 
     submit = out_dir / "submit_all.sh"
-    submit.write_text("#!/bin/bash\nset -euo pipefail\n"
-                      f"mkdir -p {args.log_dir}\n"
-                      + "".join(f"sbatch {p}\n" for p in scripts))
+    submit.write_text(
+        "#!/bin/bash\nset -euo pipefail\n"
+        f"mkdir -p {args.log_dir}\n" + "".join(f"sbatch {p}\n" for p in scripts)
+    )
     submit.chmod(0o755)
-    print(f"{args.dataset} / {args.design} / {args.precision}: {len(runs)} runs "
-          f"in {len(scripts)} jobs -> {out_dir}/ (submit with {submit})")
+    print(
+        f"{args.dataset} / {args.design} / {args.precision}: {len(runs)} runs "
+        f"in {len(scripts)} jobs -> {out_dir}/ (submit with {submit})"
+    )
     return scripts
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     env = os.environ.get
-    p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0],
-                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__.split("\n\n")[0], formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("--dataset", required=True, choices=sorted(LEARNING_RATES))
     p.add_argument("--design", default="main", choices=sorted(DESIGNS))
-    p.add_argument("--precision", default="fp32", choices=["fp32", "bf16"],
-                   help="bf16 adds --use-bf16 (the paper's BF16 replication is Wikipedia, main design)")
-    p.add_argument("--learning-rate", type=float, default=None,
-                   help="override the per-corpus peak learning rate")
+    p.add_argument(
+        "--precision",
+        default="fp32",
+        choices=["fp32", "bf16"],
+        help="bf16 adds --use-bf16 (the paper's BF16 replication is Wikipedia, main design)",
+    )
+    p.add_argument(
+        "--learning-rate",
+        type=float,
+        default=None,
+        help="override the per-corpus peak learning rate",
+    )
     p.add_argument("--list", action="store_true", help="print the runs and exit")
     p.add_argument("--runs-per-job", type=int, default=7)
-    p.add_argument("--gpus", type=int, default=4,
-                   help="GPUs per run (the paper used 4; the global batch is 96 x GPUs)")
+    p.add_argument(
+        "--gpus",
+        type=int,
+        default=4,
+        help="GPUs per run (the paper used 4; the global batch is 96 x GPUs)",
+    )
     p.add_argument("--partition", default=env("SLURM_PARTITION", ""))
     p.add_argument("--account", default=env("SLURM_ACCOUNT", ""))
     p.add_argument("--exclude", default=env("SLURM_EXCLUDE", ""), help="nodes to avoid")
@@ -277,8 +334,10 @@ def main(argv: list[str] | None = None) -> None:
     if args.list:
         design = DESIGNS[args.design]
         for run in expand(design):
-            print(f"{run.kind:17s} N={run.n:>11,d} D={run.d:>14,d} "
-                  f"{run_name(args.dataset, design, args.precision == 'bf16', run)}")
+            print(
+                f"{run.kind:17s} N={run.n:>11,d} D={run.d:>14,d} "
+                f"{run_name(args.dataset, design, args.precision == 'bf16', run)}"
+            )
         return
     write_scripts(args)
 

@@ -51,16 +51,15 @@ from collections import defaultdict
 # ============================================================
 # Datasets
 # ============================================================
-MAIN_DATASETS    = ["wikipedia", "cosmopedia", "redpajama", "pes2o", "c4"]
+MAIN_DATASETS = ["wikipedia", "cosmopedia", "redpajama", "pes2o", "c4"]
 SPECIAL_DATASETS = ["wikipedia_bf16"]
-PRELIM_DATASETS  = ["wikipedia_bigtpp"]
+PRELIM_DATASETS = ["wikipedia_bigtpp"]
 
 # Design directories on HF (just two after cleanup)
 VALID_DESIGNS = {"colinear", "non_colinear"}
 
 
-def selected_datasets(include_special: bool = False,
-                       include_prelim: bool = False) -> List[str]:
+def selected_datasets(include_special: bool = False, include_prelim: bool = False) -> List[str]:
     """Return the active dataset list given the flag combination."""
     out = list(MAIN_DATASETS)
     if include_special:
@@ -74,6 +73,7 @@ def selected_datasets(include_special: bool = False,
 # Shared data structures
 # ============================================================
 
+
 @dataclass
 class EpochRecord:
     epoch: int
@@ -81,6 +81,7 @@ class EpochRecord:
     val_loss: Optional[float]
     cumulative_time_s: float
     cumulative_tokens: int
+
 
 @dataclass
 class RunResult:
@@ -96,6 +97,7 @@ class RunResult:
 # ============================================================
 # Shared .npz extraction utilities
 # ============================================================
+
 
 def extract_unique_tokens(data: dict) -> Optional[int]:
     """Extract D (unique tokens per epoch) from cumulative_tokens array."""
@@ -143,22 +145,22 @@ def compute_epoch_end_losses(data: dict, num_epochs: int, tail: int = 100) -> Op
 
 def extract_tpp_from_filename(filename: str) -> Optional[float]:
     """Extract TPP from filename if present."""
-    m = re.search(r'_TPP([\d.]+)_', filename)
+    m = re.search(r"_TPP([\d.]+)_", filename)
     return float(m.group(1)) if m else None
 
 
 def extract_wd_from_filename(filename: str) -> float:
     """Extract weight decay from filename."""
-    m = re.search(r'_wd([\d.]+)', filename)
+    m = re.search(r"_wd([\d.]+)", filename)
     return float(m.group(1)) if m else 0.1
 
 
 def extract_n_from_filename(filename: str) -> Optional[int]:
     """Extract exact N from the _m{N}_token or _m{N}_ pattern."""
-    m = re.search(r'_m(\d+)_token\d+', filename)
+    m = re.search(r"_m(\d+)_token\d+", filename)
     if m:
         return int(m.group(1))
-    m = re.search(r'_m(\d+)_', filename)
+    m = re.search(r"_m(\d+)_", filename)
     if m:
         return int(m.group(1))
     return None
@@ -178,7 +180,9 @@ def build_epoch_records(data: dict, use_final_loss: bool = True) -> Optional[Lis
     val_losses = list(data.get("val_losses", []))
     epoch_times = list(data.get("epoch_times", []))
     cumulative_tokens = list(data.get("cumulative_tokens", []))
-    batches_per_epoch = len(cumulative_tokens) // num_epochs if num_epochs > 0 and cumulative_tokens else 0
+    batches_per_epoch = (
+        len(cumulative_tokens) // num_epochs if num_epochs > 0 and cumulative_tokens else 0
+    )
 
     # Trailing-100-batch converged loss
     if use_final_loss:
@@ -196,13 +200,15 @@ def build_epoch_records(data: dict, use_final_loss: bool = True) -> Optional[Lis
         if batches_per_epoch > 0 and (i + 1) * batches_per_epoch <= len(cumulative_tokens):
             cum_tok = int(cumulative_tokens[(i + 1) * batches_per_epoch - 1])
 
-        epochs.append(EpochRecord(
-            epoch=i + 1,
-            train_loss=float(train_losses[i]),
-            val_loss=float(val_losses[i]) if i < len(val_losses) else None,
-            cumulative_time_s=cum_time,
-            cumulative_tokens=cum_tok,
-        ))
+        epochs.append(
+            EpochRecord(
+                epoch=i + 1,
+                train_loss=float(train_losses[i]),
+                val_loss=float(val_losses[i]) if i < len(val_losses) else None,
+                cumulative_time_s=cum_time,
+                cumulative_tokens=cum_tok,
+            )
+        )
 
     return epochs
 
@@ -217,6 +223,7 @@ def build_epoch_records(data: dict, use_final_loss: bool = True) -> Optional[Lis
 #   1,5.1234,,10.7
 #   2,4.8765,,20.2
 #   <blank line>
+
 
 def write_dataset_csv(output_dir: str, dataset: str, runs: List[RunResult]):
     """Write one CSV per dataset in the block format that load_and_prepare expects."""
@@ -250,6 +257,7 @@ def write_dataset_csv(output_dir: str, dataset: str, runs: List[RunResult]):
 # MODE 1: from_hf - read .npz metrics from HF directory structure
 # ============================================================
 
+
 def detect_run_type_from_filename(filename: str) -> str:
     """Detect run type from .npz filename (used in from_hf mode).
 
@@ -270,10 +278,13 @@ def detect_run_type_from_filename(filename: str) -> str:
     return "nxd_grid"
 
 
-def extract_from_hf(repo_dir: str, output_dir: str,
-                     include_special: bool = False,
-                     include_prelim: bool = False,
-                     use_final_loss: bool = True):
+def extract_from_hf(
+    repo_dir: str,
+    output_dir: str,
+    include_special: bool = False,
+    include_prelim: bool = False,
+    use_final_loss: bool = True,
+):
     """Extract results from HuggingFace repo directory structure (.npz files)."""
     datasets_to_process = selected_datasets(include_special, include_prelim)
 
@@ -307,7 +318,12 @@ def extract_from_hf(repo_dir: str, output_dir: str,
 
                 for filepath in npz_files:
                     filename = os.path.basename(filepath)
-                    if "resumed" in filename or "psi" in filename or "intermediate" in filename or "REPRO_TEST" in filename:
+                    if (
+                        "resumed" in filename
+                        or "psi" in filename
+                        or "intermediate" in filename
+                        or "REPRO_TEST" in filename
+                    ):
                         continue
 
                     # Detect run_type from filename, not directory
@@ -330,10 +346,17 @@ def extract_from_hf(repo_dir: str, output_dir: str,
                     tpp = extract_tpp_from_filename(filename)
                     wd = extract_wd_from_filename(filename)
 
-                    runs.append(RunResult(
-                        dataset=dataset, run_type=file_run_type, N=N, D=D,
-                        tpp=tpp, wd=wd, epochs=epochs,
-                    ))
+                    runs.append(
+                        RunResult(
+                            dataset=dataset,
+                            run_type=file_run_type,
+                            N=N,
+                            D=D,
+                            tpp=tpp,
+                            wd=wd,
+                            epochs=epochs,
+                        )
+                    )
 
         # Dedup
         if runs:
@@ -354,9 +377,19 @@ def extract_from_hf(repo_dir: str, output_dir: str,
 # MODE 2: from_local - read .npz metrics from flat directory
 # ============================================================
 
-SKIP_PATTERNS = ["resumed", "psi", "intermediate", "NxDxWDxLR", "NxDxWD_GRID",
-                 "COSMO_LR", "WIKI_LR", "RP_LR", "PES2O_LR", "C4_LR",
-                 "REPRO_TEST"]
+SKIP_PATTERNS = [
+    "resumed",
+    "psi",
+    "intermediate",
+    "NxDxWDxLR",
+    "NxDxWD_GRID",
+    "COSMO_LR",
+    "WIKI_LR",
+    "RP_LR",
+    "PES2O_LR",
+    "C4_LR",
+    "REPRO_TEST",
+]
 
 
 def detect_dataset(filename: str) -> Optional[str]:
@@ -375,7 +408,7 @@ def detect_dataset(filename: str) -> Optional[str]:
         return "wikipedia_bf16"
 
     # Embedded dataset tag (most reliable)
-    dataset_match = re.search(r'_(c4|pes2o|redpajama|wikipedia|cosmopedia)_m\d+_', filename.lower())
+    dataset_match = re.search(r"_(c4|pes2o|redpajama|wikipedia|cosmopedia)_m\d+_", filename.lower())
     if dataset_match:
         return dataset_match.group(1)
 
@@ -412,10 +445,13 @@ def detect_run_type(filename: str) -> Tuple[str, bool, bool]:
     return "nxd_grid", False, False
 
 
-def extract_from_local(metrics_dir: str, output_dir: str,
-                       include_special: bool = False,
-                       include_prelim: bool = False,
-                       use_final_loss: bool = True):
+def extract_from_local(
+    metrics_dir: str,
+    output_dir: str,
+    include_special: bool = False,
+    include_prelim: bool = False,
+    use_final_loss: bool = True,
+):
     """Extract results from flat training_metrics directory (.npz files)."""
 
     pattern = os.path.join(metrics_dir, "*_metrics.npz")
@@ -465,10 +501,17 @@ def extract_from_local(metrics_dir: str, output_dir: str,
         if not epochs:
             continue
 
-        runs_by_dataset[dataset].append(RunResult(
-            dataset=dataset, run_type=run_type, N=N, D=D,
-            tpp=tpp, wd=wd, epochs=epochs,
-        ))
+        runs_by_dataset[dataset].append(
+            RunResult(
+                dataset=dataset,
+                run_type=run_type,
+                N=N,
+                D=D,
+                tpp=tpp,
+                wd=wd,
+                epochs=epochs,
+            )
+        )
 
     # Dedup per dataset
     for dataset in runs_by_dataset:
@@ -506,9 +549,11 @@ def extract_from_local(metrics_dir: str, output_dir: str,
 
     # Summary
     print("\nSummary:")
-    all_active = (MAIN_DATASETS
-                  + (SPECIAL_DATASETS if include_special else [])
-                  + (PRELIM_DATASETS if include_prelim else []))
+    all_active = (
+        MAIN_DATASETS
+        + (SPECIAL_DATASETS if include_special else [])
+        + (PRELIM_DATASETS if include_prelim else [])
+    )
     for dataset in all_active:
         runs = runs_by_dataset.get(dataset, [])
         if runs:
@@ -525,6 +570,7 @@ def extract_from_local(metrics_dir: str, output_dir: str,
 # ============================================================
 # CLI
 # ============================================================
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -550,16 +596,27 @@ Examples:
 
     # Shared flag definitions to keep both subcommands in sync
     def _add_shared(p):
-        p.add_argument("-o", "--output-dir", default="extracted_losses",
-                       help="Output directory for CSVs (default: extracted_losses)")
-        p.add_argument("--include-special", action="store_true",
-                       help="Also extract BF16 replication (wikipedia_bf16)")
-        p.add_argument("--include-prelim", action="store_true",
-                       help="Also extract BigTPP preliminary experiment "
-                            "(wikipedia_bigtpp)")
-        p.add_argument("--no-final-loss", action="store_true",
-                       help="Use epoch averages instead of trailing-100-batch "
-                            "converged loss")
+        p.add_argument(
+            "-o",
+            "--output-dir",
+            default="extracted_losses",
+            help="Output directory for CSVs (default: extracted_losses)",
+        )
+        p.add_argument(
+            "--include-special",
+            action="store_true",
+            help="Also extract BF16 replication (wikipedia_bf16)",
+        )
+        p.add_argument(
+            "--include-prelim",
+            action="store_true",
+            help="Also extract BigTPP preliminary experiment (wikipedia_bigtpp)",
+        )
+        p.add_argument(
+            "--no-final-loss",
+            action="store_true",
+            help="Use epoch averages instead of trailing-100-batch converged loss",
+        )
 
     # from_hf
     hf_parser = subparsers.add_parser(
@@ -583,9 +640,11 @@ Examples:
     print("Scaling Law Results Extractor")
     print(f"Mode: {args.mode}")
     print(f"Output: {args.output_dir}")
-    print("Active tiers: main"
-          + (" + special(BF16)" if args.include_special else "")
-          + (" + prelim(BigTPP)" if args.include_prelim else ""))
+    print(
+        "Active tiers: main"
+        + (" + special(BF16)" if args.include_special else "")
+        + (" + prelim(BigTPP)" if args.include_prelim else "")
+    )
     print("=" * 70)
 
     if args.mode == "from_hf":

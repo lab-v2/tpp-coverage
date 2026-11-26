@@ -111,8 +111,10 @@ def health_lines(queue_dir: Path, shared_dir: Path, now: float | None = None) ->
     now = time.time() if now is None else now
     state = queue_state(queue_dir)
     finished = done_prefixes(queue_dir, state)
-    lines = [f"queue: done={len(state.done)}/{len(state.tasks)} claimed={len(state.claimed)} "
-             f"failed={len(state.failed)}"]
+    lines = [
+        f"queue: done={len(state.done)}/{len(state.tasks)} claimed={len(state.claimed)} "
+        f"failed={len(state.failed)}"
+    ]
     lines += [f"ALERT failed: {name}" for name in sorted(state.failed)]
     live = 0
     for hb in sorted(heartbeats(shared_dir), key=lambda h: h.get("prefix", "")):
@@ -126,8 +128,10 @@ def health_lines(queue_dir: Path, shared_dir: Path, now: float | None = None) ->
         if alert:
             tags.append(alert)
         tag = " ".join(tags) + " " if tags else ""
-        lines.append(f"{tag}{prefix[:52]}: {hb.get('pct', 0):.1f}% loss={hb.get('loss', 0):.3f} "
-                     f"lr={hb.get('lr', 0):.1e} eta={hb.get('eta_h', 0):.2f}h hb_age={age}s")
+        lines.append(
+            f"{tag}{prefix[:52]}: {hb.get('pct', 0):.1f}% loss={hb.get('loss', 0):.3f} "
+            f"lr={hb.get('lr', 0):.1e} eta={hb.get('eta_h', 0):.2f}h hb_age={age}s"
+        )
     if live == 0 and state.running:
         lines.append(f"ALERT: no live heartbeats (<{LIVE_SECONDS // 60} min) - no slot is training")
     return lines
@@ -150,28 +154,38 @@ def snapshot(queue_dir: Path, shared_dir: Path) -> None:
     nh_all = sum(state.est_node_hours.values())
     nh_done = sum(state.est_node_hours.get(n, 0.0) for n in state.done)
     print(f"=== {queue_dir.name}  {time.strftime('%F %T')} ===")
-    print(f"tasks: {len(state.tasks)}  done: {len(state.done)}  running: {len(state.running)}  "
-          f"failed: {len(state.failed)}  pending: {state.pending}")
+    print(
+        f"tasks: {len(state.tasks)}  done: {len(state.done)}  running: {len(state.running)}  "
+        f"failed: {len(state.failed)}  pending: {state.pending}"
+    )
     print(f"node-h: {nh_done:.1f} / {nh_all:.1f} ({100 * nh_done / max(nh_all, 1e-9):.0f}%)")
     if state.failed:
         print("FAILED: " + ", ".join(sorted(state.failed)))
     live = [h for h in heartbeats(shared_dir) if time.time() - h.get("time", 0) < 300]
     if live:
-        print(f"\n{'run':58s} {'node':>7} {'step':>13} {'pct':>6} "
-              f"{'loss':>8} {'lr':>9} {'eta_h':>6} {'age_s':>6}")
+        print(
+            f"\n{'run':58s} {'node':>7} {'step':>13} {'pct':>6} "
+            f"{'loss':>8} {'lr':>9} {'eta_h':>6} {'age_s':>6}"
+        )
         for h in sorted(live, key=lambda x: x.get("prefix", "")):
-            print(f"{h.get('prefix', '?')[:58]:58s} {h.get('host', '?').split('.')[0]:>7} "
-                  f"{h.get('step_in_epoch', 0):>6}/{h.get('total_steps', 0):<6} "
-                  f"{h.get('pct', 0):>5.1f}% {h.get('loss', 0):>8.4f} "
-                  f"{h.get('lr', 0):>9.2e} {h.get('eta_h', 0):>6.2f} "
-                  f"{time.time() - h.get('time', 0):>6.0f}")
+            print(
+                f"{h.get('prefix', '?')[:58]:58s} {h.get('host', '?').split('.')[0]:>7} "
+                f"{h.get('step_in_epoch', 0):>6}/{h.get('total_steps', 0):<6} "
+                f"{h.get('pct', 0):>5.1f}% {h.get('loss', 0):>8.4f} "
+                f"{h.get('lr', 0):>9.2e} {h.get('eta_h', 0):>6.2f} "
+                f"{time.time() - h.get('time', 0):>6.0f}"
+            )
     else:
         print("\n(no live heartbeats in the last 5 min)")
     user = os.environ.get("USER")
     if user:
         try:
-            q = subprocess.run(["squeue", "-u", user, "-o", "%.10i %.9j %.2t %.10M %R"],
-                               capture_output=True, text=True, timeout=15)
+            q = subprocess.run(
+                ["squeue", "-u", user, "-o", "%.10i %.9j %.2t %.10M %R"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
             print("\n" + q.stdout.strip())
         except (OSError, subprocess.SubprocessError):
             pass

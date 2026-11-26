@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run the large-scale analysis (the tpp_large_scale command line) from a checkout.
 
-    uv run python large_scale/scripts/run_analysis.py --help
+uv run python large_scale/scripts/run_analysis.py --help
 """
 
 from __future__ import annotations

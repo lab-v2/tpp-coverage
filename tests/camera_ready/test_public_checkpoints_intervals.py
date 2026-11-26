@@ -35,8 +35,12 @@ SLICE = RESULTS / "results_E_seeds512_seeds0-7.csv.gz"
 FULL_E = WORK / "results_E_seeds512.csv"
 FULL_X = WORK / "results_X_seeds512.csv.gz"
 KAPPAS = (100, 10_000, 100_000, 1_000_000)
-SHARED = {("CO=A,NC=A", 100), ("CO=B,NC=B", 10_000), ("CO=B,NC=B", 100_000),
-          ("CO=B,NC=B", 1_000_000)}  # both designs in one regime; the 826-pair cell is set aside
+SHARED = {
+    ("CO=A,NC=A", 100),
+    ("CO=B,NC=B", 10_000),
+    ("CO=B,NC=B", 100_000),
+    ("CO=B,NC=B", 1_000_000),
+}  # both designs in one regime; the 826-pair cell is set aside
 RTOL_ENDS = 1e-4  # percentile interpolation before or after 10 ** x (vk_ratio_seeds.py)
 
 
@@ -45,6 +49,7 @@ def pct(x: pd.Series) -> list[int]:
 
 
 # ── 1. the committed outputs carry the printed values ──────────────────────────────────────
+
 
 def test_median_ratio_intervals_as_printed():
     """5.8 [5.4, 6.9] below 1B, 3.7 [2.1, 5.6] at 1B and above, 0.64 [0.2, 1.3], 300,000 draws."""
@@ -73,19 +78,26 @@ def test_single_stream_intervals_are_the_released_scripts():
     boot = pd.read_csv(RESULTS / "vk_ratio_boot.csv")
     e2 = boot[boot["scheme"] == "E2"].set_index("stratum")
     for stat in ("<1B", ">=1B"):
-        np.testing.assert_allclose(rel.loc[stat, ["point", "lo95", "hi95"]].astype(float),
-                                   e2.loc[stat, ["median_vk_ratio", "lo95", "hi95"]].astype(float),
-                                   rtol=RTOL_ENDS)
+        np.testing.assert_allclose(
+            rel.loc[stat, ["point", "lo95", "hi95"]].astype(float),
+            e2.loc[stat, ["median_vk_ratio", "lo95", "hi95"]].astype(float),
+            rtol=RTOL_ENDS,
+        )
         assert rel.loc[stat, "point"] == pytest.approx(e2.loc[stat, "median_vk_ratio"], rel=1e-12)
     rom = pd.read_csv(RESULTS / "ratio_of_medians_boot.csv").iloc[0]
-    np.testing.assert_allclose(rel.loc["ratio", ["point", "lo95", "hi95"]].astype(float),
-                               [rom["ratio_of_medians"], rom["lo95"], rom["hi95"]], rtol=1e-12)
+    np.testing.assert_allclose(
+        rel.loc["ratio", ["point", "lo95", "hi95"]].astype(float),
+        [rom["ratio_of_medians"], rom["lo95"], rom["hi95"]],
+        rtol=1e-12,
+    )
     # the same medians as vk_ratio.py, an output written by another script
     ref = pd.read_csv(RESULTS / "vk_ratio.csv").set_index("stratum")
-    np.testing.assert_allclose(e2["median_vk_ratio"], ref.loc[e2.index, "median_vk_ratio"],
-                               rtol=1e-12)
+    np.testing.assert_allclose(
+        e2["median_vk_ratio"], ref.loc[e2.index, "median_vk_ratio"], rtol=1e-12
+    )
     assert rom["ratio_of_medians"] == pytest.approx(
-        ref.loc[">=1B", "median_vk_ratio"] / ref.loc["<1B", "median_vk_ratio"], rel=1e-12)
+        ref.loc[">=1B", "median_vk_ratio"] / ref.loc["<1B", "median_vk_ratio"], rel=1e-12
+    )
 
 
 def test_windows_at_1b_and_above_as_printed():
@@ -122,11 +134,15 @@ def test_joint_regime_test_as_printed(cells):
     assert j.loc[("E", 100, "CO=A,NC=B"), "n_pairs"] == 0
     assert j.loc[("X", 100, "CO=A,NC=B"), "n_windows"] == 2
     # the four large cells with both subsets in one regime
-    large = [("CO=A,NC=A", 100), ("CO=B,NC=B", 10_000), ("CO=B,NC=B", 100_000),
-             ("CO=B,NC=B", 1_000_000)]
+    large = [
+        ("CO=A,NC=A", 100),
+        ("CO=B,NC=B", 10_000),
+        ("CO=B,NC=B", 100_000),
+        ("CO=B,NC=B", 1_000_000),
+    ]
     e = pd.DataFrame([j.loc[("E", k, c)] for c, k in large])
     assert (min(pct(e["win"])), max(pct(e["win"]))) == (44, 47)
-    worse = [round(100 * (10 ** -m - 1)) for m in e["median"]]  # NC's off-ray error, higher by
+    worse = [round(100 * (10**-m - 1)) for m in e["median"]]  # NC's off-ray error, higher by
     assert (min(worse), max(worse)) == (6, 11)
     assert e["excludes0"].tolist() == [False, True, False, True]
     assert e["hi"].iloc[3] < 0 and e["hi"].iloc[3] > -0.002  # excludes zero only just at 1e6
@@ -206,10 +222,18 @@ def test_regime_arms_by_band_as_printed(cells):
     assert sep["n_windows"].max() == 3
 
 
-@pytest.mark.parametrize("name,keys,family,cell_col", [
-    ("regime_by_band_ci.csv", ["corpus", "kappa", "regime_cell", "stratum"], "band", "regime_cell"),
-    ("co_only_regime.csv", ["corpus", "kappa", "co_regime"], "coonly", "co_regime"),
-])
+@pytest.mark.parametrize(
+    "name,keys,family,cell_col",
+    [
+        (
+            "regime_by_band_ci.csv",
+            ["corpus", "kappa", "regime_cell", "stratum"],
+            "band",
+            "regime_cell",
+        ),
+        ("co_only_regime.csv", ["corpus", "kappa", "co_regime"], "coonly", "co_regime"),
+    ],
+)
 def test_2000_draw_tables_hold_the_same_pairs(cells, name, keys, family, cell_col):
     """The released 2,000-draw tables and regime_cells.csv describe the same pairs."""
     old = pd.read_csv(RESULTS / name)
@@ -237,6 +261,7 @@ def test_slice_facts_the_appendix_prints():
 
 # ── 2. each script on the committed slice, against a direct computation ────────────────────
 
+
 @pytest.fixture(scope="module")
 def slice_frame() -> pd.DataFrame:
     d = pd.read_csv(SLICE)
@@ -246,31 +271,61 @@ def slice_frame() -> pd.DataFrame:
 
 
 def _run(script: str, tmp_path, *args: str) -> None:
-    run(["python", SCRIPTS / script, "--results", SLICE, *args], cwd=A2,
-        env={**os.environ, "TPP_PC_WORK": str(tmp_path)})
+    run(
+        ["python", SCRIPTS / script, "--results", SLICE, *args],
+        cwd=A2,
+        env={**os.environ, "TPP_PC_WORK": str(tmp_path)},
+    )
 
 
 def test_vk_ratio_boot_on_slice(tmp_path, slice_frame):
-    _run("vk_ratio_boot.py", tmp_path, "--n-boot", "200", "--workers", str(pool_width(16)),
-         "--out", tmp_path / "a.csv", "--windows-out", tmp_path / "w.csv")
+    _run(
+        "vk_ratio_boot.py",
+        tmp_path,
+        "--n-boot",
+        "200",
+        "--workers",
+        str(pool_width(16)),
+        "--out",
+        tmp_path / "a.csv",
+        "--windows-out",
+        tmp_path / "w.csv",
+    )
     out = pd.read_csv(tmp_path / "a.csv")
     fin = slice_frame[np.isfinite(slice_frame["delta"])]
-    bands = {"<100M": fin["band"] == "<100M", "100M-1B": fin["band"] == "100M-1B",
-             "<1B": fin["band"] != ">=1B", ">=1B": fin["band"] == ">=1B"}
+    bands = {
+        "<100M": fin["band"] == "<100M",
+        "100M-1B": fin["band"] == "100M-1B",
+        "<1B": fin["band"] != ">=1B",
+        ">=1B": fin["band"] == ">=1B",
+    }
     for stratum, mask in bands.items():
         rows = out[out["stratum"] == stratum]
         assert len(rows) == 3 and (rows["n_pairs"] == mask.sum()).all()
-        np.testing.assert_allclose(rows["median_vk_ratio"], 10 ** fin.loc[mask, "delta"].median(),
-                                   rtol=1e-12)
+        np.testing.assert_allclose(
+            rows["median_vk_ratio"], 10 ** fin.loc[mask, "delta"].median(), rtol=1e-12
+        )
     win = pd.read_csv(tmp_path / "w.csv")
     top = fin[fin["band"] == ">=1B"].groupby(["cell", "window"])["delta"].median()
-    np.testing.assert_allclose(win.set_index(["cell", "window"])["median_vk_ratio"],
-                               10 ** top.loc[list(zip(win["cell"], win["window"]))].to_numpy(),
-                               rtol=1e-12)
+    np.testing.assert_allclose(
+        win.set_index(["cell", "window"])["median_vk_ratio"],
+        10 ** top.loc[list(zip(win["cell"], win["window"]))].to_numpy(),
+        rtol=1e-12,
+    )
 
     # the output does not depend on how the tasks are spread over workers
-    _run("vk_ratio_boot.py", tmp_path, "--n-boot", "200", "--workers", "1",
-         "--out", tmp_path / "b.csv", "--windows-out", tmp_path / "w1.csv")
+    _run(
+        "vk_ratio_boot.py",
+        tmp_path,
+        "--n-boot",
+        "200",
+        "--workers",
+        "1",
+        "--out",
+        tmp_path / "b.csv",
+        "--windows-out",
+        tmp_path / "w1.csv",
+    )
     assert (tmp_path / "a.csv").read_bytes() == (tmp_path / "b.csv").read_bytes()
 
 
@@ -289,8 +344,15 @@ def _regime_letters(m: pd.Series, kappa: int) -> np.ndarray:
 
 
 def test_co_only_regime_on_slice(tmp_path, slice_frame):
-    _run("co_only_regime.py", tmp_path, "--skip-x", "--workers", str(pool_width(16)),
-         "--out", tmp_path / "c.csv")
+    _run(
+        "co_only_regime.py",
+        tmp_path,
+        "--skip-x",
+        "--workers",
+        str(pool_width(16)),
+        "--out",
+        tmp_path / "c.csv",
+    )
     out = pd.read_csv(tmp_path / "c.csv").set_index(["kappa", "co_regime"])
     d = slice_frame
     a_counts = []
@@ -311,18 +373,37 @@ def test_co_only_regime_on_slice(tmp_path, slice_frame):
 
 
 def test_regime_by_band_on_slice(tmp_path, slice_frame):
-    _run("regime_by_band_ci.py", tmp_path, "--skip-x", "--workers", str(pool_width(16)),
-         "--out", tmp_path / "b.csv")
-    _run("co_only_regime.py", tmp_path, "--skip-x", "--workers", str(pool_width(16)),
-         "--out", tmp_path / "c.csv")
+    _run(
+        "regime_by_band_ci.py",
+        tmp_path,
+        "--skip-x",
+        "--workers",
+        str(pool_width(16)),
+        "--out",
+        tmp_path / "b.csv",
+    )
+    _run(
+        "co_only_regime.py",
+        tmp_path,
+        "--skip-x",
+        "--workers",
+        str(pool_width(16)),
+        "--out",
+        tmp_path / "c.csv",
+    )
     out = pd.read_csv(tmp_path / "b.csv")
     d = slice_frame
     for kappa in KAPPAS:
-        cell = ("CO=" + pd.Series(_regime_letters(d["CO_m_beta0.28"], kappa), index=d.index) + ",NC="
-                + _regime_letters(d["NC_m_beta0.28"], kappa))
+        cell = (
+            "CO="
+            + pd.Series(_regime_letters(d["CO_m_beta0.28"], kappa), index=d.index)
+            + ",NC="
+            + _regime_letters(d["NC_m_beta0.28"], kappa)
+        )
         for (name, band), g in d.groupby([cell, d["band"]]):
-            rows = out[(out["kappa"] == kappa) & (out["regime_cell"] == name)
-                       & (out["stratum"] == band)]
+            rows = out[
+                (out["kappa"] == kappa) & (out["regime_cell"] == name) & (out["stratum"] == band)
+            ]
             if name == "CO=B,NC=A":
                 assert rows.empty  # the reversed cell is not part of the test
                 continue
@@ -339,23 +420,48 @@ def test_regime_by_band_on_slice(tmp_path, slice_frame):
 
 def test_vk_ratio_seeds_on_slice(tmp_path):
     """The released streams give back the two scripts' intervals; the pooled row pools seeds."""
-    _run("vk_ratio_seeds.py", tmp_path, "--seeds", "2", "--n-boot", "200", "--workers", str(pool_width(16)),
-         "--out", tmp_path / "s.csv")
-    _run("vk_ratio_boot.py", tmp_path, "--n-boot", "200", "--workers", str(pool_width(16)),
-         "--out", tmp_path / "a.csv", "--windows-out", tmp_path / "w.csv")
+    _run(
+        "vk_ratio_seeds.py",
+        tmp_path,
+        "--seeds",
+        "2",
+        "--n-boot",
+        "200",
+        "--workers",
+        str(pool_width(16)),
+        "--out",
+        tmp_path / "s.csv",
+    )
+    _run(
+        "vk_ratio_boot.py",
+        tmp_path,
+        "--n-boot",
+        "200",
+        "--workers",
+        str(pool_width(16)),
+        "--out",
+        tmp_path / "a.csv",
+        "--windows-out",
+        tmp_path / "w.csv",
+    )
     _run("ratio_of_medians_boot.py", tmp_path, "--n-boot", "200", "--out", tmp_path / "r.csv")
     s = pd.read_csv(tmp_path / "s.csv")
     rel = s[s["stream"] == "released"].set_index("statistic")
     a = pd.read_csv(tmp_path / "a.csv")
     e2 = a[a["scheme"] == "E2"].set_index("stratum")
     for stat in ("<1B", ">=1B"):
-        np.testing.assert_allclose(rel.loc[stat, ["point", "lo95", "hi95"]].astype(float),
-                                   e2.loc[stat, ["median_vk_ratio", "lo95", "hi95"]].astype(float),
-                                   rtol=RTOL_ENDS)
+        np.testing.assert_allclose(
+            rel.loc[stat, ["point", "lo95", "hi95"]].astype(float),
+            e2.loc[stat, ["median_vk_ratio", "lo95", "hi95"]].astype(float),
+            rtol=RTOL_ENDS,
+        )
         assert rel.loc[stat, "point"] == pytest.approx(e2.loc[stat, "median_vk_ratio"], rel=1e-12)
     r = pd.read_csv(tmp_path / "r.csv").iloc[0]
-    np.testing.assert_allclose(rel.loc["ratio", ["point", "lo95", "hi95"]].astype(float),
-                               [r["ratio_of_medians"], r["lo95"], r["hi95"]], rtol=1e-12)
+    np.testing.assert_allclose(
+        rel.loc["ratio", ["point", "lo95", "hi95"]].astype(float),
+        [r["ratio_of_medians"], r["lo95"], r["hi95"]],
+        rtol=1e-12,
+    )
     pooled = s[s["stream"] == "pooled"].set_index("statistic")
     assert (pooled["n_boot"] == 400).all() and (s[s["stream"] == "seed"]["seed"].nunique() == 2)
     one = s[s["stream"] == "seed"].groupby("statistic")
@@ -372,14 +478,24 @@ def test_cluster_medians_resample_whole_windows():
     d = EST.cluster_medians(vals, groups, np.random.default_rng(0), 500)
     # cell 1 draws {0,0}+{0,0}, {0,0}+{10,10} or {10,10}+{10,10}; cell 2 always adds the 5
     assert set(np.round(d, 9)) == {0.0, 5.0, 10.0}
-    one_window = EST.cluster_medians(vals, [[np.array([0, 1, 2, 3, 4])]],
-                                     np.random.default_rng(0), 50)
+    one_window = EST.cluster_medians(
+        vals, [[np.array([0, 1, 2, 3, 4])]], np.random.default_rng(0), 50
+    )
     assert (one_window == np.median(vals)).all()  # one window per cell: no spread
 
 
 def test_regime_cells_on_slice(tmp_path, slice_frame):
-    _run("regime_cells.py", tmp_path, "--skip-x", "--replicates", "1", "--workers", str(pool_width(16)),
-         "--out", tmp_path / "c.csv")
+    _run(
+        "regime_cells.py",
+        tmp_path,
+        "--skip-x",
+        "--replicates",
+        "1",
+        "--workers",
+        str(pool_width(16)),
+        "--out",
+        tmp_path / "c.csv",
+    )
     out = pd.read_csv(tmp_path / "c.csv")
     out["kappa"] = out["kappa"].astype(int)
     out = out.set_index(["family", "kappa", "cell", "band"])
@@ -412,64 +528,162 @@ def test_regime_cells_on_slice(tmp_path, slice_frame):
     import median_ci as M
     import estimate as EST
 
-    jobs = [j for j in EST.dose_jobs(EST.prepare(SLICE), "E|512") if len(j[1]) > 0
-            and sum(len(g) for g in j[2]) >= 2][:2]
+    jobs = [
+        j
+        for j in EST.dose_jobs(EST.prepare(SLICE), "E|512")
+        if len(j[1]) > 0 and sum(len(g) for g in j[2]) >= 2
+    ][:2]
     M.check_released(jobs)
 
 
 # ── 3. with the full 512-seed tables, each script gives back its committed output ──────────
 
+
 def _needs(*paths):
     missing = [str(p) for p in paths if not p.exists()]
-    return pytest.mark.skipif(bool(missing), reason=f"needs {', '.join(missing)} "
-                              "(written by enumerate_seeds.py; not shipped)")
+    return pytest.mark.skipif(
+        bool(missing),
+        reason=f"needs {', '.join(missing)} (written by enumerate_seeds.py; not shipped)",
+    )
 
 
 @_needs(FULL_E)
 def test_full_vk_ratio_boot_reproduces(tmp_path):
-    run(["python", SCRIPTS / "vk_ratio_boot.py", "--results", FULL_E, "--out", tmp_path / "a.csv",
-         "--windows-out", tmp_path / "w.csv", "--workers", "12"], cwd=A2)
-    assert_same_rows(pd.read_csv(tmp_path / "a.csv"), pd.read_csv(RESULTS / "vk_ratio_boot.csv"),
-                     ["stratum", "scheme"])
-    assert_same_rows(pd.read_csv(tmp_path / "w.csv"),
-                     pd.read_csv(RESULTS / "vk_ratio_boot_ge1B_windows.csv"), ["cell", "window"])
+    run(
+        [
+            "python",
+            SCRIPTS / "vk_ratio_boot.py",
+            "--results",
+            FULL_E,
+            "--out",
+            tmp_path / "a.csv",
+            "--windows-out",
+            tmp_path / "w.csv",
+            "--workers",
+            "12",
+        ],
+        cwd=A2,
+    )
+    assert_same_rows(
+        pd.read_csv(tmp_path / "a.csv"),
+        pd.read_csv(RESULTS / "vk_ratio_boot.csv"),
+        ["stratum", "scheme"],
+    )
+    assert_same_rows(
+        pd.read_csv(tmp_path / "w.csv"),
+        pd.read_csv(RESULTS / "vk_ratio_boot_ge1B_windows.csv"),
+        ["cell", "window"],
+    )
 
 
 @_needs(FULL_E)
 def test_full_ratio_of_medians_reproduces(tmp_path):
-    run(["python", SCRIPTS / "ratio_of_medians_boot.py", "--results", FULL_E,
-         "--out", tmp_path / "r.csv"], cwd=A2)
-    assert_same_rows(pd.read_csv(tmp_path / "r.csv"),
-                     pd.read_csv(RESULTS / "ratio_of_medians_boot.csv"), ["statistic"])
+    run(
+        [
+            "python",
+            SCRIPTS / "ratio_of_medians_boot.py",
+            "--results",
+            FULL_E,
+            "--out",
+            tmp_path / "r.csv",
+        ],
+        cwd=A2,
+    )
+    assert_same_rows(
+        pd.read_csv(tmp_path / "r.csv"),
+        pd.read_csv(RESULTS / "ratio_of_medians_boot.csv"),
+        ["statistic"],
+    )
 
 
-@pytest.mark.parametrize("script,keys", [
-    ("regime_by_band_ci.py", ["corpus", "kappa", "regime_cell", "stratum"]),
-    ("co_only_regime.py", ["corpus", "kappa", "co_regime"]),
-])
+@pytest.mark.parametrize(
+    "script,keys",
+    [
+        ("regime_by_band_ci.py", ["corpus", "kappa", "regime_cell", "stratum"]),
+        ("co_only_regime.py", ["corpus", "kappa", "co_regime"]),
+    ],
+)
 @_needs(FULL_E, FULL_X)
 def test_full_regime_tables_reproduce(tmp_path, script, keys):
-    run(["python", SCRIPTS / script, "--results", FULL_E, "--results-x", FULL_X,
-         "--out", tmp_path / "o.csv", "--workers", "48"], cwd=A2)
+    run(
+        [
+            "python",
+            SCRIPTS / script,
+            "--results",
+            FULL_E,
+            "--results-x",
+            FULL_X,
+            "--out",
+            tmp_path / "o.csv",
+            "--workers",
+            "48",
+        ],
+        cwd=A2,
+    )
     name = script.replace(".py", ".csv")
     assert_same_rows(pd.read_csv(tmp_path / "o.csv"), pd.read_csv(RESULTS / name), keys)
 
 
 @_needs(FULL_E)
 def test_full_vk_ratio_seeds_reproduces(tmp_path):
-    run(["python", SCRIPTS / "vk_ratio_seeds.py", "--results", FULL_E, "--out", tmp_path / "s.csv",
-         "--workers", "93"], cwd=A2)
-    assert_same_rows(pd.read_csv(tmp_path / "s.csv"), pd.read_csv(RESULTS / "vk_ratio_seeds.csv"),
-                     ["statistic", "stream", "seed"])
+    run(
+        [
+            "python",
+            SCRIPTS / "vk_ratio_seeds.py",
+            "--results",
+            FULL_E,
+            "--out",
+            tmp_path / "s.csv",
+            "--workers",
+            "93",
+        ],
+        cwd=A2,
+    )
+    assert_same_rows(
+        pd.read_csv(tmp_path / "s.csv"),
+        pd.read_csv(RESULTS / "vk_ratio_seeds.csv"),
+        ["statistic", "stream", "seed"],
+    )
 
 
 @_needs(FULL_E, FULL_X)
 def test_full_regime_cells_reproduce(tmp_path):
     """Replicate 0 of every cell; the other nine replicates only test verdict stability."""
-    run(["python", SCRIPTS / "regime_cells.py", "--results", FULL_E, "--results-x", FULL_X,
-         "--replicates", "1", "--out", tmp_path / "c.csv", "--workers", str(pool_width())],
-        cwd=A2, timeout=3600)
-    cols = ["family", "corpus", "kappa", "cell", "band", "key", "n_pairs", "n_windows", "win",
-            "median", "lo", "hi", "excludes0"]
-    assert_same_rows(pd.read_csv(tmp_path / "c.csv")[cols],
-                     pd.read_csv(RESULTS / "regime_cells.csv")[cols], cols[:5])
+    run(
+        [
+            "python",
+            SCRIPTS / "regime_cells.py",
+            "--results",
+            FULL_E,
+            "--results-x",
+            FULL_X,
+            "--replicates",
+            "1",
+            "--out",
+            tmp_path / "c.csv",
+            "--workers",
+            str(pool_width()),
+        ],
+        cwd=A2,
+        timeout=3600,
+    )
+    cols = [
+        "family",
+        "corpus",
+        "kappa",
+        "cell",
+        "band",
+        "key",
+        "n_pairs",
+        "n_windows",
+        "win",
+        "median",
+        "lo",
+        "hi",
+        "excludes0",
+    ]
+    assert_same_rows(
+        pd.read_csv(tmp_path / "c.csv")[cols],
+        pd.read_csv(RESULTS / "regime_cells.csv")[cols],
+        cols[:5],
+    )

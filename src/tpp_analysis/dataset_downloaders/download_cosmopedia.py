@@ -93,10 +93,10 @@ def process_split(
     example_indices_used = []
     pos = start_pos
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"{split_name.upper()}: Walking shuffled indices from position {start_pos:,}")
-    print(f"  Target: {target_tokens:,} tokens ({target_tokens/1e9:.3f}B)")
-    print(f"{'='*70}")
+    print(f"  Target: {target_tokens:,} tokens ({target_tokens / 1e9:.3f}B)")
+    print(f"{'=' * 70}")
 
     t0 = time.time()
 
@@ -129,9 +129,9 @@ def process_split(
                 elapsed = time.time() - t0
                 pbar.set_postfix(
                     {
-                        "tokens": f"{total_tokens/1e9:.3f}B",
+                        "tokens": f"{total_tokens / 1e9:.3f}B",
                         "chunks": f"{total_chunks:,}",
-                        "ex/s": f"{examples_processed/elapsed:.0f}",
+                        "ex/s": f"{examples_processed / elapsed:.0f}",
                     }
                 )
 
@@ -139,12 +139,12 @@ def process_split(
 
     elapsed = time.time() - t0
 
-    print(f"\n✓ {split_name.capitalize()} complete ({elapsed/60:.1f} min):")
+    print(f"\n✓ {split_name.capitalize()} complete ({elapsed / 60:.1f} min):")
     print(f"  Shuffled positions: [{start_pos:,}, {pos:,})")
     print(f"  Examples:  {examples_processed:,}")
     print(f"  Chunks:    {total_chunks:,}")
-    print(f"  Tokens:    {total_tokens:,} ({total_tokens/1e9:.3f}B)")
-    print(f"  Avg tok/example: {total_tokens/examples_processed:.1f}")
+    print(f"  Tokens:    {total_tokens:,} ({total_tokens / 1e9:.3f}B)")
+    print(f"  Avg tok/example: {total_tokens / examples_processed:.1f}")
     print(f"  Files: {tokens_bin_path}")
     print(f"         {lengths_bin_path}")
 
@@ -195,14 +195,21 @@ def main():
         if data_dir:
             cache_dir = os.path.join(data_dir, "cosmopedia")
         else:
-            cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "corpora", "cosmopedia")
+            cache_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "..",
+                "..",
+                "..",
+                "corpora",
+                "cosmopedia",
+            )
 
     os.makedirs(cache_dir, exist_ok=True)
 
     print("Cosmopedia Train + Val Pipeline (SHUFFLED)")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Subset:         {args.subset}")
-    print(f"Target/split:   {args.target_tokens:,} ({args.target_tokens/1e9:.2f}B)")
+    print(f"Target/split:   {args.target_tokens:,} ({args.target_tokens / 1e9:.2f}B)")
     print(f"max_seq_len:    {args.max_seq_len}")
     print(f"Seed:           {args.seed}")
     print(f"Output dir:     {cache_dir}")
@@ -267,9 +274,9 @@ def main():
     )
 
     # ── Overlap verification ──
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("OVERLAP VERIFICATION")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     train_set = set(train_example_indices)
     val_set = set(val_example_indices)
     overlap = train_set & val_set
@@ -295,13 +302,9 @@ def main():
     print(f"  Saved val indices:   {val_indices_path}")
 
     # ── Save split config ──
-    avg_tok_train = (
-        train_tokens / len(train_example_indices) if train_example_indices else 0
-    )
+    avg_tok_train = train_tokens / len(train_example_indices) if train_example_indices else 0
     avg_tok_val = val_tokens / len(val_example_indices) if val_example_indices else 0
-    unused_examples = (
-        total_examples - len(train_example_indices) - len(val_example_indices)
-    )
+    unused_examples = total_examples - len(train_example_indices) - len(val_example_indices)
 
     split_config = {
         "dataset": f"HuggingFaceTB/cosmopedia/{args.subset}",
@@ -317,9 +320,7 @@ def main():
             "tokens": train_tokens,
             "avg_tokens_per_example": avg_tok_train,
             "avg_chunks_per_example": (
-                train_chunks / len(train_example_indices)
-                if train_example_indices
-                else 0
+                train_chunks / len(train_example_indices) if train_example_indices else 0
             ),
         },
         "val": {
@@ -341,9 +342,7 @@ def main():
             "val_mean_tok_per_example": avg_tok_val,
             "delta_mean": avg_tok_val - avg_tok_train,
             "delta_pct": (
-                (avg_tok_val - avg_tok_train) / avg_tok_train * 100
-                if avg_tok_train > 0
-                else 0
+                (avg_tok_val - avg_tok_train) / avg_tok_train * 100 if avg_tok_train > 0 else 0
             ),
         },
     }
@@ -353,19 +352,19 @@ def main():
         json.dump(split_config, f, indent=2)
 
     # ── Summary ──
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("COMPLETE!")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print(f"  Seed:     {args.seed}")
     print(
         f"  Train:    {len(train_example_indices):,} examples, "
         f"{train_chunks:,} chunks, "
-        f"{train_tokens:,} tokens ({train_tokens/1e9:.3f}B)"
+        f"{train_tokens:,} tokens ({train_tokens / 1e9:.3f}B)"
     )
     print(
         f"  Val:      {len(val_example_indices):,} examples, "
         f"{val_chunks:,} chunks, "
-        f"{val_tokens:,} tokens ({val_tokens/1e9:.3f}B)"
+        f"{val_tokens:,} tokens ({val_tokens / 1e9:.3f}B)"
     )
     print(f"  Unused:   {unused_examples:,} examples")
     print(f"  Overlap:  {len(overlap)} ✓")
@@ -383,7 +382,7 @@ def main():
     print(f"  {train_indices_path}")
     print(f"  {val_indices_path}")
     print(f"  {config_path}")
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
 
 
 if __name__ == "__main__":

@@ -24,14 +24,27 @@ have actually hit, so broken math is caught before it is committed:
 
 Usage: python3 scripts/check_readme_math.py   (exit 0 clean, 1 on any issue)
 """
+
 from __future__ import annotations
 import re
 import sys
 from pathlib import Path
 
 README = Path(__file__).resolve().parents[1] / "README.md"
-BANNED = [r"\operatorname", r"\bigl", r"\bigr", r"\Bigl", r"\Bigr",
-          r"\biggl", r"\biggr", r"\tfrac", r"\!", r"\,", r"\;", r"\:"]
+BANNED = [
+    r"\operatorname",
+    r"\bigl",
+    r"\bigr",
+    r"\Bigl",
+    r"\Bigr",
+    r"\biggl",
+    r"\biggr",
+    r"\tfrac",
+    r"\!",
+    r"\,",
+    r"\;",
+    r"\:",
+]
 
 
 def main() -> int:
@@ -58,27 +71,43 @@ def main() -> int:
     masked = "".join(masked)
 
     for m in re.finditer(r"\$([^\$\n]+?)\$", masked):
-        content = text[m.start(1):m.end(1)]
+        content = text[m.start(1) : m.end(1)]
         spans.append(("inline", content, m.start()))
         ln = line_of(m.start())
         before = text[m.start() - 1] if m.start() > 0 else "\n"
         after = text[m.end()] if m.end() < len(text) else "\n"
         if re.match(r"[A-Za-z0-9\-]", before):
-            errors.append((ln, f"inline $ opens glued to '{before}' (needs a space before it): "
-                               f"...{text[max(0, m.start() - 14):m.end()]}"))
+            errors.append(
+                (
+                    ln,
+                    f"inline $ opens glued to '{before}' (needs a space before it): "
+                    f"...{text[max(0, m.start() - 14) : m.end()]}",
+                )
+            )
         if re.match(r"[A-Za-z0-9]", after):
-            errors.append((ln, f"inline $ closes glued to '{after}' (needs a space/punctuation after)"))
+            errors.append(
+                (ln, f"inline $ closes glued to '{after}' (needs a space/punctuation after)")
+            )
         if content[:1].isspace() or content[-1:].isspace():
-            errors.append((ln, f"inline math has edge whitespace (GitHub will not render it): ${content}$"))
+            errors.append(
+                (ln, f"inline math has edge whitespace (GitHub will not render it): ${content}$")
+            )
         if "}_" in content:
-            errors.append((ln, "inline '}_' (subscript right after a brace) -> GitHub reads _ as "
-                               "emphasis and drops the span; move this term to a $$ display block"))
+            errors.append(
+                (
+                    ln,
+                    "inline '}_' (subscript right after a brace) -> GitHub reads _ as "
+                    "emphasis and drops the span; move this term to a $$ display block",
+                )
+            )
 
     # 4-6. per-span content checks
     for kind, content, start in spans:
         ln = line_of(start)
         if "\\{" in content or "\\}" in content:
-            errors.append((ln, r"raw \{ or \} (markdown strips the backslash; use \lbrace / \rbrace)"))
+            errors.append(
+                (ln, r"raw \{ or \} (markdown strips the backslash; use \lbrace / \rbrace)")
+            )
         for b in BANNED:
             if b in content:
                 errors.append((ln, f"GitHub-unsupported macro {b}"))

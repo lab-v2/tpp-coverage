@@ -27,6 +27,7 @@ from scaling_laws.laws import (
 # 1. k = 1 reduces to Chinchilla exactly
 # ════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.parametrize(
     "A, alpha, B, beta, E",
     [
@@ -54,7 +55,7 @@ def test_skaling_at_k1_is_chinchilla(A, alpha, B, beta, E):
     np.testing.assert_allclose(sk, ch, rtol=np.finfo(float).eps, atol=0.0)
 
     # And bitwise once the association is matched: k=1 leaves the sum untouched.
-    inner = A / N ** alpha + B / D ** beta
+    inner = A / N**alpha + B / D**beta
     assert np.array_equal(sk, inner + E)
 
 
@@ -74,17 +75,17 @@ def test_skaling_mixed_derivative_sign_follows_k():
 
     def mixed(k):
         f = lambda n, d: skaling_loss(n, d, A, alpha, B, beta, k, E)
-        return (f(N + h, D + h) - f(N + h, D - h)
-                - f(N - h, D + h) + f(N - h, D - h)) / (4 * h * h)
+        return (f(N + h, D + h) - f(N + h, D - h) - f(N - h, D + h) + f(N - h, D - h)) / (4 * h * h)
 
-    assert abs(mixed(1.0)) < 1e-30          # additive: identically zero
-    assert mixed(0.7) < 0.0                 # k(k-1) < 0 for 0 < k < 1
-    assert mixed(1.4) > 0.0                 # k(k-1) > 0 for k > 1
+    assert abs(mixed(1.0)) < 1e-30  # additive: identically zero
+    assert mixed(0.7) < 0.0  # k(k-1) < 0 for 0 < k < 1
+    assert mixed(1.4) > 0.0  # k(k-1) > 0 for k > 1
 
 
 # ════════════════════════════════════════════════════════════════
 # 2. The fitter recovers planted parameters
 # ════════════════════════════════════════════════════════════════
+
 
 def test_fit_skaling_recovers_planted_params():
     """Noise-free data generated from the law is recovered by fit_skaling.
@@ -137,7 +138,7 @@ def test_skaling_family_attains_every_chinchilla_fit():
     d_grid = np.logspace(8, 10.7, 5)
     NN, DD = np.meshgrid(n_grid, d_grid)
     N, D = NN.ravel(), DD.ravel()
-    L = E + A / N ** alpha + B / D ** beta
+    L = E + A / N**alpha + B / D**beta
 
     p_ch, sse_ch, _ = fit_chinchilla(N, D, L, n_restarts=60)
     assert p_ch is not None
@@ -158,6 +159,7 @@ def test_skaling_family_attains_every_chinchilla_fit():
 # ════════════════════════════════════════════════════════════════
 # 3. Registered beside the paper's laws, not among them
 # ════════════════════════════════════════════════════════════════
+
 
 def test_fit_skaling_reaches_above_the_old_k_ceiling():
     """k = 2.5 lies above the old bound of 2.0; the widened bound must let the fit reach it."""
@@ -184,8 +186,12 @@ def test_skaling_is_an_extra_law():
 
 
 def test_paper_laws_are_unchanged():
-    assert [law.name for law in LAWS] == ["Kaplan", "Chinchilla", "Droppo-Elibol",
-                                          "Parametric-Epoch"]
+    assert [law.name for law in LAWS] == [
+        "Kaplan",
+        "Chinchilla",
+        "Droppo-Elibol",
+        "Parametric-Epoch",
+    ]
     import run_analysis
 
     assert "Skaling" not in run_analysis.LAWS

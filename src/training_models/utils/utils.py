@@ -162,18 +162,18 @@ def colored_text(text: Any, color: str) -> str:
         Formatted string with color codes
     """
     color_codes = {
-        'red': '\033[91m',
-        'blue': '\033[94m',
-        'green': '\033[92m',
-        'yellow': '\033[93m',
-        'purple': '\033[95m',
-        'cyan': '\033[96m',
-        'bold': '\033[1m',
-        'underline': '\033[4m'
+        "red": "\033[91m",
+        "blue": "\033[94m",
+        "green": "\033[92m",
+        "yellow": "\033[93m",
+        "purple": "\033[95m",
+        "cyan": "\033[96m",
+        "bold": "\033[1m",
+        "underline": "\033[4m",
     }
 
-    reset_code = '\033[0m'
-    color_code = color_codes.get(color.lower(), '')
+    reset_code = "\033[0m"
+    color_code = color_codes.get(color.lower(), "")
 
     return f"{color_code}{text}{reset_code}" if color_code else str(text)
 
@@ -189,7 +189,7 @@ def print_colored(text: Any, color: str):
     print(colored_text(text, color))
 
 
-def print_header(title: str, color: str = 'blue', width: int = 65):
+def print_header(title: str, color: str = "blue", width: int = 65):
     """
     Print a formatted header with color and borders.
 
@@ -204,7 +204,7 @@ def print_header(title: str, color: str = 'blue', width: int = 65):
     print_colored(border, color)
 
 
-def print_section(title: str, color: str = 'yellow'):
+def print_section(title: str, color: str = "yellow"):
     """
     Print a section separator with color.
 
@@ -246,7 +246,7 @@ def _extract_fraction_parts(latex_str: str) -> tuple[str, str] | None:
     Returns:
         Tuple of (numerator, denominator) or None if not a valid fraction
     """
-    if not latex_str.startswith('\\frac{'):
+    if not latex_str.startswith("\\frac{"):
         return None
 
     # Start after '\frac{'
@@ -257,10 +257,10 @@ def _extract_fraction_parts(latex_str: str) -> tuple[str, str] | None:
     # Extract numerator by counting braces
     while pos < len(latex_str) and depth > 0:
         char = latex_str[pos]
-        if char == '{':
+        if char == "{":
             depth += 1
             numerator_chars.append(char)
-        elif char == '}':
+        elif char == "}":
             depth -= 1
             if depth > 0:
                 numerator_chars.append(char)
@@ -268,10 +268,10 @@ def _extract_fraction_parts(latex_str: str) -> tuple[str, str] | None:
             numerator_chars.append(char)
         pos += 1
 
-    if depth != 0 or pos >= len(latex_str) or latex_str[pos] != '{':
+    if depth != 0 or pos >= len(latex_str) or latex_str[pos] != "{":
         return None
 
-    numerator = ''.join(numerator_chars)
+    numerator = "".join(numerator_chars)
 
     # Extract denominator
     pos += 1  # Skip opening '{'
@@ -280,10 +280,10 @@ def _extract_fraction_parts(latex_str: str) -> tuple[str, str] | None:
 
     while pos < len(latex_str) and depth > 0:
         char = latex_str[pos]
-        if char == '{':
+        if char == "{":
             depth += 1
             denominator_chars.append(char)
-        elif char == '}':
+        elif char == "}":
             depth -= 1
             if depth > 0:
                 denominator_chars.append(char)
@@ -294,7 +294,7 @@ def _extract_fraction_parts(latex_str: str) -> tuple[str, str] | None:
     if depth != 0:
         return None
 
-    denominator = ''.join(denominator_chars)
+    denominator = "".join(denominator_chars)
 
     return numerator, denominator
 
@@ -337,21 +337,21 @@ def _break_fraction_numerator(latex_str: str, max_width: int) -> str:
             aligned_lines.append(term)
         else:
             # Subsequent lines: aligned with + or - prefix
-            if term.startswith('-'):
+            if term.startswith("-"):
                 aligned_lines.append(term)
-            elif term.startswith('+'):
+            elif term.startswith("+"):
                 aligned_lines.append(term)
             else:
-                aligned_lines.append('+' + term)
+                aligned_lines.append("+" + term)
 
     # Join with line breaks - use & for alignment in aligned environment
-    numerator_multiline = ' \\\\\\\\ '.join(aligned_lines)
+    numerator_multiline = " \\\\\\\\ ".join(aligned_lines)
 
     # Wrap in aligned environment
-    numerator_aligned = f'\\begin{{aligned}}{numerator_multiline}\\end{{aligned}}'
+    numerator_aligned = f"\\begin{{aligned}}{numerator_multiline}\\end{{aligned}}"
 
     # Reconstruct the fraction
-    result = f'\\frac{{{numerator_aligned}}}{{{denominator}}}'
+    result = f"\\frac{{{numerator_aligned}}}{{{denominator}}}"
 
     return result
 
@@ -375,7 +375,7 @@ def break_latex_equation(latex_str: str, max_width: int = 120) -> str:
         return latex_str
 
     # Check if it's a fraction (starts with \frac)
-    is_fraction = latex_str.strip().startswith('\\frac')
+    is_fraction = latex_str.strip().startswith("\\frac")
 
     if is_fraction:
         # For fractions, break the numerator into multiple lines
@@ -400,8 +400,8 @@ def _break_regular_equation(latex_str: str, max_width: int) -> str:
         if i == 0:
             lines.append(f"    {term}")
         else:
-            if not term.startswith(('+', '-')):
-                term = '+ ' + term
+            if not term.startswith(("+", "-")):
+                term = "+ " + term
             lines.append(f"    &{term}")
 
     lines.append("\\end{aligned}")
@@ -426,28 +426,28 @@ def _split_at_operators(expr: str) -> list[str]:
         char = expr[i]
 
         # Track brace depth
-        if char == '{':
+        if char == "{":
             depth += 1
             current_term.append(char)
-        elif char == '}':
+        elif char == "}":
             depth -= 1
             current_term.append(char)
         # Track parenthesis depth
-        elif char == '(':
+        elif char == "(":
             paren_depth += 1
             current_term.append(char)
-        elif char == ')':
+        elif char == ")":
             paren_depth -= 1
             current_term.append(char)
         # Split at top-level + or - operators
-        elif char in ['+', '-'] and depth == 0 and paren_depth == 0:
+        elif char in ["+", "-"] and depth == 0 and paren_depth == 0:
             # Make sure this isn't part of a number (e.g., 1e-10) or \cdot command
-            if i > 0 and expr[i-1] not in ['e', 'E', '\\']:
+            if i > 0 and expr[i - 1] not in ["e", "E", "\\"]:
                 # Save current term
                 if current_term:
-                    terms.append(''.join(current_term).strip())
+                    terms.append("".join(current_term).strip())
                 # Start new term with the operator
-                current_term = [char, ' ']
+                current_term = [char, " "]
                 i += 1
                 continue
             else:
@@ -459,7 +459,7 @@ def _split_at_operators(expr: str) -> list[str]:
 
     # Add the last term
     if current_term:
-        terms.append(''.join(current_term).strip())
+        terms.append("".join(current_term).strip())
 
     return terms
 
@@ -476,7 +476,7 @@ def _apply_simplification_pipeline(expr: sp.Expr) -> sp.Expr:
     """
     simplified = sp.simplify(expr)
     simplified = sp.cancel(simplified)
-    simplified = sp.powsimp(simplified, combine='all', force=True)
+    simplified = sp.powsimp(simplified, combine="all", force=True)
 
     try:
         simplified = sp.radsimp(simplified)
@@ -612,6 +612,7 @@ def _convert_large_numbers_to_float(expr: sp.Expr) -> sp.Expr:
     Returns:
         Expression with large numbers converted to Float objects
     """
+
     def replace_large_numbers(x: sp.Expr) -> sp.Expr:
         if x.is_Number and not x.is_Symbol:
             abs_val = abs(float(x))
@@ -620,8 +621,7 @@ def _convert_large_numbers_to_float(expr: sp.Expr) -> sp.Expr:
         return x
 
     return expr.replace(
-        lambda x: x.is_Number and not x.is_Symbol and abs(float(x)) >= 1000,
-        replace_large_numbers
+        lambda x: x.is_Number and not x.is_Symbol and abs(float(x)) >= 1000, replace_large_numbers
     )
 
 
@@ -654,16 +654,19 @@ def convert_expression_to_latex(expression: str) -> tuple[str, str]:
     Returns:
         Tuple of (original_expression, simplified_expression) in LaTeX format
     """
-    expr = expression.replace('X0', 'n').replace('X1', 'm').replace('X2', 'l').replace('X3', 'b')
+    expr = expression.replace("X0", "n").replace("X1", "m").replace("X2", "l").replace("X3", "b")
 
-    n, m, l, b = sp.symbols('n m l b')
+    n, m, l, b = sp.symbols("n m l b")
 
     namespace = {
-        'n': n, 'm': m, 'l': l, 'b': b,
-        'add': sp.Add,
-        'sub': lambda a, b: sp.Add(a, -b),
-        'mul': sp.Mul,
-        'div': lambda a, b: sp.Mul(a, sp.Pow(b, -1)),
+        "n": n,
+        "m": m,
+        "l": l,
+        "b": b,
+        "add": sp.Add,
+        "sub": lambda a, b: sp.Add(a, -b),
+        "mul": sp.Mul,
+        "div": lambda a, b: sp.Mul(a, sp.Pow(b, -1)),
     }
 
     sympy_expr = sp.sympify(expr, locals=namespace)
@@ -704,16 +707,16 @@ def convert_expression_to_latex(expression: str) -> tuple[str, str]:
     latex_original = sp.latex(
         sympy_expr,
         fold_short_frac=False,
-        mul_symbol='dot',
+        mul_symbol="dot",
         fold_frac_powers=True,
-        fold_func_brackets=True
+        fold_func_brackets=True,
     )
     latex_simplified = sp.latex(
         simplified_sci,
         fold_short_frac=False,
-        mul_symbol='dot',
+        mul_symbol="dot",
         fold_frac_powers=True,
-        fold_func_brackets=True
+        fold_func_brackets=True,
     )
 
     # Break long equations into multiple lines for readability
@@ -742,16 +745,16 @@ def load_env_file(env_path: str = ".env") -> dict[str, str]:
         return env_vars
 
     try:
-        with open(env_file, 'r') as f:
+        with open(env_file, "r") as f:
             for line in f:
                 line = line.strip()
                 # Skip empty lines and comments
-                if not line or line.startswith('#'):
+                if not line or line.startswith("#"):
                     continue
 
                 # Parse KEY=VALUE format
-                if '=' in line:
-                    key, value = line.split('=', 1)
+                if "=" in line:
+                    key, value = line.split("=", 1)
                     env_vars[key.strip()] = value.strip()
 
         print(f"Info: Loaded {len(env_vars)} environment variables from {env_path}")

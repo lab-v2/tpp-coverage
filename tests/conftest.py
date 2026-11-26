@@ -38,6 +38,7 @@ def pool_width(cap: int | None = None) -> int:
     pool fixture), at least 1 and at most `cap`. The scripts these tests run give the same rows at
     any width (each test compares them with committed tables), so the width only sets speed.
     """
+
     def busy_total() -> tuple[int, int]:
         with open("/proc/stat") as fh:
             f = [int(x) for x in fh.readline().split()[1:]]
@@ -52,8 +53,9 @@ def pool_width(cap: int | None = None) -> int:
     return free if cap is None else max(1, min(cap, free))
 
 
-def run(args: list[str], cwd: Path = REPO, env: dict | None = None,
-        timeout: int = 1800) -> subprocess.CompletedProcess:
+def run(
+    args: list[str], cwd: Path = REPO, env: dict | None = None, timeout: int = 1800
+) -> subprocess.CompletedProcess:
     """Run a command with this environment's interpreter; fail the test on a non-zero exit.
 
     The command runs in its own process group. On timeout the whole group gets SIGUSR1 (a
@@ -62,8 +64,15 @@ def run(args: list[str], cwd: Path = REPO, env: dict | None = None,
     stacks.
     """
     cmd = [sys.executable if a == "python" else str(a) for a in args]
-    with subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                          text=True, start_new_session=True) as p:
+    with subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    ) as p:
         try:
             out, err = p.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -71,12 +80,16 @@ def run(args: list[str], cwd: Path = REPO, env: dict | None = None,
             time.sleep(2)
             os.killpg(p.pid, signal.SIGKILL)
             out, err = p.communicate()
-            pytest.fail(f"{' '.join(map(str, cmd))} timed out after {timeout} s; stacks:\n"
-                        f"--- stderr ---\n{err[-20000:]}")
+            pytest.fail(
+                f"{' '.join(map(str, cmd))} timed out after {timeout} s; stacks:\n"
+                f"--- stderr ---\n{err[-20000:]}"
+            )
     proc = subprocess.CompletedProcess(cmd, p.returncode, out, err)
     if proc.returncode != 0:
-        pytest.fail(f"{' '.join(map(str, cmd))} exited {proc.returncode}\n"
-                    f"--- stdout ---\n{proc.stdout[-4000:]}\n--- stderr ---\n{proc.stderr[-4000:]}")
+        pytest.fail(
+            f"{' '.join(map(str, cmd))} exited {proc.returncode}\n"
+            f"--- stdout ---\n{proc.stdout[-4000:]}\n--- stderr ---\n{proc.stderr[-4000:]}"
+        )
     return proc
 
 
@@ -94,8 +107,9 @@ def assert_same_rows(fresh: pd.DataFrame, committed: pd.DataFrame, keys: list[st
     fresh = fresh.sort_values(keys).reset_index(drop=True)
     committed = committed.sort_values(keys).reset_index(drop=True)
     assert len(fresh) == len(committed) > 0
-    pd.testing.assert_frame_equal(fresh[committed.columns], committed, check_exact=False,
-                                  rtol=1e-9, atol=0)
+    pd.testing.assert_frame_equal(
+        fresh[committed.columns], committed, check_exact=False, rtol=1e-9, atol=0
+    )
 
 
 def tree_files(skip_names: set[str]) -> list[Path]:
@@ -103,9 +117,13 @@ def tree_files(skip_names: set[str]) -> list[Path]:
 
     A walk rather than `git ls-files`, so the suite also runs on an exported tree.
     """
-    return [path for path in REPO.rglob("*")
-            if path.is_file() and not (set(path.relative_to(REPO).parts) & SKIP_DIRS)
-            and path.name not in skip_names]
+    return [
+        path
+        for path in REPO.rglob("*")
+        if path.is_file()
+        and not (set(path.relative_to(REPO).parts) & SKIP_DIRS)
+        and path.name not in skip_names
+    ]
 
 
 def tree_text(path: Path) -> str | None:
