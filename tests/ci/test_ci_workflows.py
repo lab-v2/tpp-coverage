@@ -28,8 +28,8 @@ WORKFLOWS = REPO / ".github" / "workflows"
 OWN_POOL = ["self-hosted", "linux", "primary"]
 #: The status-check contexts branch protection requires (job `name:`s).
 REQUIRED_CHECKS = {"tests", "ruff", "privacy", "pr-authorization", "Own runners guard"}
-#: Jobs that are not status checks: the Pages deploy of the project page (pages.yml).
-DEPLOY_JOBS = {"deploy"}
+#: Jobs that are not status checks: the Pages build and deploy of the project page (pages.yml).
+DEPLOY_JOBS = {"build", "deploy"}
 
 
 def load(name: str) -> dict[str | bool, object]:
@@ -145,8 +145,11 @@ def test_every_job_masks_first_with_one_identical_step() -> None:
     assert all(s.get("name", "").startswith("Mask this runner") for s in MASK_STEPS)
     assert len({s["run"] for s in MASK_STEPS}) == 1
     for _, _, job in JOBS:
+        assert job["steps"][0].get("name", "").startswith("Mask this runner")
+        # A job that checks out (every one but the Pages deploy, which only reads the artifact)
+        # masks before it.
         firsts = [i for i, s in enumerate(job["steps"]) if "checkout" in s.get("uses", "")]
-        assert firsts and firsts[0] > 0
+        assert not firsts or firsts[0] > 0
 
 
 def masks_for(home: str, workspace: str) -> list[str]:
