@@ -68,10 +68,8 @@ jobs:
         run: uv sync --locked --quiet
       - name: The paper's numbers, refit from scratch (alone; it takes every thread)
         # The fixture times out the refit at 15 min and prints every process's stack.
-        # nice: when both jobs land on one host, the minute-long suite gets the threads first
-        # and the refit, the longer job, uses them all once the suite ends.
         timeout-minutes: 25
-        run: nice -n 10 uv run --locked pytest -n 0 -q --no-header -m paper
+        run: uv run --locked pytest -n 0 -q --no-header -m paper
 
   ruff:
     name: ruff

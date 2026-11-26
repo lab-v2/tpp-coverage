@@ -50,8 +50,7 @@ Use the environment's interpreter, `DATA_DIR=<corpora> .venv/bin/python -m pytes
 `uv run` first syncs the environment to the lock, which puts the CPU-only torch back.
 The `paper` test refits the paper's main analysis on every thread, so the default run leaves it out
 and it runs alone: `uv run pytest -n 0 -m paper`. CI runs it as a job of its own, `paper`,
-beside the suite's `tests` job, under `nice` so that on a shared host the shorter suite gets the
-threads first. Its table step alone,
+beside the suite's `tests` job. Its table step alone,
 `run_analysis.build_paper_tables` on the released per-seed fits, is checked byte for byte against
 the released tables in the default run (`tpp_analysis/scripts/test_characterize_run_analysis_tables.py`).
 
