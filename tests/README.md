@@ -12,7 +12,7 @@ component of the same name; `conftest.py` holds the shared paths and helpers.
 | `large_scale/` | `large_scale/` and `src/tpp_large_scale/`: correctness, determinism, the pipeline |
 | `camera_ready/` | `camera_ready/`: both analyses rerun against their committed outputs |
 | `cluster/` | `cluster/`: the task generator, the queue scripts and the audit |
-| `ci/` | `.github/`: the workflows and the merge rule |
+| `ci/` | `.github/`: the workflows and the merge rule; `affected.py`, the selector of the tests a pull request runs |
 | `website/` | `website/`: one section per talk slide, each bullet the deck's item word for word (markup, punctuation, case, number words and citation form aside) with its numbers, formulas, citations and names; references, authors, BibTeX, arXiv id, abstract and the Code and Data links as the deck, `CITATION.cff` and the README give them; the summary pinned in the test; the header logos above and below the title as on the title slide, the NeurIPS one a banner at least 300 px wide, Syracuse only through its AI Institute logo; every image present; each figure sized so its tick labels match the body text (measured from the PNG, `test_figure_scale.py`) |
 | `repository/` | The whole tree: README, links, entry points, vocabulary, privacy |
 
@@ -21,8 +21,10 @@ released tables are reproduced, the camera-ready analyses, and that the analysis
 return, write and draw what the base commit did. It also checks the README's
 links, images, diagram and citation, and that no private host, path, or path to a tool only the owner's machines hold, is in the tree.
 
-CI runs the suite, the hooks of `.pre-commit-config.yaml`, `ruff check .` and the privacy
-scan on every pull request and every push to `main`. A pull request may merge only when its author is a lab-v2 member, or when a
+CI runs the hooks of `.pre-commit-config.yaml`, `ruff check .` and the privacy scan on every
+pull request and every push to `main`. A push to `main` runs the whole suite and the paper gate; a
+pull request runs only the test files its change can affect, and the paper gate only when its
+inputs changed (see "Which tests a pull request runs" below). A pull request may merge only when its author is a lab-v2 member, or when a
 member approved its latest commit (the `pr-authorization` check).
 
 The characterization tests (`tpp_analysis/**/test_characterize_*.py`, helpers in
@@ -50,10 +52,34 @@ Use the environment's interpreter, `DATA_DIR=<corpora> .venv/bin/python -m pytes
 `uv run` first syncs the environment to the lock, which puts the CPU-only torch back.
 The `paper` test refits the paper's main analysis on every thread, so the default run leaves it out
 and it runs alone: `uv run pytest -n 0 -m paper`. CI runs it as a job of its own, `paper`,
-beside the suite's `tests` job. Its table step alone,
+beside the suite's `tests` job: on every push to `main`, and on a pull request that changes its
+inputs. Its table step alone,
 `run_analysis.build_paper_tables` on the released per-seed fits, is checked byte for byte against
 the released tables in the default run (`tpp_analysis/scripts/test_characterize_run_analysis_tables.py`).
 
 `uv run python tests/measure_coverage.py <out-dir>` measures line and branch coverage of the
 suite and the paper gate together, following pool workers and subprocesses, and writes
 `coverage-<sha>-with-gate.json` stamped with the commit (a clean tree only; about 8 minutes).
+
+## Which tests a pull request runs
+
+`tests/affected.py` holds the map and the selector. On a push to `main`, the `tests` job runs the
+whole suite (`pytest -n auto`) and then `tests/affected.py build --part suite`: the whole suite
+again, each test file in its own pytest process (all at once); the `paper` job runs the paper gate
+as `tests/affected.py build --part paper`. Each process tree runs under `strace -f` (the CI hosts
+have it). A test file's inputs are the
+repository files it and every process it starts (pool workers, scripts, git) opened or executed
+(cached bytecode counts as its source); a path it only probed for (a stat, a failed open) and a
+directory it listed count only when a change creates or removes something there. Each part of the map, with the commit it was built on, is kept as an
+artifact of the run (`affected-map`, `affected-map-paper`), and only when every test passed and every trace shows its test file
+reading itself and `tests/conftest.py`.
+
+On a pull request, both jobs run `tests/affected.py fetch`, which downloads and joins the two parts
+from the newest successful push run on `main` at an ancestor of the base, and `tests/affected.py select` diffs its commit against the pull request's head. It runs
+a test file when its inputs or its own file changed, when the change creates or removes a path it
+probed for or an entry of a directory it listed, or when it reads the git directory (`git
+ls-files`); the paper gate runs when its inputs changed or a changed test file holds a paper test.
+It runs the whole suite instead when the map is missing or incomplete, its commit is not an
+ancestor of the pull request's base, or a shared input changed: a `conftest.py`, `pyproject.toml`,
+the pytest configuration, `uv.lock`, a workflow or `tests/affected.py` itself.
+`tests/ci/test_affected.py` tests those choices.
