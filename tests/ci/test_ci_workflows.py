@@ -46,7 +46,9 @@ def test_the_workflows_are_found() -> None:
 
 
 @pytest.mark.parametrize(("wf", "jid", "job"), JOBS, ids=[f"{f}:{j}" for f, j, _ in JOBS])
-def test_every_job_runs_on_the_own_pool_with_primary(wf: str, jid: str, job: dict[str, Any]) -> None:
+def test_every_job_runs_on_the_own_pool_with_primary(
+    wf: str, jid: str, job: dict[str, Any]
+) -> None:
     assert job["runs-on"] == OWN_POOL
     assert "container" not in job and "services" not in job
 
@@ -65,7 +67,10 @@ def test_pr_authorization_reruns_on_reviews() -> None:
     on = triggers(ALL["pr-authorization.yml"])
     assert on["pull_request"]["types"] == ["opened", "synchronize", "reopened", "ready_for_review"]
     assert on["pull_request_review"]["types"] == ["submitted", "dismissed"]
-    assert ALL["pr-authorization.yml"]["permissions"] == {"contents": "read", "pull-requests": "read"}
+    assert ALL["pr-authorization.yml"]["permissions"] == {
+        "contents": "read",
+        "pull-requests": "read",
+    }
 
 
 def test_the_guard_listens_to_every_other_workflow() -> None:
@@ -74,7 +79,10 @@ def test_the_guard_listens_to_every_other_workflow() -> None:
 
 
 def test_ci_runs_the_full_suite_in_parallel_ruff_and_the_privacy_scan() -> None:
-    runs = {jid: " ".join(s.get("run", "") for s in job["steps"]) for jid, job in ALL["ci.yml"]["jobs"].items()}
+    runs = {
+        jid: " ".join(s.get("run", "") for s in job["steps"])
+        for jid, job in ALL["ci.yml"]["jobs"].items()
+    }
     assert re.search(r"uv run .*pytest -n auto", runs["tests"])
     assert "tests/" not in runs["tests"].split("pytest", 1)[1]  # the whole suite, no subset
     assert re.search(r"ruff check( --output-format=github)? \.$", runs["ruff"])
@@ -82,13 +90,17 @@ def test_ci_runs_the_full_suite_in_parallel_ruff_and_the_privacy_scan() -> None:
 
 
 def privacy_command() -> str:
-    (step,) = [s["run"] for s in ALL["ci.yml"]["jobs"]["privacy"]["steps"] if "pytest" in s.get("run", "")]
+    (step,) = [
+        s["run"] for s in ALL["ci.yml"]["jobs"]["privacy"]["steps"] if "pytest" in s.get("run", "")
+    ]
     return step
 
 
 def privacy_targets() -> list[str]:
     """The test paths the privacy job hands pytest."""
-    return [a for a in shlex.split(privacy_command().split("pytest", 1)[1]) if not a.startswith("-")]
+    return [
+        a for a in shlex.split(privacy_command().split("pytest", 1)[1]) if not a.startswith("-")
+    ]
 
 
 def test_the_privacy_job_targets_exist() -> None:
@@ -106,11 +118,20 @@ def test_the_privacy_job_installs_the_project_dependencies() -> None:
 
 def test_the_privacy_job_passes_in_a_fresh_environment(tmp_path) -> None:
     """The privacy job's own command, in a fresh environment, as the runner does it."""
-    env = {k: v for k, v in os.environ.items()
-           if not k.startswith(("PYTEST_", "VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT"))}
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith(("PYTEST_", "VIRTUAL_ENV", "UV_PROJECT_ENVIRONMENT"))
+    }
     env["UV_PROJECT_ENVIRONMENT"] = str(tmp_path / "venv")
-    proc = subprocess.run(["bash", "-ec", privacy_command()], cwd=REPO, env=env,
-                          capture_output=True, text=True, timeout=900)
+    proc = subprocess.run(
+        ["bash", "-ec", privacy_command()],
+        cwd=REPO,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=900,
+    )
     assert proc.returncode == 0, proc.stdout[-4000:] + proc.stderr[-4000:]
 
 
@@ -128,7 +149,9 @@ def test_every_job_masks_first_with_one_identical_step() -> None:
 def masks_for(home: str, workspace: str) -> list[str]:
     script = MASK_STEPS[0]["run"]
     env = {"HOME": home, "GITHUB_WORKSPACE": workspace, "PATH": "/usr/bin:/bin"}
-    out = subprocess.run(["bash", "-e", "-c", script], env=env, capture_output=True, text=True, check=True)
+    out = subprocess.run(
+        ["bash", "-e", "-c", script], env=env, capture_output=True, text=True, check=True
+    )
     return [line.removeprefix("::add-mask::") for line in out.stdout.splitlines()]
 
 
@@ -143,13 +166,15 @@ def test_mask_step_hides_the_runner_layout_in_checkout_lines() -> None:
     ws = f"{root}/_work/repo/repo"
     masks = masks_for(home, ws)
     esc = root.replace("/", "\\/").replace("-", "\\-")
-    log = "\n".join([
-        f"Working directory is '{ws}'",
-        f"[command]{home}/.local/bin/git version",
-        f"Copying '{home}/.gitconfig' to '{root}/_work/_temp/x/.gitconfig'",
-        f"git config --local --unset includeif.gitdir:{ws}/.git.path {esc}\\/_work\\/_temp\\/c\\.config",
-        "elsewhere: /srv/alice/cache/uv",
-    ])
+    log = "\n".join(
+        [
+            f"Working directory is '{ws}'",
+            f"[command]{home}/.local/bin/git version",
+            f"Copying '{home}/.gitconfig' to '{root}/_work/_temp/x/.gitconfig'",
+            f"git config --local --unset includeif.gitdir:{ws}/.git.path {esc}\\/_work\\/_temp\\/c\\.config",
+            "elsewhere: /srv/alice/cache/uv",
+        ]
+    )
     masked = apply(masks, log)
     assert "alice" not in masked and "/srv" not in masked and "own-runners" not in masked
     assert "own\\-runners" not in masked

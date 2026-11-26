@@ -19,6 +19,7 @@ from scaling_laws.laws import LAWS, evaluate, evaluate_parametric_epoch
 
 # ── Single fit helper ─────────────────────────────────────────────────────
 
+
 def _run_one_fit(
     law,
     design_label: str,
@@ -58,6 +59,7 @@ def _run_one_fit(
 
 # ── Epoch-law fit helper ──────────────────────────────────────────────────
 
+
 def _run_one_epoch_fit(
     law,
     design_label: str,
@@ -86,7 +88,15 @@ def _run_one_epoch_fit(
     for holdout_label, holdout_list in holdouts.items():
         N_ho, U_D_ho, R_ho, _ep_ho, L_ho = prepare_epoch_expanded(holdout_list)
         metrics = evaluate_parametric_epoch(
-            params_dict, N_tr, U_D_tr, R_tr, L_tr, N_ho, U_D_ho, R_ho, L_ho,
+            params_dict,
+            N_tr,
+            U_D_tr,
+            R_tr,
+            L_tr,
+            N_ho,
+            U_D_ho,
+            R_ho,
+            L_ho,
         )
         result["r2_train"] = metrics["r2_train"]
         result["rmse_train"] = metrics["rmse_train"]
@@ -137,7 +147,7 @@ def run_dataset_fits(
 
     # Count total jobs: standard laws get N modes each, epoch law gets 1 (if multi_epoch)
     standard_laws = [l for l in LAWS if not l.is_epoch_law]
-    epoch_laws    = [l for l in LAWS if l.is_epoch_law] if multi_epoch else []
+    epoch_laws = [l for l in LAWS if l.is_epoch_law] if multi_epoch else []
     total = len(standard_laws) * len(designs) * len(active_modes) + len(epoch_laws) * len(designs)
 
     if verbose and not multi_epoch:
@@ -156,7 +166,12 @@ def run_dataset_fits(
                     print(f"  Fitting {tag} ...", end=" ", flush=True)
 
                 row = _run_one_fit(
-                    law, design_label, mode, train_data, holdouts, n_restarts,
+                    law,
+                    design_label,
+                    mode,
+                    train_data,
+                    holdouts,
+                    n_restarts,
                 )
 
                 if row is not None:
@@ -180,7 +195,11 @@ def run_dataset_fits(
                 print(f"  Fitting {tag} ...", end=" ", flush=True)
 
             row = _run_one_epoch_fit(
-                law, design_label, train_data, holdouts, n_restarts,
+                law,
+                design_label,
+                train_data,
+                holdouts,
+                n_restarts,
             )
 
             if row is not None:
@@ -199,6 +218,7 @@ def run_dataset_fits(
 
 
 # ── Convenience: load + fit in one call ───────────────────────────────────
+
 
 def run_full_analysis(
     filepath: str,
@@ -221,7 +241,8 @@ def run_full_analysis(
     Returns list of result dicts ready for `build_summary_df()`.
     """
     data = load_and_prepare(
-        filepath, dataset_name,
+        filepath,
+        dataset_name,
         train_keep=train_keep,
         holdout_keep=holdout_keep,
         verbose=verbose,

@@ -79,32 +79,41 @@ def estimators_table(a: A5) -> str:
         name, spec, arm = r
         lines.append(f"{name} & {a.cell('E', spec, arm)} & {a.cell('X', spec, arm)} \\\\")
     lines.append(r"\midrule")
-    for name, spec in (("One-sided 95\\% lower bound", PRE),
-                       ("Same, smooth in $\\log N$", CENTROID)):
+    for name, spec in (
+        ("One-sided 95\\% lower bound", PRE),
+        ("Same, smooth in $\\log N$", CENTROID),
+    ):
         e, x = (a.row(c, spec) for c in ("E", "X"))
-        lines.append(f"{name} & {both('$' + p(e.pct_one_sided_lo) + '$')} & "
-                     f"{both('$' + p(x.pct_one_sided_lo) + '$')} \\\\")
-    for name, spec in (("Attenuation bound, share of the effect below 1B",
-                        "A5.4d attenuation fraction, unpooled"),
-                       ("Same, smooth in $\\log N$", "A5.4d attenuation fraction, smooth")):
+        lines.append(
+            f"{name} & {both('$' + p(e.pct_one_sided_lo) + '$')} & "
+            f"{both('$' + p(x.pct_one_sided_lo) + '$')} \\\\"
+        )
+    for name, spec in (
+        ("Attenuation bound, share of the effect below 1B", "A5.4d attenuation fraction, unpooled"),
+        ("Same, smooth in $\\log N$", "A5.4d attenuation fraction, smooth"),
+    ):
         e = a.row("E", spec)
-        lines.append(f"{name} & {both('$' + p(100 * e.pct_one_sided_lo) + '$')} & "
-                     f"{both('-')} \\\\")
+        lines.append(f"{name} & {both('$' + p(100 * e.pct_one_sided_lo) + '$')} & {both('-')} \\\\")
     lines += [r"\bottomrule", r"\end{tabular}"]
     return HEAD + "\n".join(lines) + "\n"
 
 
 def windows_table(a: A5) -> str:
-    lines = [r"\begin{tabular}{@{}rrrrll@{}}", r"\toprule",
-             r"Width & Stride & Windows & Estimate & Window interval & Moving-block interval \\",
-             r"\midrule"]
+    lines = [
+        r"\begin{tabular}{@{}rrrrll@{}}",
+        r"\toprule",
+        r"Width & Stride & Windows & Estimate & Window interval & Moving-block interval \\",
+        r"\midrule",
+    ]
     for name, (w, s) in CONSTRUCTIONS.items():
         L = int(np.ceil(w / s))
         r = a.row("E", f"A5.3 {name} ({w},{s}), 128 seeds, window cluster")
         b = a.row("E", f"A5.3 {name} ({w},{s}), 128 seeds, moving block L={L}")
         mb = "same" if L == 1 else f"$[{p(b.pct_lo)}, {p(b.pct_hi)}]$ ($L = {L}$)"
-        lines.append(f"{w} & {s} & {int(r.n_windows)} & ${p(r.pct)}$ & "
-                     f"$[{p(r.pct_lo)}, {p(r.pct_hi)}]$ & {mb} \\\\")
+        lines.append(
+            f"{w} & {s} & {int(r.n_windows)} & ${p(r.pct)}$ & "
+            f"$[{p(r.pct_lo)}, {p(r.pct_hi)}]$ & {mb} \\\\"
+        )
     lines += [r"\bottomrule", r"\end{tabular}"]
     return HEAD + "\n".join(lines) + "\n"
 
@@ -117,8 +126,10 @@ def main(argv: list[str] | None = None) -> None:
     a = A5(pd.read_csv(args.amendment5))
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
-    for name, text in (("public_checkpoints_1b.tex", estimators_table(a)),
-                       ("public_checkpoints_windows.tex", windows_table(a))):
+    for name, text in (
+        ("public_checkpoints_1b.tex", estimators_table(a)),
+        ("public_checkpoints_windows.tex", windows_table(a)),
+    ):
         (out / name).write_text(text)
         print(text)
 

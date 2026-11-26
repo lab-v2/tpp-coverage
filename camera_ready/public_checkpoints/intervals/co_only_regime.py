@@ -38,8 +38,11 @@ def co_jobs(df: pd.DataFrame, corpus: str) -> list[tuple]:
         for regime in ("A", "B"):
             sub = df[cells.str.startswith(f"CO={regime},")]
             if len(sub):
-                jobs.append(EST.median_task((corpus, kappa, regime), sub, GAP,
-                                            f"coonly|{corpus}|{kappa}|{regime}"))
+                jobs.append(
+                    EST.median_task(
+                        (corpus, kappa, regime), sub, GAP, f"coonly|{corpus}|{kappa}|{regime}"
+                    )
+                )
     return jobs
 
 

@@ -28,6 +28,7 @@ WRITERS = {
 
 # ── 1. the table bodies ────────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.parametrize("script", sorted(WRITERS))
 def test_table_writers_reproduce_committed_bodies(tmp_path, script):
     run(["python", SCRIPTS / script, "--out-dir", tmp_path], cwd=A2)
@@ -36,31 +37,50 @@ def test_table_writers_reproduce_committed_bodies(tmp_path, script):
     assert sorted(p.name for p in tmp_path.iterdir()) == sorted(WRITERS[script])
 
 
-@pytest.mark.parametrize("name,line", [
-    ("public_checkpoints_results.tex",
-     r"Within a cell (primary) & $40\%$ & $[24\%, 52\%]$ & $4\%$ & $[-10\%, 21\%]$ \\"),
-    ("public_checkpoints_results.tex",
-     r"Size interaction, per tenfold $N$ & $-14\%$ & $[-40\%, 18\%]$ & $-39\%$ & $[-57\%, -18\%]$ \\"),
-    ("public_checkpoints_regimes.tex",
-     r"$10^4$ & A & B & $59.0\%$ & $0.074$ $[0.003, 0.153]$ & $58.6\%$ & $0.076$ $[0.047, 0.103]$ \\"),
-    ("public_checkpoints_regimes.tex",
-     r"$10^2$ & A & B & \multicolumn{2}{c}{no pairs} & $53.1\%$ & $0.437$ $[0.437, 0.437]$ \\"),
-    ("public_checkpoints_1b.tex",
-     r"Fixed effect per window & $32\%$ & $[-0.3\%, 39\%]$ & $27\%$ & $[-6\%, 35\%]$ \\"),
-    ("public_checkpoints_1b.tex",
-     r"Attenuation bound, share of the effect below 1B & \multicolumn{2}{c}{$112\%$} & \multicolumn{2}{c}{-} \\"),
-    ("public_checkpoints_windows.tex",
-     r"8 & 8 & 4 & $2\%$ & $[2\%, 47\%]$ & same \\"),
-    ("public_checkpoints_studies.tex",
-     r"\raggedright MAD~\citep{poli2024mechanistic,choshen2024hitchhiker} & trajectory & 648 & 40 & 40.2M--3.08B & 0.00026--2816 \\"),
-    ("public_checkpoints_studies.tex",
-     r"\raggedright Chinchilla isoFLOP~\citep{hoffmann2022training,besiroglu2024chinchilla,choshen2024hitchhiker} & final & 245 & 43 & 60M--16.2B & 0.036--379 \\"),
-])
+@pytest.mark.parametrize(
+    "name,line",
+    [
+        (
+            "public_checkpoints_results.tex",
+            r"Within a cell (primary) & $40\%$ & $[24\%, 52\%]$ & $4\%$ & $[-10\%, 21\%]$ \\",
+        ),
+        (
+            "public_checkpoints_results.tex",
+            r"Size interaction, per tenfold $N$ & $-14\%$ & $[-40\%, 18\%]$ & $-39\%$ & $[-57\%, -18\%]$ \\",
+        ),
+        (
+            "public_checkpoints_regimes.tex",
+            r"$10^4$ & A & B & $59.0\%$ & $0.074$ $[0.003, 0.153]$ & $58.6\%$ & $0.076$ $[0.047, 0.103]$ \\",
+        ),
+        (
+            "public_checkpoints_regimes.tex",
+            r"$10^2$ & A & B & \multicolumn{2}{c}{no pairs} & $53.1\%$ & $0.437$ $[0.437, 0.437]$ \\",
+        ),
+        (
+            "public_checkpoints_1b.tex",
+            r"Fixed effect per window & $32\%$ & $[-0.3\%, 39\%]$ & $27\%$ & $[-6\%, 35\%]$ \\",
+        ),
+        (
+            "public_checkpoints_1b.tex",
+            r"Attenuation bound, share of the effect below 1B & \multicolumn{2}{c}{$112\%$} & \multicolumn{2}{c}{-} \\",
+        ),
+        ("public_checkpoints_windows.tex", r"8 & 8 & 4 & $2\%$ & $[2\%, 47\%]$ & same \\"),
+        (
+            "public_checkpoints_studies.tex",
+            r"\raggedright MAD~\citep{poli2024mechanistic,choshen2024hitchhiker} & trajectory & 648 & 40 & 40.2M--3.08B & 0.00026--2816 \\",
+        ),
+        (
+            "public_checkpoints_studies.tex",
+            r"\raggedright Chinchilla isoFLOP~\citep{hoffmann2022training,besiroglu2024chinchilla,choshen2024hitchhiker} & final & 245 & 43 & 60M--16.2B & 0.036--379 \\",
+        ),
+    ],
+)
 def test_table_rows_as_printed(name, line):
     assert line in (TABLES / name).read_text().splitlines()
 
 
 # ── 2. the study counts ───────────────────────────────────────────────────────────────────
+
 
 def test_study_counts_as_printed():
     per = pd.read_csv(RESULTS / "per_study.csv")
@@ -71,7 +91,10 @@ def test_study_counts_as_printed():
     assert per.set_index("study").loc["Farseer", "runs_used"] == 404
     assert per.set_index("study").loc["Gemstones annealed", "n_cells"] == 1
     # Gadre et al.'s three cells each hold one window
-    assert per.set_index("study").loc["Gadre et al.", ["n_cells", "n_windows_W1"]].tolist() == [3, 3]
+    assert per.set_index("study").loc["Gadre et al.", ["n_cells", "n_windows_W1"]].tolist() == [
+        3,
+        3,
+    ]
 
 
 def test_screening_as_printed():
@@ -85,12 +108,14 @@ def test_screening_as_printed():
 
 # ── 3. from the HuggingFace run tables ─────────────────────────────────────────────────────
 
+
 @pytest.mark.network
 def test_per_study_reproduces(pc_work):
     path, env = pc_work
     run(["python", SCRIPTS / "per_study.py", "--out", "per_study_fresh.csv"], cwd=A2, env=env)
-    assert_same_rows(pd.read_csv(path / "per_study_fresh.csv"),
-                     pd.read_csv(RESULTS / "per_study.csv"), ["study"])
+    assert_same_rows(
+        pd.read_csv(path / "per_study_fresh.csv"), pd.read_csv(RESULTS / "per_study.csv"), ["study"]
+    )
 
 
 @pytest.mark.network

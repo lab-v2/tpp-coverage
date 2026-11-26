@@ -5,6 +5,7 @@ The single source of truth for the function is here so changes to the
 isoFLOP plot (curve set, colors, residual style, etc.) propagate to
 every caller without hand-editing each notebook.
 """
+
 from collections.abc import Callable
 
 import numpy as np
@@ -21,20 +22,25 @@ from scaling_laws.laws import (
 
 
 LAW_LOSS_FNS: dict[str, Callable] = {
-    'Chinchilla':    chinchilla_loss,
-    'Kaplan':        kaplan_loss,
-    'Droppo-Elibol': droppo_elibol_loss,
+    "Chinchilla": chinchilla_loss,
+    "Kaplan": kaplan_loss,
+    "Droppo-Elibol": droppo_elibol_loss,
 }
 
 ISOFLOP_COLORS: list[str] = [
-    '#000000', '#E60000', '#FF8C00', '#0055FF', '#FFD700',
+    "#000000",
+    "#E60000",
+    "#FF8C00",
+    "#0055FF",
+    "#FFD700",
 ]
 
 LEGEND_ALPHA: float = 0.9
 
 
 def compute_flop_budgets(
-    pdata, holdout_type: str = 'unified',
+    pdata,
+    holdout_type: str = "unified",
     n_curves: int | None = None,
 ) -> np.ndarray:
     """Top 25% of unique C values in the holdout, evenly sampled to
@@ -45,43 +51,39 @@ def compute_flop_budgets(
     if n_curves is None:
         n_curves = len(ISOFLOP_COLORS)
 
-    if holdout_type == 'unified':
+    if holdout_type == "unified":
         h_list = pdata.unified_holdout
-    elif holdout_type == 'colinear':
+    elif holdout_type == "colinear":
         h_list = pdata.colinear_holdout
     else:
         h_list = pdata.noncolinear_holdout
 
-    C_all = np.array([6.0 * r['N'] * r['D'] for r in h_list])
+    C_all = np.array([6.0 * r["N"] * r["D"] for r in h_list])
     C_unique = np.unique(C_all)
     if len(C_unique) == 0:
         return np.array([])
 
-    C_top25 = C_unique[3 * len(C_unique) // 4:]
+    C_top25 = C_unique[3 * len(C_unique) // 4 :]
     if len(C_top25) <= n_curves:
         sampled = C_top25
     else:
         idxs = np.linspace(0, len(C_top25) - 1, n_curves, dtype=int)
         sampled = C_top25[idxs]
 
-    print(
-        f"\n[DEBUG] Selected {len(sampled)} FLOP Budgets "
-        f"for '{holdout_type}':"
-    )
+    print(f"\n[DEBUG] Selected {len(sampled)} FLOP Budgets for '{holdout_type}':")
     for C_val in sampled:
         for r in h_list:
-            if np.isclose(6.0 * r['N'] * r['D'], C_val, rtol=1e-5):
-                print(
-                    f"  C = {C_val:.3e}  <--  "
-                    f"(N = {r['N']:.3e}, D = {r['D']:.3e})"
-                )
+            if np.isclose(6.0 * r["N"] * r["D"], C_val, rtol=1e-5):
+                print(f"  C = {C_val:.3e}  <--  (N = {r['N']:.3e}, D = {r['D']:.3e})")
                 break
 
     return sampled
 
 
 def generic_isoflop(
-    N_range: np.ndarray, C: float, law_name: str,
+    N_range: np.ndarray,
+    C: float,
+    law_name: str,
     params: tuple | list,
 ) -> np.ndarray:
     D = C / (6.0 * N_range)
@@ -89,15 +91,17 @@ def generic_isoflop(
 
 
 def generic_optimal_N(
-    C_range: np.ndarray | float, law_name: str,
+    C_range: np.ndarray | float,
+    law_name: str,
     params: tuple | list,
-    N_lo: float = 1e4, N_hi: float = 1e12,
+    N_lo: float = 1e4,
+    N_hi: float = 1e12,
 ) -> np.ndarray:
     loss_fn = LAW_LOSS_FNS[law_name]
 
     def _opt_one(C_val: float) -> float:
         def _obj(log_n: float) -> float:
-            N = 10 ** log_n
+            N = 10**log_n
             D = C_val / (6.0 * N)
             if D < 1:
                 return 1e10
@@ -108,10 +112,11 @@ def generic_optimal_N(
                 return 1e10
 
         res = minimize_scalar(
-            _obj, bounds=(np.log10(N_lo), np.log10(N_hi)),
-            method='bounded',
+            _obj,
+            bounds=(np.log10(N_lo), np.log10(N_hi)),
+            method="bounded",
         )
-        return 10 ** res.x
+        return 10**res.x
 
     return np.array([_opt_one(c) for c in np.atleast_1d(C_range)])
 
@@ -129,9 +134,9 @@ def draw_isoflop_panel(
     show_optimal: bool = False,
     fontsize: float = 18,
     legend_fontsize: float = 18,
-    legend_loc: str = 'lower left',
+    legend_loc: str = "lower left",
     line_width: float = 2.0,
-    holdout_mode: str = 'final',
+    holdout_mode: str = "final",
     style_legends_fn: Callable | None = None,
     debug: bool = False,
 ):
@@ -144,14 +149,14 @@ def draw_isoflop_panel(
     ``style_legends_fn`` is an optional callback ``(ax) -> None`` used
     by callers to harmonize legend frames across panels.
     """
-    _DESIGN_ABBREV = {'Non-Colinear': 'NC', 'Colinear': 'CO'}
+    _DESIGN_ABBREV = {"Non-Colinear": "NC", "Colinear": "CO"}
     design_cfg = {
-        'Non-Colinear': {'ls': '-',  'opt_color': 'red'},
-        'Colinear':     {'ls': '--', 'opt_color': 'blue'},
+        "Non-Colinear": {"ls": "-", "opt_color": "red"},
+        "Colinear": {"ls": "--", "opt_color": "blue"},
     }
 
     if holdout_data:
-        raw_N_all = np.array([r['N'] for r in holdout_data])
+        raw_N_all = np.array([r["N"] for r in holdout_data])
         if len(raw_N_all):
             n_lo = float(min(N_range.min(), raw_N_all.min()))
             n_hi = float(max(N_range.max(), raw_N_all.max()))
@@ -160,7 +165,8 @@ def draw_isoflop_panel(
     N_h = D_h = L_h = raw_C = None
     if holdout_data:
         _N_full, _D_full, _L_full = prepare_arrays(
-            holdout_data, holdout_mode,
+            holdout_data,
+            holdout_mode,
         )
         _C_full = 6.0 * _N_full * _D_full
         if len(_N_full) > 0:
@@ -176,7 +182,10 @@ def draw_isoflop_panel(
             raw_C = _C_full[_idx]
             _csort = np.argsort(raw_C)
             N_h, D_h, L_h, raw_C = (
-                N_h[_csort], D_h[_csort], L_h[_csort], raw_C[_csort],
+                N_h[_csort],
+                D_h[_csort],
+                L_h[_csort],
+                raw_C[_csort],
             )
             flop_budgets = raw_C
 
@@ -187,83 +196,101 @@ def draw_isoflop_panel(
         colors = plt.cm.plasma(np.linspace(0.05, 0.95, n_budgets))
 
     for r in fits:
-        design = r['design']
-        params = r['params']
+        design = r["design"]
+        params = r["params"]
         cfg = design_cfg.get(
-            design, {'ls': '-.', 'opt_color': 'gray'},
+            design,
+            {"ls": "-.", "opt_color": "gray"},
         )
 
         for ci, C in enumerate(flop_budgets):
             L = generic_isoflop(N_range, C, law_name, params)
             valid = (C / (6.0 * N_range)) > 1
-            label = (
-                _DESIGN_ABBREV.get(design, design) if ci == 0 else None
-            )
+            label = _DESIGN_ABBREV.get(design, design) if ci == 0 else None
             ax.plot(
-                N_range[valid], L[valid], color=colors[ci],
-                ls=cfg['ls'], lw=line_width, alpha=0.7, label=label,
+                N_range[valid],
+                L[valid],
+                color=colors[ci],
+                ls=cfg["ls"],
+                lw=line_width,
+                alpha=0.7,
+                label=label,
                 zorder=3,
             )
 
         if show_optimal:
             C_ridge = np.logspace(
                 np.log10(flop_budgets[0]),
-                np.log10(flop_budgets[-1]), 300,
+                np.log10(flop_budgets[-1]),
+                300,
             )
             N_stars = generic_optimal_N(C_ridge, law_name, params)
             D_stars = C_ridge / (6.0 * N_stars)
             L_stars = LAW_LOSS_FNS[law_name](
-                N_stars, D_stars, *params,
+                N_stars,
+                D_stars,
+                *params,
             )
             ax.plot(
-                N_stars, L_stars, color=cfg['opt_color'],
-                ls=cfg['ls'], lw=3, alpha=0.9,
-                label=(
-                    f"{_DESIGN_ABBREV.get(design, design)} "
-                    f"optimal $N^*$"
-                ),
+                N_stars,
+                L_stars,
+                color=cfg["opt_color"],
+                ls=cfg["ls"],
+                lw=3,
+                alpha=0.9,
+                label=(f"{_DESIGN_ABBREV.get(design, design)} optimal $N^*$"),
             )
 
     if N_h is not None and len(N_h) > 0:
         for ci in range(n_budgets):
             ax.scatter(
-                [N_h[ci]], [L_h[ci]],
-                color=colors[ci], s=60, alpha=1.0,
-                zorder=5, edgecolors='black', linewidths=1.0,
-                label='Holdout' if ci == 0 else None,
+                [N_h[ci]],
+                [L_h[ci]],
+                color=colors[ci],
+                s=60,
+                alpha=1.0,
+                zorder=5,
+                edgecolors="black",
+                linewidths=1.0,
+                label="Holdout" if ci == 0 else None,
             )
 
     _RESID_CFG = {
-        'Colinear':     {'color': 'green', 'label': 'CO residual'},
-        'Non-Colinear': {'color': 'black', 'label': 'NC residual'},
+        "Colinear": {"color": "green", "label": "CO residual"},
+        "Non-Colinear": {"color": "black", "label": "NC residual"},
     }
     if N_h is not None and len(N_h) > 0:
         for r in fits:
-            design = r['design']
+            design = r["design"]
             cfg = _RESID_CFG.get(design)
             lfn = LAW_LOSS_FNS.get(law_name)
             if cfg is None or lfn is None:
                 continue
-            L_pred = lfn(N_h, D_h, *r['params'])
+            L_pred = lfn(N_h, D_h, *r["params"])
             drawn = False
             for j in range(len(N_h)):
                 ax.plot(
-                    [N_h[j], N_h[j]], [L_h[j], L_pred[j]],
-                    color=cfg['color'], lw=1.8, alpha=0.85, zorder=4,
-                    label=cfg['label'] if not drawn else None,
+                    [N_h[j], N_h[j]],
+                    [L_h[j], L_pred[j]],
+                    color=cfg["color"],
+                    lw=1.8,
+                    alpha=0.85,
+                    zorder=4,
+                    label=cfg["label"] if not drawn else None,
                 )
                 drawn = True
 
-    ax.set_xscale('log')
-    ax.set_xlabel('N', fontsize=fontsize)
-    ax.set_ylabel('Loss', fontsize=fontsize)
-    ax.tick_params(axis='both', which='major', labelsize=fontsize)
-    ax.tick_params(axis='both', which='minor', labelsize=fontsize - 2)
+    ax.set_xscale("log")
+    ax.set_xlabel("N", fontsize=fontsize)
+    ax.set_ylabel("Loss", fontsize=fontsize)
+    ax.tick_params(axis="both", which="major", labelsize=fontsize)
+    ax.tick_params(axis="both", which="minor", labelsize=fontsize - 2)
     ax.legend(
-        fontsize=legend_fontsize, loc=legend_loc,
+        fontsize=legend_fontsize,
+        loc=legend_loc,
         framealpha=LEGEND_ALPHA,
     )
-    ax.grid(True, alpha=0.3, which='both')
+    ax.grid(True, alpha=0.3, which="both")
 
     if y_lim is not None:
         ax.set_ylim(y_lim)
@@ -271,7 +298,8 @@ def draw_isoflop_panel(
         _Nh2, _Dh2, _Lh2 = prepare_arrays(holdout_data, holdout_mode)
         if len(_Lh2) > 0:
             ax.set_ylim(
-                float(_Lh2.min()) - 1.0, float(_Lh2.max()) + 1.6,
+                float(_Lh2.min()) - 1.0,
+                float(_Lh2.max()) + 1.6,
             )
 
     if x_lim is not None:
@@ -286,16 +314,18 @@ def draw_isoflop_panel(
     budget_labels = []
 
     if holdout_data:
-        raw_N_all = np.array([r['N'] for r in holdout_data])
-        raw_D_all = np.array([r['D'] for r in holdout_data])
+        raw_N_all = np.array([r["N"] for r in holdout_data])
+        raw_D_all = np.array([r["D"] for r in holdout_data])
         raw_C_all = 6.0 * raw_N_all * raw_D_all
     else:
         raw_C_all, raw_N_all, raw_D_all = (
-            np.array([]), np.array([]), np.array([]),
+            np.array([]),
+            np.array([]),
+            np.array([]),
         )
 
     def fmt_sci(val: float) -> str:
-        b, e = f"{val:.1e}".split('e')
+        b, e = f"{val:.1e}".split("e")
         b_str = f"{float(b):.1f}".replace(".0", "")
         if b_str == "1":
             return f"10^{{{int(e)}}}"
@@ -311,10 +341,7 @@ def draw_isoflop_panel(
             idx = np.argmin(np.abs(raw_C_all - C))
             best_N = raw_N_all[idx]
             best_D = raw_D_all[idx]
-            txt = (
-                f"$C={c_str}$  "
-                f"($N={fmt_sci(best_N)}, D={fmt_sci(best_D)}$)"
-            )
+            txt = f"$C={c_str}$  ($N={fmt_sci(best_N)}, D={fmt_sci(best_D)}$)"
         else:
             txt = f"$C={c_str}$"
         budget_proxies.append(
@@ -325,8 +352,11 @@ def draw_isoflop_panel(
     main_leg = ax.get_legend()
 
     ax.legend(
-        budget_proxies, budget_labels, loc='upper right',
-        fontsize=budget_fontsize, framealpha=LEGEND_ALPHA,
+        budget_proxies,
+        budget_labels,
+        loc="upper right",
+        fontsize=budget_fontsize,
+        framealpha=LEGEND_ALPHA,
     )
 
     if main_leg:

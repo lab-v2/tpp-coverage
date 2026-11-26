@@ -16,7 +16,9 @@ def _resolve_data_root(dataset_name: str) -> str:
     if data_dir:
         return os.path.join(data_dir, dataset_name)
     # This file lives in src/training_models/core/, so the repository root is three levels up.
-    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    repo_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    )
     return os.path.join(repo_root, "corpora", dataset_name)
 
 
@@ -43,15 +45,12 @@ def _load_split(dataset_name: str, split: str, max_seq_len: int) -> Pretokenized
 
 
 class PretokenizedLoader:
-
     # ════════════════════════════════════════════════════════════
     # Cosmopedia
     # ════════════════════════════════════════════════════════════
 
     @staticmethod
-    def load_cosmo_dataset_pretokenized(
-        max_seq_len: int, skip_val: bool
-    ) -> PretokenizedDataset:
+    def load_cosmo_dataset_pretokenized(max_seq_len: int, skip_val: bool) -> PretokenizedDataset:
         train_dataset = _load_split("cosmopedia", "train", max_seq_len)
         val_dataset = None if skip_val else _load_split("cosmopedia", "val", max_seq_len)
         return train_dataset, val_dataset
@@ -69,9 +68,7 @@ class PretokenizedLoader:
     # ════════════════════════════════════════════════════════════
 
     @staticmethod
-    def load_wiki_dataset_pretokenized(
-        max_seq_len: int, skip_val: bool
-    ) -> PretokenizedDataset:
+    def load_wiki_dataset_pretokenized(max_seq_len: int, skip_val: bool) -> PretokenizedDataset:
         train_dataset = _load_split("wikipedia", "train", max_seq_len)
         val_dataset = None if skip_val else _load_split("wikipedia", "val", max_seq_len)
         return train_dataset, val_dataset
@@ -89,9 +86,7 @@ class PretokenizedLoader:
     # ════════════════════════════════════════════════════════════
 
     @staticmethod
-    def load_pes2o_dataset_pretokenized(
-        max_seq_len: int, skip_val: bool
-    ) -> PretokenizedDataset:
+    def load_pes2o_dataset_pretokenized(max_seq_len: int, skip_val: bool) -> PretokenizedDataset:
         train_dataset = _load_split("pes2o", "train", max_seq_len)
         val_dataset = None if skip_val else _load_split("pes2o", "val", max_seq_len)
         return train_dataset, val_dataset
@@ -129,17 +124,13 @@ class PretokenizedLoader:
     # ════════════════════════════════════════════════════════════
 
     @staticmethod
-    def load_c4_dataset_pretokenized(
-        max_seq_len: int, skip_val: bool
-    ) -> PretokenizedDataset:
+    def load_c4_dataset_pretokenized(max_seq_len: int, skip_val: bool) -> PretokenizedDataset:
         train_dataset = _load_split("c4", "train", max_seq_len)
         val_dataset = None if skip_val else _load_split("c4", "val", max_seq_len)
         return train_dataset, val_dataset
 
     @staticmethod
-    def load_fineweb_dataset_pretokenized(
-        max_seq_len: int, skip_val: bool
-    ) -> PretokenizedDataset:
+    def load_fineweb_dataset_pretokenized(max_seq_len: int, skip_val: bool) -> PretokenizedDataset:
         train_dataset = _load_split("fineweb", "train", max_seq_len)
         val_dataset = None if skip_val else _load_split("fineweb", "val", max_seq_len)
         return train_dataset, val_dataset

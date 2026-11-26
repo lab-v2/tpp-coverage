@@ -66,7 +66,6 @@ FIXED_IRREDUCIBLE_LOSS = 0.1
 FLOPS_PER_PARAM_TOKEN = 6.0
 
 
-
 class Regime(str, Enum):
     """Conditioning regime from the paper's diversity criterion."""
 

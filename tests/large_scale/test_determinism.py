@@ -136,9 +136,7 @@ class TestSectionsAreWorkerInvariant:
 
     @staticmethod
     def _context(grid, cfg, workers: int) -> AnalysisContext:
-        return AnalysisContext(
-            config=cfg, grid=grid, executor=DeterministicExecutor(workers)
-        )
+        return AnalysisContext(config=cfg, grid=grid, executor=DeterministicExecutor(workers))
 
     def test_holdout_section_identical_serial_vs_parallel(self, grid, small_config) -> None:
         serial = HoldoutSection().run(self._context(grid, small_config, 1))

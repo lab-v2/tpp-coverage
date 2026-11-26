@@ -18,6 +18,7 @@ from scaling_laws.parsing import parse_epoch_results
 
 # ── Organising ────────────────────────────────────────────────────────────
 
+
 def _organise(runs: List[Dict]) -> Dict[str, List[Dict]]:
     """Split raw runs into four buckets."""
     buckets: Dict[str, List[Dict]] = {
@@ -45,6 +46,7 @@ def _organise(runs: List[Dict]) -> Dict[str, List[Dict]]:
 
 # ── Filtering ─────────────────────────────────────────────────────────────
 
+
 def _filter_by_loss(
     data: List[Dict],
     keep_fraction: float = 1.0,
@@ -59,6 +61,7 @@ def _filter_by_loss(
 
 
 # ── Array preparation ─────────────────────────────────────────────────────
+
 
 def prepare_arrays(
     data: List[Dict], mode: str = "final"
@@ -102,6 +105,7 @@ def prepare_arrays(
 
 # ── Epoch-expanded arrays (for Parametric Epoch law) ─────────────────────
 
+
 def prepare_epoch_expanded(
     data: List[Dict],
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -140,6 +144,7 @@ def prepare_epoch_expanded(
 
 # ── Public entry-point ────────────────────────────────────────────────────
 
+
 @dataclass
 class PreparedData:
     """Everything needed to run the scaling-law fits for one dataset."""
@@ -151,8 +156,8 @@ class PreparedData:
     noncolinear_train: List[Dict] = field(default_factory=list)
 
     # Three holdout variants
-    unified_holdout: List[Dict] = field(default_factory=list)      # NC + CO
-    colinear_holdout: List[Dict] = field(default_factory=list)     # CO only
+    unified_holdout: List[Dict] = field(default_factory=list)  # NC + CO
+    colinear_holdout: List[Dict] = field(default_factory=list)  # CO only
     noncolinear_holdout: List[Dict] = field(default_factory=list)  # NC only
 
     # Counts (for display)
@@ -183,8 +188,8 @@ def load_and_prepare(
 
     co_train = _filter_by_loss(org["colinear_train"], train_keep)
     nc_train = _filter_by_loss(org["noncolinear_train"], train_keep)
-    co_hold  = _filter_by_loss(org["colinear_holdout"], holdout_keep)
-    nc_hold  = _filter_by_loss(org["noncolinear_holdout"], holdout_keep)
+    co_hold = _filter_by_loss(org["colinear_holdout"], holdout_keep)
+    nc_hold = _filter_by_loss(org["noncolinear_holdout"], holdout_keep)
 
     data = PreparedData(
         dataset_name=dataset_name,

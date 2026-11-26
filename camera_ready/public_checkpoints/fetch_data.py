@@ -26,11 +26,17 @@ import zstandard as zstd
 
 from paths import ARTIFACTS, WORK
 
-FARSEER_URL = "https://raw.githubusercontent.com/Farseer-Scaling-Law/Farseer/main/ipynb/data/1222_full.csv"
+FARSEER_URL = (
+    "https://raw.githubusercontent.com/Farseer-Scaling-Law/Farseer/main/ipynb/data/1222_full.csv"
+)
 COLPRET_URL = "https://raw.githubusercontent.com/IBM/ColPret/main/test_cache/data.csv.zst"
 GEMSTONE_RAW = "https://raw.githubusercontent.com/mcleish7/gemstone-scaling-laws/main"
-LADDER_RAW = "https://raw.githubusercontent.com/allenai/OLMo-ladder/main/src/scripts/paper/data/ladder-runs"
-DATADECIDE_URL = "https://raw.githubusercontent.com/allenai/DataDecide/main/perplexity_metrics_by_group.csv"
+LADDER_RAW = (
+    "https://raw.githubusercontent.com/allenai/OLMo-ladder/main/src/scripts/paper/data/ladder-runs"
+)
+DATADECIDE_URL = (
+    "https://raw.githubusercontent.com/allenai/DataDecide/main/perplexity_metrics_by_group.csv"
+)
 
 # CRITERIA Amendment 4, A4.1a: at most this many checkpoints are kept per run, spaced
 # log-uniformly in D. Fixed before any new loss value entered a fit.
@@ -46,33 +52,86 @@ AI2_SENSITIVITY_EVAL = "pile-validation"
 # D = step * batch_size(size) * sequence_length, sequence_length = 2048.
 DD_SEQ_LEN = 2048
 DD_BATCH = {
-    "4M": 32, "6M": 32, "8M": 32, "10M": 32, "14M": 32, "16M": 32, "20M": 64,
-    "60M": 96, "90M": 160, "150M": 192, "300M": 320, "530M": 448, "750M": 576, "1B": 704,
+    "4M": 32,
+    "6M": 32,
+    "8M": 32,
+    "10M": 32,
+    "14M": 32,
+    "16M": 32,
+    "20M": 64,
+    "60M": 96,
+    "90M": 160,
+    "150M": 192,
+    "300M": 320,
+    "530M": 448,
+    "750M": 576,
+    "1B": 704,
 }
 DD_FULL_SCHEDULE = {
-    "4M": 5725, "6M": 9182, "8M": 13039, "10M": 15117, "14M": 21953, "16M": 24432,
-    "20M": 14584, "60M": 29042, "90M": 29901, "150M": 38157, "300M": 45787,
-    "530M": 57786, "750M": 63589, "1B": 69369,
+    "4M": 5725,
+    "6M": 9182,
+    "8M": 13039,
+    "10M": 15117,
+    "14M": 21953,
+    "16M": 24432,
+    "20M": 14584,
+    "60M": 29042,
+    "90M": 29901,
+    "150M": 38157,
+    "300M": 45787,
+    "530M": 57786,
+    "750M": 63589,
+    "1B": 69369,
 }
 DD_PARAMS = {
-    "4M": 3_744_832, "6M": 6_010_464, "8M": 8_538_240, "10M": 9_900_432, "12M": 12_066_600,
-    "14M": 14_380_224, "16M": 16_004_560, "20M": 19_101_888, "60M": 57_078_144,
-    "90M": 97_946_640, "150M": 151_898_880, "300M": 319_980_544, "530M": 530_074_944,
-    "750M": 681_297_408, "1B": 1_176_832_000,
+    "4M": 3_744_832,
+    "6M": 6_010_464,
+    "8M": 8_538_240,
+    "10M": 9_900_432,
+    "12M": 12_066_600,
+    "14M": 14_380_224,
+    "16M": 16_004_560,
+    "20M": 19_101_888,
+    "60M": 57_078_144,
+    "90M": 97_946_640,
+    "150M": 151_898_880,
+    "300M": 319_980_544,
+    "530M": 530_074_944,
+    "750M": 681_297_408,
+    "1B": 1_176_832_000,
 }
 
 # OLMo ladder parameter counts, from the suite's own src/scaling/utils.py MODEL_PARAMS.
-LADDER_PARAMS = {"190M": 190_354_176, "370M": 371_262_464, "760M": 758_220_288,
-                 "1B": 1_279_395_840, "3B": 3_169_537_280}
+LADDER_PARAMS = {
+    "190M": 190_354_176,
+    "370M": 371_262_464,
+    "760M": 758_220_288,
+    "1B": 1_279_395_840,
+    "3B": 3_169_537_280,
+}
 LADDER_MULTIPLIERS = ("0.5xC", "1xC", "1xC-rerun", "2xC", "5xC", "10xC")
 
 # Source-level screening verdicts (P1/P2'/P3/P4), logged for every candidate examined.
 SOURCE_SCREEN: list[dict] = []
 
 COLPRET_KEEP = [
-    "original_paper", "model_name", "model_type", "arch", "domain", "data",
-    "num_params", "tokens_seen", "epochs", "seed", "flops",
-    "loss", "openLM_loss", "train_loss", "val_loss", "compute_opt", "scaled_set",
+    "original_paper",
+    "model_name",
+    "model_type",
+    "arch",
+    "domain",
+    "data",
+    "num_params",
+    "tokens_seen",
+    "epochs",
+    "seed",
+    "flops",
+    "loss",
+    "openLM_loss",
+    "train_loss",
+    "val_loss",
+    "compute_opt",
+    "scaled_set",
 ]
 
 HTTP_TIMEOUT_S = 600
@@ -91,7 +150,10 @@ class Artifact:
             return self.path
         self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(self.path.suffix + ".part")
-        with urllib.request.urlopen(self.url, timeout=HTTP_TIMEOUT_S) as resp, tmp.open("wb") as out:
+        with (
+            urllib.request.urlopen(self.url, timeout=HTTP_TIMEOUT_S) as resp,
+            tmp.open("wb") as out,
+        ):
             shutil.copyfileobj(resp, out, CHUNK)
         tmp.rename(self.path)
         return self.path
@@ -117,15 +179,17 @@ def load_farseer() -> pd.DataFrame:
     """Li et al. (2025) Farseer: 404 released runs, final loss, crossed (N, D) grid."""
     path = Artifact(FARSEER_URL, ARTIFACTS / "farseer_1222_full.csv").ensure()
     raw = pd.read_csv(path)
-    out = pd.DataFrame({
-        "cell": "farseer/IntelliVal",
-        "run_id": [f"farseer-{i}" for i in range(len(raw))],
-        "N": raw["N"].astype(float),
-        "D": raw["D"].astype(float),
-        "loss": raw["loss"].astype(float),
-        "loss_smooth": raw["smooth loss"].astype(float),
-        "loss_val": raw["L"].astype(float),
-    })
+    out = pd.DataFrame(
+        {
+            "cell": "farseer/IntelliVal",
+            "run_id": [f"farseer-{i}" for i in range(len(raw))],
+            "N": raw["N"].astype(float),
+            "D": raw["D"].astype(float),
+            "loss": raw["loss"].astype(float),
+            "loss_smooth": raw["smooth loss"].astype(float),
+            "loss_val": raw["L"].astype(float),
+        }
+    )
     return out[(out["N"] > 0) & (out["D"] > 0) & (out["loss"] > 0)]
 
 
@@ -150,13 +214,15 @@ def load_gadre_overtrain(colpret: pd.DataFrame) -> pd.DataFrame:
     df = df[(df["N"] > 0) & (df["D"] > 0) & (df["openLM_loss"] > 0)]
     df["run_key"] = df["data"] + "|" + df["N"].astype(str) + "|" + df["compute_opt"].astype(str)
     final = df.loc[df.groupby("run_key")["D"].idxmax()]
-    return pd.DataFrame({
-        "cell": "gadre_overtrain/" + final["data"],
-        "run_id": final["run_key"].values,
-        "N": final["N"].values,
-        "D": final["D"].values,
-        "loss": final["openLM_loss"].astype(float).values,
-    })
+    return pd.DataFrame(
+        {
+            "cell": "gadre_overtrain/" + final["data"],
+            "run_id": final["run_key"].values,
+            "N": final["N"].values,
+            "D": final["D"].values,
+            "loss": final["openLM_loss"].astype(float).values,
+        }
+    )
 
 
 def load_chinchilla(colpret: pd.DataFrame) -> pd.DataFrame:
@@ -169,13 +235,15 @@ def load_chinchilla(colpret: pd.DataFrame) -> pd.DataFrame:
     df["N"] = df["num_params"].astype(float)
     df["D"] = df["tokens_seen"].astype(float)
     df = df[(df["N"] > 0) & (df["D"] > 0) & (df["loss"] > 0)]
-    return pd.DataFrame({
-        "cell": "chinchilla_isoflop/MassiveText",
-        "run_id": [f"chin-{i}" for i in range(len(df))],
-        "N": df["N"].values,
-        "D": df["D"].values,
-        "loss": df["loss"].astype(float).values,
-    })
+    return pd.DataFrame(
+        {
+            "cell": "chinchilla_isoflop/MassiveText",
+            "run_id": [f"chin-{i}" for i in range(len(df))],
+            "N": df["N"].values,
+            "D": df["D"].values,
+            "loss": df["loss"].astype(float).values,
+        }
+    )
 
 
 def load_datablations(colpret: pd.DataFrame) -> pd.DataFrame:
@@ -186,18 +254,21 @@ def load_datablations(colpret: pd.DataFrame) -> pd.DataFrame:
     df["N"] = df["num_params"].astype(float)
     df["D"] = df["tokens_seen"].astype(float)
     df = df[(df["N"] > 0) & (df["D"] > 0) & (df["loss"] > 0)]
-    return pd.DataFrame({
-        "cell": "datablations/" + df["data"].astype(str),
-        "run_id": df["model_name"].astype(str).values,
-        "N": df["N"].values,
-        "D": df["D"].values,
-        "loss": df["loss"].astype(float).values,
-    })
+    return pd.DataFrame(
+        {
+            "cell": "datablations/" + df["data"].astype(str),
+            "run_id": df["model_name"].astype(str).values,
+            "N": df["N"].values,
+            "D": df["D"].values,
+            "loss": df["loss"].astype(float).values,
+        }
+    )
 
 
 # ════════════════════════════════════════════════════════════════════════════
 # CRITERIA Amendment 4 - suites admitted by the reopened candidate list
 # ════════════════════════════════════════════════════════════════════════════
+
 
 def _note(source: str, verdict: str, rule: str, detail: str = "") -> None:
     SOURCE_SCREEN.append({"source": source, "verdict": verdict, "rule": rule, "detail": detail})
@@ -223,14 +294,18 @@ def thin_trajectory(df: pd.DataFrame, run_col: str, d_col: str = "D") -> pd.Data
 
 
 def _gemstone(name: str) -> pd.DataFrame:
-    path = Artifact(f"{GEMSTONE_RAW}/wandb_dfs/{name}.jsonl", ARTIFACTS / f"gemstones_{name}.jsonl").ensure()
+    path = Artifact(
+        f"{GEMSTONE_RAW}/wandb_dfs/{name}.jsonl", ARTIFACTS / f"gemstones_{name}.jsonl"
+    ).ensure()
     raw = pd.read_json(path, lines=True)
-    return pd.DataFrame({
-        "run_id": raw["run_name"].astype(str),
-        "N": raw["params_active_precise"].astype(float),
-        "D": raw["tokens"].astype(float),
-        "loss": raw["final_loss"].astype(float),
-    })
+    return pd.DataFrame(
+        {
+            "run_id": raw["run_name"].astype(str),
+            "N": raw["params_active_precise"].astype(float),
+            "D": raw["tokens"].astype(float),
+            "loss": raw["final_loss"].astype(float),
+        }
+    )
 
 
 def load_gemstones_cooldown() -> pd.DataFrame:
@@ -241,8 +316,12 @@ def load_gemstones_cooldown() -> pd.DataFrame:
     under the ORIGINAL P2; it belongs to the E-corpus and needs no amendment.
     """
     df = _gemstone("wandb_df_for_fitting_cool_end")
-    _note("Gemstones cooldown-end (mcleish7/gemstone-scaling-laws)", "IN (E-corpus)",
-          "P1-P4 pass", f"{len(df)} annealed branch ends, {df['N'].nunique()} distinct N")
+    _note(
+        "Gemstones cooldown-end (mcleish7/gemstone-scaling-laws)",
+        "IN (E-corpus)",
+        "P1-P4 pass",
+        f"{len(df)} annealed branch ends, {df['N'].nunique()} distinct N",
+    )
     return df.assign(cell="gemstones_cooldown/pretrain-mix", corpus="E")
 
 
@@ -254,8 +333,12 @@ def load_gemstones_hot() -> pd.DataFrame:
     """
     df = _gemstone("wandb_df_for_fitting_hot_100b+_477")
     df = thin_trajectory(df, "run_id")
-    _note("Gemstones hot / constant-LR checkpoints", "IN (X-corpus)",
-          "P2' (A4.1); P1,P3,P4 pass", f"{len(df)} thinned points, {df['N'].nunique()} distinct N")
+    _note(
+        "Gemstones hot / constant-LR checkpoints",
+        "IN (X-corpus)",
+        "P2' (A4.1); P1,P3,P4 pass",
+        f"{len(df)} thinned points, {df['N'].nunique()} distinct N",
+    )
     return df.assign(cell="gemstones_hot/pretrain-mix", corpus="X")
 
 
@@ -282,12 +365,14 @@ def _ladder_run(fname: str, n_params: float) -> pd.DataFrame | None:
     if raw.empty:
         return None
     final = raw.loc[[raw["D"].idxmax()]]
-    return pd.DataFrame({
-        "run_id": [fname.replace(".csv", "")],
-        "N": [float(n_params)],
-        "D": [float(final["D"].iloc[0])],
-        "loss": [float(final[loss_col].iloc[0])],
-    })
+    return pd.DataFrame(
+        {
+            "run_id": [fname.replace(".csv", "")],
+            "N": [float(n_params)],
+            "D": [float(final["D"].iloc[0])],
+            "loss": [float(final[loss_col].iloc[0])],
+        }
+    )
 
 
 def load_olmo_ladder() -> pd.DataFrame:
@@ -298,28 +383,36 @@ def load_olmo_ladder() -> pd.DataFrame:
     """
     parts = [
         _ladder_run(f"{size}-{mult}.csv", n)
-        for size, n in LADDER_PARAMS.items() for mult in LADDER_MULTIPLIERS
+        for size, n in LADDER_PARAMS.items()
+        for mult in LADDER_MULTIPLIERS
     ]
     parts.append(_ladder_run("peteish7_eval_anneal.csv", 6_887_575_552))
     parts.append(_ladder_run("peteish13_eval_full.csv", 13_202_396_160))
     df = pd.concat([p for p in parts if p is not None], ignore_index=True)
-    _note("OLMo ladder / Bhagia et al. (allenai/OLMo-ladder)", "IN (E-corpus)",
-          "P1-P4 pass", f"{len(df)} terminal runs, {df['N'].nunique()} distinct N")
+    _note(
+        "OLMo ladder / Bhagia et al. (allenai/OLMo-ladder)",
+        "IN (E-corpus)",
+        "P1-P4 pass",
+        f"{len(df)} terminal runs, {df['N'].nunique()} distinct N",
+    )
     return df.assign(cell="olmo_ladder/dolma17-peteish", corpus="E")
 
 
 def _mad(colpret: pd.DataFrame) -> pd.DataFrame:
-    df = colpret[(colpret["original_paper"] == "MAD arxiv.org/2403.17844")
-                 & colpret["loss"].notna()].copy()
+    df = colpret[
+        (colpret["original_paper"] == "MAD arxiv.org/2403.17844") & colpret["loss"].notna()
+    ].copy()
     df["family"] = df["model_name"].astype(str).str.split("_").str[0]
-    return pd.DataFrame({
-        # CRITERIA P4: one architecture family per cell, so MAD splits in two.
-        "cell": "mad/pile-" + df["family"].str.replace(" ", ""),
-        "run_id": df["model_name"].astype(str).values,
-        "N": df["num_params"].astype(float).values,
-        "D": df["tokens_seen"].astype(float).values,
-        "loss": df["loss"].astype(float).values,
-    })
+    return pd.DataFrame(
+        {
+            # CRITERIA P4: one architecture family per cell, so MAD splits in two.
+            "cell": "mad/pile-" + df["family"].str.replace(" ", ""),
+            "run_id": df["model_name"].astype(str).values,
+            "N": df["num_params"].astype(float).values,
+            "D": df["tokens_seen"].astype(float).values,
+            "loss": df["loss"].astype(float).values,
+        }
+    )
 
 
 def load_mad_endofrun(colpret: pd.DataFrame) -> pd.DataFrame:
@@ -333,18 +426,26 @@ def load_mad_thinned(colpret: pd.DataFrame) -> pd.DataFrame:
 
 def load_gpt3(colpret: pd.DataFrame) -> pd.DataFrame:
     """GPT-3 digitized training curves. C5: validation loss is primary where both exist."""
-    df = colpret[(colpret["original_paper"] == "gpt3 - arxiv.org-abs-2005.14165")
-                 & colpret["val_loss"].notna()].copy()
-    out = pd.DataFrame({
-        "cell": "gpt3/gpt3-mix",
-        "run_id": df["model_name"].astype(str).values,
-        "N": df["num_params"].astype(float).values,
-        "D": df["tokens_seen"].astype(float).values,
-        "loss": df["val_loss"].astype(float).values,
-    })
+    df = colpret[
+        (colpret["original_paper"] == "gpt3 - arxiv.org-abs-2005.14165")
+        & colpret["val_loss"].notna()
+    ].copy()
+    out = pd.DataFrame(
+        {
+            "cell": "gpt3/gpt3-mix",
+            "run_id": df["model_name"].astype(str).values,
+            "N": df["num_params"].astype(float).values,
+            "D": df["tokens_seen"].astype(float).values,
+            "loss": df["val_loss"].astype(float).values,
+        }
+    )
     out = thin_trajectory(out, "run_id")
-    _note("GPT-3 digitized curves (ColPret)", "IN (X-corpus)", "P2' (A4.1); P1,P3,P4 pass",
-          f"{len(out)} thinned points, {out['N'].nunique()} distinct N; digitized")
+    _note(
+        "GPT-3 digitized curves (ColPret)",
+        "IN (X-corpus)",
+        "P2' (A4.1); P1,P3,P4 pass",
+        f"{len(out)} thinned points, {out['N'].nunique()} distinct N; digitized",
+    )
     return out.assign(corpus="X")
 
 
@@ -354,19 +455,25 @@ def load_opt_trajectories(colpret: pd.DataFrame) -> pd.DataFrame:
     The released column spans 9.8 to 67.5, which cannot be a per-token cross-entropy in nats
     (that is bounded by log(vocab)); it is a perplexity, and A4.3 enters it as log(ppl).
     """
-    df = colpret[(colpret["original_paper"] == "training_trajectories")
-                 & colpret["loss"].notna()].copy()
-    out = pd.DataFrame({
-        "cell": "opt_trajectories/roberta-pile-reddit",
-        "run_id": df["model_name"].astype(str).values,
-        "N": df["num_params"].astype(float).values,
-        "D": df["tokens_seen"].astype(float).values,
-        "loss": np.log(df["loss"].astype(float).values),
-    })
+    df = colpret[
+        (colpret["original_paper"] == "training_trajectories") & colpret["loss"].notna()
+    ].copy()
+    out = pd.DataFrame(
+        {
+            "cell": "opt_trajectories/roberta-pile-reddit",
+            "run_id": df["model_name"].astype(str).values,
+            "N": df["num_params"].astype(float).values,
+            "D": df["tokens_seen"].astype(float).values,
+            "loss": np.log(df["loss"].astype(float).values),
+        }
+    )
     out = thin_trajectory(out, "run_id")
-    _note("OPT training trajectories (ColPret)", "IN (X-corpus)",
-          "P2' (A4.1); P1 via log(perplexity) per A4.3",
-          f"{len(out)} thinned points, {out['N'].nunique()} distinct N")
+    _note(
+        "OPT training trajectories (ColPret)",
+        "IN (X-corpus)",
+        "P2' (A4.1); P1 via log(perplexity) per A4.3",
+        f"{len(out)} thinned points, {out['N'].nunique()} distinct N",
+    )
     return out.assign(corpus="X")
 
 
@@ -395,22 +502,28 @@ def load_datadecide() -> pd.DataFrame:
     over = df["step"].astype(float) > 1.02 * df["size"].map(DD_FULL_SCHEDULE).astype(float)
     n_over, n_groups_over = int(over.sum()), int(df.loc[over, "group"].nunique())
     df = df[~over]
-    out = pd.DataFrame({
-        "cell": "datadecide/" + df["recipe"].astype(str),
-        "run_id": df["group"].astype(str).values,
-        "N": df["size"].map(DD_PARAMS).astype(float).values,
-        "D": (df["step"].astype(float) * df["size"].map(DD_BATCH).astype(float)
-              * DD_SEQ_LEN).values,
-        "loss": np.log(df[col].astype(float).values),
-    })
+    out = pd.DataFrame(
+        {
+            "cell": "datadecide/" + df["recipe"].astype(str),
+            "run_id": df["group"].astype(str).values,
+            "N": df["size"].map(DD_PARAMS).astype(float).values,
+            "D": (
+                df["step"].astype(float) * df["size"].map(DD_BATCH).astype(float) * DD_SEQ_LEN
+            ).values,
+            "loss": np.log(df[col].astype(float).values),
+        }
+    )
     out = out[out["D"] > 0]
     out = thin_trajectory(out, "run_id")
-    _note("DataDecide (allenai/DataDecide)", "IN (X-corpus)",
-          "P2' (A4.1); P1 via log(perplexity); D reconstructed per A4.3",
-          f"{len(out)} thinned points, {out['N'].nunique()} distinct N, "
-          f"{out['cell'].nunique()} recipe cells; dropped {n_over} rows in "
-          f"{n_groups_over} groups whose step exceeds the suite's own full schedule (P1: D "
-          f"not recoverable for those rows)")
+    _note(
+        "DataDecide (allenai/DataDecide)",
+        "IN (X-corpus)",
+        "P2' (A4.1); P1 via log(perplexity); D reconstructed per A4.3",
+        f"{len(out)} thinned points, {out['N'].nunique()} distinct N, "
+        f"{out['cell'].nunique()} recipe cells; dropped {n_over} rows in "
+        f"{n_groups_over} groups whose step exceeds the suite's own full schedule (P1: D "
+        f"not recoverable for those rows)",
+    )
     return out.assign(corpus="X")
 
 
@@ -419,29 +532,60 @@ def load_datadecide() -> pd.DataFrame:
 # was re-checked against the FULL column list before its verdict was recorded; the loss
 # column that exists (if any) is named in the detail so the verdict can be audited.
 COLPRET_REJECTS = (
-    ("t5-pile", "T5-Pile (ColPret)", "P3",
-     "`cross_ent_loss` IS a genuine LM loss (796 values), so P1 passes - but only 4 distinct N"),
-    ("datablations", "Muennighoff et al. datablations, single-epoch slice", "P3",
-     "`loss` released; 3 distinct N per corpus cell (2.8B/4.2B/8.7B), and 3 < 6"),
-    ("pythia", "Pythia (ColPret + EleutherAI/pythia repo)", "P3",
-     "the only LM-perplexity column is `wikitext word_perplexity`: 240 values, 5 distinct N, "
-     "15 checkpoints each - 5 < 6. `lambada_openai ppl` spans 22 N but mixes bloom/opt/pythia "
-     "(P4) and is a task perplexity. The EleutherAI/pythia repo publishes downstream eval CSVs "
-     "only, no loss logs"),
-    ("olmo", "OLMo / OLMo-2 (ColPret)", "P3",
-     "`c4_en-validation/CrossEntropyLoss` and `pile-validation/CrossEntropyLoss` ARE released "
-     "(529 / 737 values), so P1 passes - but only 2 distinct N (1B, 7B)"),
-    ("blog-redpajama-7b", "RedPajama-INCITE", "P3",
-     "`train_loss` released; 2 distinct N (2.4B, 6.7B)"),
-    ("LM360:arxiv-2312.06550", "LLM360 Amber / K2", "P3",
-     "`train - loss` (99999 values) and `k2 training - lm loss` (9985) ARE released, so P1 "
-     "passes - but 2 distinct N (6.7B Amber, 65B K2), one per family"),
+    (
+        "t5-pile",
+        "T5-Pile (ColPret)",
+        "P3",
+        "`cross_ent_loss` IS a genuine LM loss (796 values), so P1 passes - but only 4 distinct N",
+    ),
+    (
+        "datablations",
+        "Muennighoff et al. datablations, single-epoch slice",
+        "P3",
+        "`loss` released; 3 distinct N per corpus cell (2.8B/4.2B/8.7B), and 3 < 6",
+    ),
+    (
+        "pythia",
+        "Pythia (ColPret + EleutherAI/pythia repo)",
+        "P3",
+        "the only LM-perplexity column is `wikitext word_perplexity`: 240 values, 5 distinct N, "
+        "15 checkpoints each - 5 < 6. `lambada_openai ppl` spans 22 N but mixes bloom/opt/pythia "
+        "(P4) and is a task perplexity. The EleutherAI/pythia repo publishes downstream eval CSVs "
+        "only, no loss logs",
+    ),
+    (
+        "olmo",
+        "OLMo / OLMo-2 (ColPret)",
+        "P3",
+        "`c4_en-validation/CrossEntropyLoss` and `pile-validation/CrossEntropyLoss` ARE released "
+        "(529 / 737 values), so P1 passes - but only 2 distinct N (1B, 7B)",
+    ),
+    (
+        "blog-redpajama-7b",
+        "RedPajama-INCITE",
+        "P3",
+        "`train_loss` released; 2 distinct N (2.4B, 6.7B)",
+    ),
+    (
+        "LM360:arxiv-2312.06550",
+        "LLM360 Amber / K2",
+        "P3",
+        "`train - loss` (99999 values) and `k2 training - lm loss` (9985) ARE released, so P1 "
+        "passes - but 2 distinct N (6.7B Amber, 65B K2), one per family",
+    ),
     ("llm360-private", "LLM360 CrystalCoder / Mamba-3B", "P3", "`loss` released; 1 distinct N"),
-    ("DataMixing arxiv.org/abs/2405.14908", "DataMixing (Ye et al. 2024)", "P3",
-     "`avg_ppl` released; 1 distinct N (280M) across 12 data mixtures"),
-    ("Revisiting Neural Scaling Laws in Language and Vision",
-     "Alabdulmohsin et al., Revisiting Neural Scaling Laws", "P3",
-     "5 distinct N carry a released loss (the other 5 model names have num_params = 0)"),
+    (
+        "DataMixing arxiv.org/abs/2405.14908",
+        "DataMixing (Ye et al. 2024)",
+        "P3",
+        "`avg_ppl` released; 1 distinct N (280M) across 12 data mixtures",
+    ),
+    (
+        "Revisiting Neural Scaling Laws in Language and Vision",
+        "Alabdulmohsin et al., Revisiting Neural Scaling Laws",
+        "P3",
+        "5 distinct N carry a released loss (the other 5 model names have num_params = 0)",
+    ),
 )
 
 
@@ -451,14 +595,26 @@ def note_rejected(colpret: pd.DataFrame) -> None:
         g = colpret[colpret["original_paper"] == paper]
         _note(label, "OUT", rule, f"{detail} [{len(g)} ColPret rows]")
     _note("Cerebras-GPT", "OUT", "P3", "one budget per size, D = 20N: a single ray, K = 1")
-    _note("Sardana et al. (2025)", "OUT", "P1",
-          "run-level loss table not recovered at a public GET-only path (not-recovered, not absent)")
-    _note("OPT / BLOOM / GPT-NeoX / Qwen / Llama technical reports", "OUT", "P1/P3",
-          "final losses in report tables only, 1-3 sizes each, single ray")
-    _note("HuggingFace dataset sweep (datasets API, GET-only)", "OUT", "P1",
-          "smcleish/scaling-laws-cache holds fitted law parameters and predicted losses, not "
-          "run-level observations; molmohsen/scaling-laws-neural-lm is a PDF; no other public "
-          "HF dataset aggregating scaling-law LM loss curves was found")
+    _note(
+        "Sardana et al. (2025)",
+        "OUT",
+        "P1",
+        "run-level loss table not recovered at a public GET-only path (not-recovered, not absent)",
+    )
+    _note(
+        "OPT / BLOOM / GPT-NeoX / Qwen / Llama technical reports",
+        "OUT",
+        "P1/P3",
+        "final losses in report tables only, 1-3 sizes each, single ray",
+    )
+    _note(
+        "HuggingFace dataset sweep (datasets API, GET-only)",
+        "OUT",
+        "P1",
+        "smcleish/scaling-laws-cache holds fitted law parameters and predicted losses, not "
+        "run-level observations; molmohsen/scaling-laws-neural-lm is a PDF; no other public "
+        "HF dataset aggregating scaling-law LM loss curves was found",
+    )
 
 
 def load_all(expanded: bool = False) -> pd.DataFrame:
@@ -484,21 +640,35 @@ def load_all(expanded: bool = False) -> pd.DataFrame:
         # both. MAD's terminal slice is kept only if it clears P3; the decision is made by
         # the pre-registered screen, not by any outcome.
         import analysis  # local import: analysis.py owns the P3 screen
+
         keep_end = {
-            cell for cell, grp in mad_end.groupby("cell")
+            cell
+            for cell, grp in mad_end.groupby("cell")
             if analysis.screen_cell(grp.assign(k=grp["D"] / grp["N"]), cell).included
         }
         if not keep_end:
             frames = [f for f in frames if f is not mad_end]
             frames.append(load_mad_thinned(colpret))
-            _note("MAD (arXiv:2403.17844) end-of-run slice", "OUT", "P3",
-                  "the 54 end-of-run runs do not populate 3 k-bins at 4+ sizes; the thinned "
-                  "trajectory slice is used instead (X-corpus)")
-            _note("MAD (arXiv:2403.17844) thinned trajectories", "IN (X-corpus)",
-                  "P2' (A4.1); P1,P3,P4 pass", "split by architecture family per P4")
+            _note(
+                "MAD (arXiv:2403.17844) end-of-run slice",
+                "OUT",
+                "P3",
+                "the 54 end-of-run runs do not populate 3 k-bins at 4+ sizes; the thinned "
+                "trajectory slice is used instead (X-corpus)",
+            )
+            _note(
+                "MAD (arXiv:2403.17844) thinned trajectories",
+                "IN (X-corpus)",
+                "P2' (A4.1); P1,P3,P4 pass",
+                "split by architecture family per P4",
+            )
         else:
-            _note("MAD (arXiv:2403.17844) end-of-run slice", "IN (E-corpus)", "P1-P4 pass",
-                  f"cells {sorted(keep_end)}")
+            _note(
+                "MAD (arXiv:2403.17844) end-of-run slice",
+                "IN (E-corpus)",
+                "P1-P4 pass",
+                f"cells {sorted(keep_end)}",
+            )
         note_rejected(colpret)
     out = pd.concat(frames, ignore_index=True)
     out["k"] = out["D"] / out["N"]
@@ -508,11 +678,16 @@ def load_all(expanded: bool = False) -> pd.DataFrame:
 def main(argv: list[str] | None = None) -> None:
     import argparse
 
-    ap = argparse.ArgumentParser(description="Fetch the public loss artifacts and normalise them "
-                                 "(writes artifacts/runs_normalised.csv or runs_expanded.csv "
-                                 "under the work directory).")
-    ap.add_argument("--expanded", action="store_true",
-                    help="the ten-suite corpus with mid-training checkpoints (Amendment 4)")
+    ap = argparse.ArgumentParser(
+        description="Fetch the public loss artifacts and normalise them "
+        "(writes artifacts/runs_normalised.csv or runs_expanded.csv "
+        "under the work directory)."
+    )
+    ap.add_argument(
+        "--expanded",
+        action="store_true",
+        help="the ten-suite corpus with mid-training checkpoints (Amendment 4)",
+    )
     args = ap.parse_args(argv)
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     expanded = args.expanded
@@ -522,10 +697,12 @@ def main(argv: list[str] | None = None) -> None:
     if SOURCE_SCREEN:
         pd.DataFrame(SOURCE_SCREEN).to_csv(WORK / "screening_sources.csv", index=False)
     for cell, grp in data.groupby("cell"):
-        corpus = grp['corpus'].iloc[0] if 'corpus' in grp else '-'
-        print(f"{cell:44s} {corpus} pts={len(grp):5d} #N={grp['N'].nunique():3d} "
-              f"N=[{grp['N'].min():.3g},{grp['N'].max():.4g}] "
-              f"k=[{grp['k'].min():.3g},{grp['k'].max():.4g}]")
+        corpus = grp["corpus"].iloc[0] if "corpus" in grp else "-"
+        print(
+            f"{cell:44s} {corpus} pts={len(grp):5d} #N={grp['N'].nunique():3d} "
+            f"N=[{grp['N'].min():.3g},{grp['N'].max():.4g}] "
+            f"k=[{grp['k'].min():.3g},{grp['k'].max():.4g}]"
+        )
     print(f"\nwrote {name}: {len(data)} rows, {data['cell'].nunique()} cells")
 
 

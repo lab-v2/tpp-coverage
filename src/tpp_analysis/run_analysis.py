@@ -43,11 +43,11 @@ from concurrent.futures import ProcessPoolExecutor
 # ============================================================
 
 DATASETS = {
-    "Wikipedia":  "wikipedia.csv",
+    "Wikipedia": "wikipedia.csv",
     "Cosmopedia": "cosmopedia.csv",
-    "RedPajama":  "redpajama.csv",
-    "Pes2o":      "pes2o.csv",
-    "C4":         "c4.csv",
+    "RedPajama": "redpajama.csv",
+    "Pes2o": "pes2o.csv",
+    "C4": "c4.csv",
 }
 
 # Per-law mode lists. Parametric-Epoch uses the special "Epoch-Expanded" mode
@@ -55,9 +55,9 @@ DATASETS = {
 # collapsing to a single epoch. The other three laws use the standard
 # epoch-collapsing modes.
 LAW_MODES = {
-    "Chinchilla":       ["final", "first", "second"],
-    "Kaplan":           ["final", "first", "second"],
-    "Droppo-Elibol":    ["final", "first", "second"],
+    "Chinchilla": ["final", "first", "second"],
+    "Kaplan": ["final", "first", "second"],
+    "Droppo-Elibol": ["final", "first", "second"],
     "Parametric-Epoch": ["Epoch-Expanded"],
 }
 LAWS = list(LAW_MODES.keys())
@@ -66,15 +66,15 @@ MODES = ["final", "first", "second"]  # kept for backward-compat callers
 # Parameter names for each law (used to write named param columns).
 # Must match what generate_appendix_tables.py expects in LAW_TABLE_CONFIG.
 LAW_PARAM_NAMES = {
-    "Kaplan":           ["N_c", "D_c", "alpha_N", "alpha_D"],
-    "Chinchilla":       ["E", "A", "alpha", "B", "beta"],
-    "Droppo-Elibol":    ["L_inf", "N_c", "D_c", "alpha_N", "alpha_D", "alpha"],
+    "Kaplan": ["N_c", "D_c", "alpha_N", "alpha_D"],
+    "Chinchilla": ["E", "A", "alpha", "B", "beta"],
+    "Droppo-Elibol": ["L_inf", "N_c", "D_c", "alpha_N", "alpha_D", "alpha"],
     "Parametric-Epoch": ["A", "alpha", "B", "beta", "E", "R_star_D", "R_star_N"],
 }
 
-DEFAULT_N_SEEDS    = 30
+DEFAULT_N_SEEDS = 30
 DEFAULT_N_RESTARTS = 100
-DEFAULT_BASE_SEED  = 0
+DEFAULT_BASE_SEED = 0
 
 
 # ============================================================
@@ -84,6 +84,7 @@ DEFAULT_BASE_SEED  = 0
 # (N, U_D, R, L) and is handled directly in the worker via
 # fit_parametric_epoch + prepare_epoch_expanded.
 # ============================================================
+
 
 def _get_seed_fitters():
     """Build seed-aware fitters for the three (N, D, L)-shape laws.
@@ -102,6 +103,7 @@ def _get_seed_fitters():
 
     def _fit_kaplan_seed(N, D, L, n_restarts=300, seed=42):
         bounds = [(1e3, 1e14), (1e3, 1e14), (0.01, 2.0), (0.01, 2.0)]
+
         def sampler(rng, L):
             return [
                 10 ** rng.uniform(5, 12),
@@ -109,10 +111,12 @@ def _get_seed_fitters():
                 rng.uniform(0.05, 1.5),
                 rng.uniform(0.05, 1.5),
             ]
+
         return _fit_generic(kaplan_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
     def _fit_chinchilla_seed(N, D, L, n_restarts=300, seed=42):
         bounds = [(0.0, 10.0), (1e-2, 1e10), (0.01, 2.0), (1e-2, 1e10), (0.01, 2.0)]
+
         def sampler(rng, L):
             return [
                 rng.uniform(0.0, min(L) * 0.9),
@@ -121,14 +125,19 @@ def _get_seed_fitters():
                 10 ** rng.uniform(0, 8),
                 rng.uniform(0.1, 1.5),
             ]
+
         return _fit_generic(chinchilla_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
     def _fit_droppo_elibol_seed(N, D, L, n_restarts=300, seed=42):
         bounds = [
             (1e-6, 10.0),
-            (1e3, 1e14), (1e3, 1e14),
-            (0.01, 2.0), (0.01, 2.0), (0.01, 2.0),
+            (1e3, 1e14),
+            (1e3, 1e14),
+            (0.01, 2.0),
+            (0.01, 2.0),
+            (0.01, 2.0),
         ]
+
         def sampler(rng, L):
             return [
                 rng.uniform(0.01, min(L) * 0.8),
@@ -138,11 +147,12 @@ def _get_seed_fitters():
                 rng.uniform(0.05, 1.5),
                 rng.uniform(0.05, 1.5),
             ]
+
         return _fit_generic(droppo_elibol_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
     return {
-        "Kaplan":        (_fit_kaplan_seed, kaplan_loss),
-        "Chinchilla":    (_fit_chinchilla_seed, chinchilla_loss),
+        "Kaplan": (_fit_kaplan_seed, kaplan_loss),
+        "Chinchilla": (_fit_chinchilla_seed, chinchilla_loss),
         "Droppo-Elibol": (_fit_droppo_elibol_seed, droppo_elibol_loss),
     }
 
@@ -150,6 +160,7 @@ def _get_seed_fitters():
 # ============================================================
 # Worker: Full Coverage
 # ============================================================
+
 
 def _run_full_coverage_combo(args):
     """Worker for one (dataset, law, mode) combo.
@@ -160,8 +171,7 @@ def _run_full_coverage_combo(args):
       - Parametric-Epoch (mode = 'Epoch-Expanded'): use prepare_epoch_expanded
         → (N, U_D, R, epoch, L), then call fit_parametric_epoch directly.
     """
-    (dataset_name, csv_path, law_name, mode,
-     n_seeds, n_restarts, base_seed, save_dir) = args
+    (dataset_name, csv_path, law_name, mode, n_seeds, n_restarts, base_seed, save_dir) = args
 
     from scaling_laws.data import load_and_prepare, prepare_arrays, prepare_epoch_expanded
 
@@ -182,7 +192,7 @@ def _run_full_coverage_combo(args):
         print(f"  [FAIL] {tag}: load error: {e}")
         return []
 
-    is_pe = (law_name == "Parametric-Epoch")
+    is_pe = law_name == "Parametric-Epoch"
     rows = []
 
     if is_pe:
@@ -224,8 +234,12 @@ def _run_full_coverage_combo(args):
                 actual_seed = base_seed + seed_idx
                 try:
                     params_dict, loss, success = fit_parametric_epoch(
-                        N_arr, UD_arr, R_arr, L_arr,
-                        n_restarts=n_restarts, seed=actual_seed,
+                        N_arr,
+                        UD_arr,
+                        R_arr,
+                        L_arr,
+                        n_restarts=n_restarts,
+                        seed=actual_seed,
                     )
                     if params_dict is None:
                         continue
@@ -243,11 +257,16 @@ def _run_full_coverage_combo(args):
                 # Train metrics
                 try:
                     pred_tr = parametric_epoch_loss(
-                        N_arr, UD_arr, R_arr,
-                        params_dict["A"], params_dict["alpha"],
-                        params_dict["B"], params_dict["beta"],
+                        N_arr,
+                        UD_arr,
+                        R_arr,
+                        params_dict["A"],
+                        params_dict["alpha"],
+                        params_dict["B"],
+                        params_dict["beta"],
                         params_dict["E"],
-                        params_dict["R_star_D"], params_dict["R_star_N"],
+                        params_dict["R_star_D"],
+                        params_dict["R_star_N"],
                     )
                     row["r2_train"] = float(r2_score(L_arr, pred_tr))
                     row["rmse_train"] = float(np.sqrt(mean_squared_error(L_arr, pred_tr)))
@@ -258,11 +277,16 @@ def _run_full_coverage_combo(args):
                 for hname, (hN, hUD, hR, hL) in holdout_arrays.items():
                     try:
                         pred_h = parametric_epoch_loss(
-                            hN, hUD, hR,
-                            params_dict["A"], params_dict["alpha"],
-                            params_dict["B"], params_dict["beta"],
+                            hN,
+                            hUD,
+                            hR,
+                            params_dict["A"],
+                            params_dict["alpha"],
+                            params_dict["B"],
+                            params_dict["beta"],
                             params_dict["E"],
-                            params_dict["R_star_D"], params_dict["R_star_N"],
+                            params_dict["R_star_D"],
+                            params_dict["R_star_N"],
                         )
                         row[f"r2_{hname}"] = float(r2_score(hL, pred_h))
                         row[f"rmse_{hname}"] = float(np.sqrt(mean_squared_error(hL, pred_h)))
@@ -313,7 +337,9 @@ def _run_full_coverage_combo(args):
                 actual_seed = base_seed + seed_idx
                 try:
                     params, sse, success = fit_fn(
-                        N_arr, D_arr, L_arr,
+                        N_arr,
+                        D_arr,
+                        L_arr,
                         n_restarts=n_restarts,
                         seed=actual_seed,
                     )
@@ -369,6 +395,7 @@ def _run_full_coverage_combo(args):
 # Worker: Seed Variance
 # ============================================================
 
+
 def _run_seed_variance_combo(args):
     """Worker for one (dataset, law, mode) seed-variance combo.
 
@@ -376,8 +403,7 @@ def _run_seed_variance_combo(args):
     isn't plotted on the convergence-fraction figures, so seed-variance
     sweeps are unnecessary and would add hours to the run.
     """
-    (dataset_name, csv_path, law_name, mode,
-     n_seeds, n_restarts, base_seed, save_dir) = args
+    (dataset_name, csv_path, law_name, mode, n_seeds, n_restarts, base_seed, save_dir) = args
 
     if law_name == "Parametric-Epoch":
         return []
@@ -451,7 +477,9 @@ def _run_seed_variance_combo(args):
                     actual_seed = base_seed + seed_idx
                     try:
                         params, sse, success = fit_fn(
-                            N_arr, D_arr, L_arr,
+                            N_arr,
+                            D_arr,
+                            L_arr,
                             n_restarts=n_restarts,
                             seed=actual_seed,
                         )
@@ -462,8 +490,8 @@ def _run_seed_variance_combo(args):
 
                     try:
                         h_pred = loss_fn(hN, hD, *params)
-                        ss_res = np.sum((hL - h_pred)**2)
-                        ss_tot = np.sum((hL - hL.mean())**2)
+                        ss_res = np.sum((hL - h_pred) ** 2)
+                        ss_tot = np.sum((hL - hL.mean()) ** 2)
                         r2 = float(1 - ss_res / ss_tot) if ss_tot > 0 else None
                         if r2 is not None:
                             seed_r2s.append(r2)
@@ -472,19 +500,21 @@ def _run_seed_variance_combo(args):
 
                 if seed_r2s:
                     arr = np.array(seed_r2s)
-                    rows.append({
-                        "design": design_label,
-                        "step": step_idx + 1,
-                        "coverage_frac": coverage_frac,
-                        "holdout_split": holdout_name,
-                        "r2_mean": float(arr.mean()),
-                        "r2_std": float(arr.std()),
-                        "r2_p5": float(np.percentile(arr, 5)),
-                        "r2_p95": float(np.percentile(arr, 95)),
-                        "r2_min": float(arr.min()),
-                        "r2_max": float(arr.max()),
-                        "n_seeds_ok": len(seed_r2s),
-                    })
+                    rows.append(
+                        {
+                            "design": design_label,
+                            "step": step_idx + 1,
+                            "coverage_frac": coverage_frac,
+                            "holdout_split": holdout_name,
+                            "r2_mean": float(arr.mean()),
+                            "r2_std": float(arr.std()),
+                            "r2_p5": float(np.percentile(arr, 5)),
+                            "r2_p95": float(np.percentile(arr, 95)),
+                            "r2_min": float(arr.min()),
+                            "r2_max": float(arr.max()),
+                            "n_seeds_ok": len(seed_r2s),
+                        }
+                    )
 
     if rows:
         df = pd.DataFrame(rows)
@@ -508,10 +538,12 @@ def _run_seed_variance_combo(args):
 # per-combo worker repeated the identical fit for each holdout.
 # ============================================================
 
+
 @functools.lru_cache(maxsize=None)
 def _unit_data(csv_path, dataset_name):
     """The prepared dataset, loaded once per worker process."""
     from scaling_laws.data import load_and_prepare
+
     return load_and_prepare(csv_path, dataset_name)
 
 
@@ -520,20 +552,28 @@ def _fc_unit(task):
 
     The body is the per-combo worker's for one design and one seed, unchanged.
     """
-    (dataset_name, csv_path, law_name, mode, design_label, seed_idx,
-     n_restarts, base_seed) = task
+    (dataset_name, csv_path, law_name, mode, design_label, seed_idx, n_restarts, base_seed) = task
     from scaling_laws.data import prepare_arrays, prepare_epoch_expanded
 
     data = _unit_data(csv_path, dataset_name)
     train_runs = {"CO": data.colinear_train, "NC": data.noncolinear_train}[design_label]
-    holdout_lists = [("unified", data.unified_holdout), ("colinear", data.colinear_holdout),
-                     ("noncolinear", data.noncolinear_holdout)]
+    holdout_lists = [
+        ("unified", data.unified_holdout),
+        ("colinear", data.colinear_holdout),
+        ("noncolinear", data.noncolinear_holdout),
+    ]
     actual_seed = base_seed + seed_idx
-    row = {"dataset": dataset_name, "law": law_name, "mode": mode,
-           "design": design_label, "seed": seed_idx}
+    row = {
+        "dataset": dataset_name,
+        "law": law_name,
+        "mode": mode,
+        "design": design_label,
+        "seed": seed_idx,
+    }
 
     if law_name == "Parametric-Epoch":
         from scaling_laws.laws import parametric_epoch_loss, fit_parametric_epoch
+
         try:
             N_arr, UD_arr, R_arr, _ep, L_arr = prepare_epoch_expanded(train_runs)
         except Exception:
@@ -550,7 +590,8 @@ def _fc_unit(task):
                 pass
         try:
             params_dict, loss, success = fit_parametric_epoch(
-                N_arr, UD_arr, R_arr, L_arr, n_restarts=n_restarts, seed=actual_seed)
+                N_arr, UD_arr, R_arr, L_arr, n_restarts=n_restarts, seed=actual_seed
+            )
             if params_dict is None:
                 return None
         except Exception:
@@ -619,6 +660,7 @@ def _fc_unit(task):
 def _sv_steps(csv_path, dataset_name, mode):
     """The seed-variance coverage steps of one combo: [(design, step_idx, n_steps, step_data)]."""
     from incremental_coverage.coverage import build_colinear_steps, build_noncolinear_steps
+
     data = _unit_data(csv_path, dataset_name)
     co_steps = build_colinear_steps(data.colinear_train, mode=mode)
     nc_steps = build_noncolinear_steps(data.noncolinear_train)
@@ -649,16 +691,19 @@ def _sv_unit(task):
     if len(N_arr) < 4:
         return {}
     try:
-        params, sse, success = fit_fn(N_arr, D_arr, L_arr, n_restarts=n_restarts,
-                                      seed=base_seed + seed_idx)
+        params, sse, success = fit_fn(
+            N_arr, D_arr, L_arr, n_restarts=n_restarts, seed=base_seed + seed_idx
+        )
         if params is None:
             return {}
     except Exception:
         return {}
     r2s = {}
-    for holdout_name, holdout_runs in [("unified", data.unified_holdout),
-                                       ("colinear", data.colinear_holdout),
-                                       ("noncolinear", data.noncolinear_holdout)]:
+    for holdout_name, holdout_runs in [
+        ("unified", data.unified_holdout),
+        ("colinear", data.colinear_holdout),
+        ("noncolinear", data.noncolinear_holdout),
+    ]:
         try:
             hN, hD, hL = prepare_arrays(holdout_runs, mode=mode)
         except Exception:
@@ -667,8 +712,8 @@ def _sv_unit(task):
             continue
         try:
             h_pred = loss_fn(hN, hD, *params)
-            ss_res = np.sum((hL - h_pred)**2)
-            ss_tot = np.sum((hL - hL.mean())**2)
+            ss_res = np.sum((hL - h_pred) ** 2)
+            ss_tot = np.sum((hL - hL.mean()) ** 2)
             r2 = float(1 - ss_res / ss_tot) if ss_tot > 0 else None
             if r2 is not None:
                 r2s[holdout_name] = r2
@@ -691,19 +736,21 @@ def _sv_n_steps(args):
 # Stats helper
 # ============================================================
 
+
 def _wilson_ci(k, n, z=1.96):
     if n == 0:
         return 0, 0, 0
     p_hat = k / n
-    denom = 1 + z ** 2 / n
-    center = (p_hat + z ** 2 / (2 * n)) / denom
-    margin = z * np.sqrt(p_hat * (1 - p_hat) / n + z ** 2 / (4 * n ** 2)) / denom
+    denom = 1 + z**2 / n
+    center = (p_hat + z**2 / (2 * n)) / denom
+    margin = z * np.sqrt(p_hat * (1 - p_hat) / n + z**2 / (4 * n**2)) / denom
     return p_hat * 100, (center - margin) * 100, (center + margin) * 100
 
 
 # ============================================================
 # LaTeX tables matching the paper's tab:summary_full and tab:winrate
 # ============================================================
+
 
 def build_paper_tables(df: pd.DataFrame, save_dir: str):
     """Emit summary + winrate tables in the paper's format.
@@ -717,9 +764,9 @@ def build_paper_tables(df: pd.DataFrame, save_dir: str):
     # SUMMARY TABLE
     # ==============================================================
     split_label_map = {
-        "train":       ("Train",      r"Train ($\mathcal{D}$)"),
-        "unified":     ("Holdout",    r"Holdout ($\mathcal{H}$)"),
-        "colinear":    ("Holdout-CO", r"Holdout--CO ($\mathcal{H}_{\mathrm{col}}$)"),
+        "train": ("Train", r"Train ($\mathcal{D}$)"),
+        "unified": ("Holdout", r"Holdout ($\mathcal{H}$)"),
+        "colinear": ("Holdout-CO", r"Holdout--CO ($\mathcal{H}_{\mathrm{col}}$)"),
         "noncolinear": ("Holdout-NC", r"Holdout--NC ($\mathcal{H}_{\mathrm{nc}}$)"),
     }
 
@@ -745,21 +792,23 @@ def build_paper_tables(df: pd.DataFrame, save_dir: str):
             r2_ci_half = 1.96 * r2_stds.mean() / np.sqrt(mean_n)
             rmse_ci_half = 1.96 * rmse_stds.mean() / np.sqrt(mean_n)
 
-            summary_rows.append({
-                "Split_csv": csv_label,
-                "Split_tex": tex_label,
-                "Design": design,
-                "R2_Mean": float(r2_means.mean()),
-                "R2_CI_lo": float(r2_means.mean() - r2_ci_half),
-                "R2_CI_hi": float(r2_means.mean() + r2_ci_half),
-                "R2_Median": float(r2_means.median()),
-                "R2_Std": float(r2_means.std()),
-                "RMSE_Mean": float(rmse_means.mean()),
-                "RMSE_CI_lo": float(rmse_means.mean() - rmse_ci_half),
-                "RMSE_CI_hi": float(rmse_means.mean() + rmse_ci_half),
-                "RMSE_Median": float(rmse_means.median()),
-                "RMSE_Std": float(rmse_means.std()),
-            })
+            summary_rows.append(
+                {
+                    "Split_csv": csv_label,
+                    "Split_tex": tex_label,
+                    "Design": design,
+                    "R2_Mean": float(r2_means.mean()),
+                    "R2_CI_lo": float(r2_means.mean() - r2_ci_half),
+                    "R2_CI_hi": float(r2_means.mean() + r2_ci_half),
+                    "R2_Median": float(r2_means.median()),
+                    "R2_Std": float(r2_means.std()),
+                    "RMSE_Mean": float(rmse_means.mean()),
+                    "RMSE_CI_lo": float(rmse_means.mean() - rmse_ci_half),
+                    "RMSE_CI_hi": float(rmse_means.mean() + rmse_ci_half),
+                    "RMSE_Median": float(rmse_means.median()),
+                    "RMSE_Std": float(rmse_means.std()),
+                }
+            )
 
     summary = pd.DataFrame(summary_rows)
     summary_csv = summary.drop(columns=["Split_tex"]).rename(columns={"Split_csv": "Split"})
@@ -793,7 +842,7 @@ def build_paper_tables(df: pd.DataFrame, save_dir: str):
     for _, row in summary.iterrows():
         tex_label = row["Split_tex"]
         design = row["Design"]
-        is_best = (best.get(tex_label) == design)
+        is_best = best.get(tex_label) == design
 
         def _w(val, fmt=".4f"):
             s = f"{val:{fmt}}"
@@ -824,8 +873,13 @@ def build_paper_tables(df: pd.DataFrame, save_dir: str):
     print(f"\n  Wrote {summary_path}")
     print(tex_summary)
     print("\n  Summary preview:")
-    print(summary[["Split_csv", "Design", "R2_Mean", "R2_Median", "R2_Std",
-                   "RMSE_Mean", "RMSE_Median"]].round(4).to_string(index=False))
+    print(
+        summary[
+            ["Split_csv", "Design", "R2_Mean", "R2_Median", "R2_Std", "RMSE_Mean", "RMSE_Median"]
+        ]
+        .round(4)
+        .to_string(index=False)
+    )
 
     # ==============================================================
     # WINRATE TABLE
@@ -841,11 +895,15 @@ def build_paper_tables(df: pd.DataFrame, save_dir: str):
         if len(paired_co) == 0:
             continue
         nc_wins = int((paired_nc > paired_co).sum())
-        wins_rows.append({
-            "Dataset": ds, "Law": law, "Mode": mode,
-            "NC_wins": nc_wins,
-            "N_paired": len(paired_co),
-        })
+        wins_rows.append(
+            {
+                "Dataset": ds,
+                "Law": law,
+                "Mode": mode,
+                "NC_wins": nc_wins,
+                "N_paired": len(paired_co),
+            }
+        )
     wins_df = pd.DataFrame(wins_rows)
     wins_df.to_csv(os.path.join(save_dir, "winrate_per_combo.csv"), index=False)
 
@@ -868,8 +926,10 @@ def build_paper_tables(df: pd.DataFrame, save_dir: str):
         entries.sort(key=lambda x: str(x[0]))
         slices[col] = entries
 
-    print(f"\n  Overall NC win rate (unified): {total_nc}/{total_n} "
-          f"({overall_pct:.1f}% [{overall_lo:.1f}%, {overall_hi:.1f}%])")
+    print(
+        f"\n  Overall NC win rate (unified): {total_nc}/{total_n} "
+        f"({overall_pct:.1f}% [{overall_lo:.1f}%, {overall_hi:.1f}%])"
+    )
     for col in slice_columns:
         print(f"  By {col}:")
         for val, pct in slices[col]:
@@ -921,9 +981,9 @@ def build_paper_tables(df: pd.DataFrame, save_dir: str):
     return summary, wins_df
 
 
-def build_holdout_split_winrate(df: pd.DataFrame, save_dir: str,
-                                 label: str = "appendix",
-                                 include_per_dataset: bool = True):
+def build_holdout_split_winrate(
+    df: pd.DataFrame, save_dir: str, label: str = "appendix", include_per_dataset: bool = True
+):
     """Emit a winrate table broken down by holdout-split definition.
 
     Top section: aggregate over all (law × mode × dataset) for each of
@@ -932,8 +992,8 @@ def build_holdout_split_winrate(df: pd.DataFrame, save_dir: str,
     Bottom section (optional): same splits sliced by dataset.
     """
     SPLIT_NAMES = {
-        "unified":     r"$\mathcal{H}$",
-        "colinear":    r"$\mathcal{H}_{\mathrm{col}}$",
+        "unified": r"$\mathcal{H}$",
+        "colinear": r"$\mathcal{H}_{\mathrm{col}}$",
         "noncolinear": r"$\mathcal{H}_{\mathrm{nc}}$",
     }
 
@@ -960,14 +1020,16 @@ def build_holdout_split_winrate(df: pd.DataFrame, save_dir: str,
             nw, np_ = _pair_wins(group, r2_col)
             nc_total += nw
             n_total += np_
-        agg_rows.append({
-            "split": split,
-            "label": SPLIT_NAMES[split],
-            "nc_wins": nc_total,
-            "co_wins": n_total - nc_total,
-            "total": n_total,
-            "pct": (nc_total / n_total * 100) if n_total else 0.0,
-        })
+        agg_rows.append(
+            {
+                "split": split,
+                "label": SPLIT_NAMES[split],
+                "nc_wins": nc_total,
+                "co_wins": n_total - nc_total,
+                "total": n_total,
+                "pct": (nc_total / n_total * 100) if n_total else 0.0,
+            }
+        )
 
     # Per-dataset rows (only if multiple datasets)
     per_ds_rows = []
@@ -982,28 +1044,36 @@ def build_holdout_split_winrate(df: pd.DataFrame, save_dir: str,
                     nw, np_ = _pair_wins(group, r2_col)
                     nc_total += nw
                     n_total += np_
-                per_ds_rows.append({
-                    "split": split,
-                    "label": f"{SPLIT_NAMES[split]} / {ds}",
-                    "nc_wins": nc_total,
-                    "co_wins": n_total - nc_total,
-                    "total": n_total,
-                    "pct": (nc_total / n_total * 100) if n_total else 0.0,
-                })
+                per_ds_rows.append(
+                    {
+                        "split": split,
+                        "label": f"{SPLIT_NAMES[split]} / {ds}",
+                        "nc_wins": nc_total,
+                        "co_wins": n_total - nc_total,
+                        "total": n_total,
+                        "pct": (nc_total / n_total * 100) if n_total else 0.0,
+                    }
+                )
 
     # CSV (clean labels)
     csv_rows = []
     for r in agg_rows + per_ds_rows:
-        csv_rows.append({
-            "Holdout_Split": r["split"],
-            "Label": r["label"].replace("$", "").replace(r"\mathcal", "").replace(r"\mathrm", ""),
-            "NC_Wins": r["nc_wins"],
-            "CO_Wins": r["co_wins"],
-            "Total": r["total"],
-            "NC_Pct": round(r["pct"], 2),
-        })
+        csv_rows.append(
+            {
+                "Holdout_Split": r["split"],
+                "Label": r["label"]
+                .replace("$", "")
+                .replace(r"\mathcal", "")
+                .replace(r"\mathrm", ""),
+                "NC_Wins": r["nc_wins"],
+                "CO_Wins": r["co_wins"],
+                "Total": r["total"],
+                "NC_Pct": round(r["pct"], 2),
+            }
+        )
     pd.DataFrame(csv_rows).to_csv(
-        os.path.join(save_dir, f"winrate_by_holdout_split_{label}.csv"), index=False,
+        os.path.join(save_dir, f"winrate_by_holdout_split_{label}.csv"),
+        index=False,
     )
 
     # LaTeX
@@ -1044,10 +1114,11 @@ def build_holdout_split_winrate(df: pd.DataFrame, save_dir: str,
 # Drivers
 # ============================================================
 
+
 def run_full_coverage(data_dir, output_dir, n_workers, n_seeds, n_restarts, base_seed):
-    print(f"\n{'='*60}\nFULL COVERAGE ANALYSIS")
+    print(f"\n{'=' * 60}\nFULL COVERAGE ANALYSIS")
     print(f"  Workers: {n_workers}  Seeds: {n_seeds}  Restarts: {n_restarts}")
-    print(f"  Laws: {LAWS}\n{'='*60}\n")
+    print(f"  Laws: {LAWS}\n{'=' * 60}\n")
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -1059,8 +1130,9 @@ def run_full_coverage(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
             continue
         for law in LAWS:
             for mode in LAW_MODES[law]:
-                combos.append((ds_name, csv_path, law, mode,
-                              n_seeds, n_restarts, base_seed, output_dir))
+                combos.append(
+                    (ds_name, csv_path, law, mode, n_seeds, n_restarts, base_seed, output_dir)
+                )
 
     print(f"Total combos: {len(combos)}")
     t0 = time.time()
@@ -1074,23 +1146,28 @@ def run_full_coverage(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
             all_rows.extend(_run_full_coverage_combo(c))  # reads the cache
         else:
             todo.append(c)
-    units = [(c[0], c[1], c[2], c[3], design, seed, n_restarts, base_seed)
-             for c in todo for design in ("CO", "NC") for seed in range(n_seeds)]
+    units = [
+        (c[0], c[1], c[2], c[3], design, seed, n_restarts, base_seed)
+        for c in todo
+        for design in ("CO", "NC")
+        for seed in range(n_seeds)
+    ]
     print(f"Fitting {len(units)} units ({len(todo)} uncached combos x 2 designs x {n_seeds} seeds)")
     with ProcessPoolExecutor(max_workers=n_workers) as pool:
         rows = list(pool.map(_fc_unit, units, chunksize=1))
     for i, c in enumerate(todo):
         tag = f"{c[0]}_{c[2]}_{c[3]}"
-        combo_rows = [r for r in rows[i * 2 * n_seeds:(i + 1) * 2 * n_seeds] if r is not None]
+        combo_rows = [r for r in rows[i * 2 * n_seeds : (i + 1) * 2 * n_seeds] if r is not None]
         if combo_rows:
             pd.DataFrame(combo_rows).to_parquet(
-                os.path.join(output_dir, f"fullcov_{tag}.parquet"), index=False)
+                os.path.join(output_dir, f"fullcov_{tag}.parquet"), index=False
+            )
             print(f"  [done] {tag}: {len(combo_rows)} rows")
         else:
             print(f"  [empty] {tag}: no results")
         all_rows.extend(combo_rows)
 
-    print(f"\nCompleted in {(time.time()-t0)/60:.1f} minutes")
+    print(f"\nCompleted in {(time.time() - t0) / 60:.1f} minutes")
 
     if all_rows:
         df = pd.DataFrame(all_rows)
@@ -1103,8 +1180,8 @@ def run_full_coverage(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
 
 
 def run_seed_variance(data_dir, output_dir, n_workers, n_seeds, n_restarts, base_seed):
-    print(f"\n{'='*60}\nSEED VARIANCE ANALYSIS")
-    print(f"  Workers: {n_workers}  Seeds: {n_seeds}  Restarts: {n_restarts}\n{'='*60}\n")
+    print(f"\n{'=' * 60}\nSEED VARIANCE ANALYSIS")
+    print(f"  Workers: {n_workers}  Seeds: {n_seeds}  Restarts: {n_restarts}\n{'=' * 60}\n")
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -1118,8 +1195,9 @@ def run_seed_variance(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
             if law == "Parametric-Epoch":
                 continue  # 4D law, not plotted in seed-variance figures
             for mode in MODES:
-                combos.append((ds_name, csv_path, law, mode,
-                              n_seeds, n_restarts, base_seed, output_dir))
+                combos.append(
+                    (ds_name, csv_path, law, mode, n_seeds, n_restarts, base_seed, output_dir)
+                )
 
     print(f"Total combos: {len(combos)}")
     t0 = time.time()
@@ -1133,9 +1211,15 @@ def run_seed_variance(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
         else:
             todo.append(c)
     with ProcessPoolExecutor(max_workers=n_workers) as pool:
-        n_steps = dict(pool.map(_sv_n_steps, [(i, (c[0], c[1], c[2], c[3])) for i, c in enumerate(todo)]))
-        units = [(c[0], c[1], c[2], c[3], pos, seed, n_restarts, base_seed)
-                 for i, c in enumerate(todo) for pos in range(n_steps[i]) for seed in range(n_seeds)]
+        n_steps = dict(
+            pool.map(_sv_n_steps, [(i, (c[0], c[1], c[2], c[3])) for i, c in enumerate(todo)])
+        )
+        units = [
+            (c[0], c[1], c[2], c[3], pos, seed, n_restarts, base_seed)
+            for i, c in enumerate(todo)
+            for pos in range(n_steps[i])
+            for seed in range(n_seeds)
+        ]
         print(f"Fitting {len(units)} units ({len(todo)} uncached combos x steps x {n_seeds} seeds)")
         results = iter(pool.map(_sv_unit, units, chunksize=1))
         for i, c in enumerate(todo):
@@ -1148,28 +1232,31 @@ def run_seed_variance(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
                     seed_r2s = [r[holdout_name] for r in per_seed if holdout_name in r]
                     if seed_r2s:
                         arr = np.array(seed_r2s)
-                        combo_rows.append({
-                            "design": design_label,
-                            "step": step_idx + 1,
-                            "coverage_frac": (step_idx + 1) / n_total_steps,
-                            "holdout_split": holdout_name,
-                            "r2_mean": float(arr.mean()),
-                            "r2_std": float(arr.std()),
-                            "r2_p5": float(np.percentile(arr, 5)),
-                            "r2_p95": float(np.percentile(arr, 95)),
-                            "r2_min": float(arr.min()),
-                            "r2_max": float(arr.max()),
-                            "n_seeds_ok": len(seed_r2s),
-                        })
+                        combo_rows.append(
+                            {
+                                "design": design_label,
+                                "step": step_idx + 1,
+                                "coverage_frac": (step_idx + 1) / n_total_steps,
+                                "holdout_split": holdout_name,
+                                "r2_mean": float(arr.mean()),
+                                "r2_std": float(arr.std()),
+                                "r2_p5": float(np.percentile(arr, 5)),
+                                "r2_p95": float(np.percentile(arr, 95)),
+                                "r2_min": float(arr.min()),
+                                "r2_max": float(arr.max()),
+                                "n_seeds_ok": len(seed_r2s),
+                            }
+                        )
             if combo_rows:
                 pd.DataFrame(combo_rows).to_parquet(
-                    os.path.join(output_dir, f"seed_variance_{tag}.parquet"), index=False)
+                    os.path.join(output_dir, f"seed_variance_{tag}.parquet"), index=False
+                )
                 print(f"  [done] {tag}: {len(combo_rows)} rows")
             else:
                 print(f"  [empty] {tag}: no results")
             all_rows.extend(combo_rows)
 
-    print(f"\nCompleted in {(time.time()-t0)/60:.1f} minutes")
+    print(f"\nCompleted in {(time.time() - t0) / 60:.1f} minutes")
 
     if all_rows:
         df = pd.DataFrame(all_rows)
@@ -1184,8 +1271,10 @@ def run_seed_variance(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
             for design in ["Colinear", "Non-Colinear"]:
                 dsub = full[full["design"] == design]
                 if not dsub.empty:
-                    print(f"  {design}: mean σ(R²) = {dsub['r2_std'].mean():.4f}, "
-                          f"max σ(R²) = {dsub['r2_std'].max():.4f}")
+                    print(
+                        f"  {design}: mean σ(R²) = {dsub['r2_std'].mean():.4f}, "
+                        f"max σ(R²) = {dsub['r2_std'].max():.4f}"
+                    )
     else:
         print("No results!")
 
@@ -1213,6 +1302,7 @@ def main():
         if not args.clear_cache or not os.path.isdir(out_dir):
             return
         import glob
+
         removed = 0
         for f in glob.glob(os.path.join(out_dir, "*.parquet")):
             os.remove(f)
@@ -1223,14 +1313,16 @@ def main():
     if args.mode in ("full_coverage", "all"):
         out = args.output_dir or "full_coverage_results"
         _maybe_clear(out)
-        run_full_coverage(args.data_dir, out, args.n_workers,
-                         args.n_seeds, args.n_restarts, args.base_seed)
+        run_full_coverage(
+            args.data_dir, out, args.n_workers, args.n_seeds, args.n_restarts, args.base_seed
+        )
 
     if args.mode in ("seed_variance", "all"):
         out = args.output_dir or "seed_variance_results"
         _maybe_clear(out)
-        run_seed_variance(args.data_dir, out, args.n_workers,
-                         args.n_seeds, args.n_restarts, args.base_seed)
+        run_seed_variance(
+            args.data_dir, out, args.n_workers, args.n_seeds, args.n_restarts, args.base_seed
+        )
 
 
 if __name__ == "__main__":

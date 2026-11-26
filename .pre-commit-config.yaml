@@ -1,5 +1,5 @@
 # `uvx pre-commit install --hook-type pre-commit --hook-type pre-push` runs these before each
-# commit (pytest before each push). ruff-format and mypy join once the code passes them.
+# commit (pytest before each push). mypy joins once the code passes it.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c  # frozen: v6.0.0
@@ -23,6 +23,11 @@ repos:
       - id: ruff
         name: ruff check
         entry: uv run --locked ruff check
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --locked ruff format --check
         language: system
         types: [python]
       - id: pytest

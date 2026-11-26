@@ -20,9 +20,7 @@ def _limit_to_infinity(expr: sp.Expr, symbols: list[sp.Symbol]) -> sp.Expr | Non
     return result
 
 
-def _compare_term_growth(
-    term_a: sp.Expr, term_b: sp.Expr, symbols: list[sp.Symbol]
-) -> int:
+def _compare_term_growth(term_a: sp.Expr, term_b: sp.Expr, symbols: list[sp.Symbol]) -> int:
     """
     Compare growth of two terms as all symbols -> +oo.
     Returns 1 if term_a grows faster, -1 if term_b grows faster, 0 if unknown.
@@ -76,9 +74,7 @@ def get_leading_coefficient(expr: sp.Expr) -> sp.Expr:
     # Non-polynomial path: use asymptotic growth via SymPy limits
     fastest_term = terms[0]
     for term in terms[1:]:
-        comparison = _compare_term_growth(
-            term_a=term, term_b=fastest_term, symbols=symbols
-        )
+        comparison = _compare_term_growth(term_a=term, term_b=fastest_term, symbols=symbols)
         if comparison == 1:
             fastest_term = term
     leading_coeff, _ = fastest_term.as_coeff_Mul()
@@ -181,9 +177,7 @@ def convert_large_numbers_to_float(expr: sp.Expr) -> sp.Expr:
             return sp.Float(x, 3)
         return x
 
-    return expr.replace(
-        lambda x: x.is_Number and not x.is_Symbol, replace_large_numbers
-    )
+    return expr.replace(lambda x: x.is_Number and not x.is_Symbol, replace_large_numbers)
 
 
 def _check_for_invalid_terms(expr: sp.Expr, context: str) -> tuple[bool, str]:
@@ -460,20 +454,15 @@ def convert_expression_to_latex(expression: str) -> tuple[str, str, int, int, in
         "div": lambda a, b: sp.Mul(a, sp.Pow(b, -1)),
     }
 
-
     latex_original_raw = _gplearn_expression_to_latex(expr=expression)
     sympy_expr = sp.sympify(expression, locals=namespace)
-    has_invalid, error_latex = _check_for_invalid_terms(
-        expr=sympy_expr, context="Expression"
-    )
+    has_invalid, error_latex = _check_for_invalid_terms(expr=sympy_expr, context="Expression")
     if has_invalid:
         return f"${error_latex}$", f"${error_latex}$", 1, 1, 0
 
     # Apply simplification pipeline
     simplified = apply_simplification_pipeline(expr=sympy_expr)
-    has_invalid, error_latex = _check_for_invalid_terms(
-        expr=simplified, context="Simplification"
-    )
+    has_invalid, error_latex = _check_for_invalid_terms(expr=simplified, context="Simplification")
     if has_invalid:
         return f"${error_latex}$", f"${error_latex}$", 1, 1, 0
 
@@ -505,12 +494,8 @@ def convert_expression_to_latex(expression: str) -> tuple[str, str, int, int, in
     )
 
     # Format LaTeX
-    latex_original_formatted = break_latex_equation(
-        latex_str=latex_original, max_width=120
-    )
-    latex_simplified_formatted = break_latex_equation(
-        latex_str=latex_simplified, max_width=120
-    )
+    latex_original_formatted = break_latex_equation(latex_str=latex_original, max_width=120)
+    latex_simplified_formatted = break_latex_equation(latex_str=latex_simplified, max_width=120)
 
     # Count terms
     numer, denom = sp.fraction(normalized_sci)

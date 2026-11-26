@@ -56,20 +56,30 @@ def table7_jobs(df: pd.DataFrame, corpus: str) -> list[tuple]:
     jobs = []
     for kappa in C.KAPPA_GRID:
         sub = df[m + np.log10(kappa / 100.0) < 0]
-        jobs.append(EST.median_task(("table7", corpus, kappa, "CO=A", "all"), sub, GAP,
-                                    f"table7|{corpus}|{kappa}|A"))
+        jobs.append(
+            EST.median_task(
+                ("table7", corpus, kappa, "CO=A", "all"), sub, GAP, f"table7|{corpus}|{kappa}|A"
+            )
+        )
     return jobs
 
 
 def jobs_for(df: pd.DataFrame, corpus: str) -> list[tuple]:
     """Every job of the four families for one corpus, tagged with `KEYS`."""
-    out = [(("joint", corpus, kappa, cell, "all"), *rest)
-           for (_, arm, kappa, cell), *rest in EST.dose_jobs(df, f"{corpus}|512") if arm == "NC"]
-    out += [(("coonly", corpus, kappa, f"CO={regime}", "all"), *rest)
-            for (_, kappa, regime), *rest in co_jobs(df, corpus)]
+    out = [
+        (("joint", corpus, kappa, cell, "all"), *rest)
+        for (_, arm, kappa, cell), *rest in EST.dose_jobs(df, f"{corpus}|512")
+        if arm == "NC"
+    ]
+    out += [
+        (("coonly", corpus, kappa, f"CO={regime}", "all"), *rest)
+        for (_, kappa, regime), *rest in co_jobs(df, corpus)
+    ]
     out += table7_jobs(df, corpus)
-    out += [(("band", corpus, kappa, cell, stratum), *rest)
-            for (_, kappa, cell, stratum), *rest in band_jobs(df, corpus)]
+    out += [
+        (("band", corpus, kappa, cell, stratum), *rest)
+        for (_, kappa, cell, stratum), *rest in band_jobs(df, corpus)
+    ]
     return out
 
 
@@ -77,9 +87,14 @@ def summarise(rows: pd.DataFrame) -> pd.DataFrame:
     """Replicate 0 of every cell, with the range of its ends and verdicts over the replicates."""
     rep0 = rows[rows["replicate"] == 0].set_index(KEYS)
     g = rows.groupby(KEYS)
-    out = rep0.assign(lo_min=g["lo"].min(), lo_max=g["lo"].max(), hi_min=g["hi"].min(),
-                      hi_max=g["hi"].max(), share_excl0=g["excludes0"].mean(),
-                      replicates=g.size())
+    out = rep0.assign(
+        lo_min=g["lo"].min(),
+        lo_max=g["lo"].max(),
+        hi_min=g["hi"].min(),
+        hi_max=g["hi"].max(),
+        share_excl0=g["excludes0"].mean(),
+        replicates=g.size(),
+    )
     return out.reset_index().drop(columns=["replicate"])
 
 
@@ -96,8 +111,11 @@ def main(argv: list[str] | None = None) -> None:
 
     corpora = load_corpora(args.results, None if args.skip_x else args.results_x)
     jobs = [job for corpus, df in corpora.items() for job in jobs_for(df, corpus)]
-    small = [j for j in jobs if j[0][0] == "joint" and 0 < len(j[1]) < 20_000
-             and sum(len(g) for g in j[2]) >= 2][:3]
+    small = [
+        j
+        for j in jobs
+        if j[0][0] == "joint" and 0 < len(j[1]) < 20_000 and sum(len(g) for g in j[2]) >= 2
+    ][:3]
     M.check_released(small)
 
     rows = pd.DataFrame(M.intervals(jobs, range(args.replicates), args.workers))
@@ -107,8 +125,9 @@ def main(argv: list[str] | None = None) -> None:
         rows.to_csv(WORK / args.replicates_out, index=False)
     summ = summarise(rows)
     summ.to_csv(WORK / args.out, index=False)
-    show = summ[summ["n_pairs"] > 0][KEYS + ["n_pairs", "n_windows", "win", "median", "lo", "hi",
-                                             "share_excl0"]]
+    show = summ[summ["n_pairs"] > 0][
+        KEYS + ["n_pairs", "n_windows", "win", "median", "lo", "hi", "share_excl0"]
+    ]
     with pd.option_context("display.width", 250):
         print(show.to_string(index=False, float_format=lambda v: f"{v:+.5f}"))
     flips = summ[(summ["share_excl0"] > 0) & (summ["share_excl0"] < 1)]

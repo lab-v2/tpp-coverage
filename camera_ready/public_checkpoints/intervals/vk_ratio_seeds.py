@@ -58,14 +58,25 @@ def draws(task: tuple[str, int, int]) -> tuple[str, int, np.ndarray]:
     name, seed, n_boot = task
     rng = released_rng(name) if seed < 0 else C.rng_for("vk_ratio_seeds", name, seed)
     d = _FRAMES[name]
-    return name, seed, np.array([statistic(name, sub) for sub, _ in C._cluster_draws(d, rng, n_boot)])
+    return (
+        name,
+        seed,
+        np.array([statistic(name, sub) for sub, _ in C._cluster_draws(d, rng, n_boot)]),
+    )
 
 
 def row(name: str, stream: str, seed: int, d: np.ndarray) -> dict:
     lo, hi = np.percentile(d, [2.5, 97.5])
-    return {"statistic": name, "stream": stream, "seed": seed, "n_boot": len(d),
-            "point": statistic(name, _FRAMES[name]), "lo95": lo, "hi95": hi,
-            "share_draws_at_least_1": float(np.mean(d >= 1))}
+    return {
+        "statistic": name,
+        "stream": stream,
+        "seed": seed,
+        "n_boot": len(d),
+        "point": statistic(name, _FRAMES[name]),
+        "lo95": lo,
+        "hi95": hi,
+        "share_draws_at_least_1": float(np.mean(d >= 1)),
+    }
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -85,7 +96,9 @@ def main(argv: list[str] | None = None) -> None:
 
     tasks = [(name, s, args.n_boot) for name in STATISTICS for s in range(-1, args.seeds)]
     fork = mp.get_context("fork")  # the workers read _FRAMES
-    with ProcessPoolExecutor(min(args.workers, len(tasks)), mp_context=fork) as ex:  # one per stream
+    with ProcessPoolExecutor(
+        min(args.workers, len(tasks)), mp_context=fork
+    ) as ex:  # one per stream
         results = list(ex.map(draws, tasks))
     rows = [row(name, "released" if s < 0 else "seed", s, d) for name, s, d in results]
     for name in STATISTICS:
@@ -94,8 +107,12 @@ def main(argv: list[str] | None = None) -> None:
     out = pd.DataFrame(rows)
     with pd.option_context("display.width", 200, "display.max_rows", 200):
         print(out[out["stream"] != "seed"].to_string(index=False))
-        print(out[out["stream"] == "seed"].groupby("statistic")[["lo95", "hi95"]]
-              .agg(["min", "max"]).to_string())
+        print(
+            out[out["stream"] == "seed"]
+            .groupby("statistic")[["lo95", "hi95"]]
+            .agg(["min", "max"])
+            .to_string()
+        )
     out.to_csv(WORK / args.out, index=False)
 
 

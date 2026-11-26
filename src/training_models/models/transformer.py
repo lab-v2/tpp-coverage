@@ -31,9 +31,7 @@ class TransformerLayer(nn.Module):
 
         self.dropout = nn.Dropout(config.dropout)
 
-    def forward(
-        self, x: torch.Tensor, attention_mask: torch.Tensor | None = None
-    ) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, attention_mask: torch.Tensor | None = None) -> torch.Tensor:
         # Self-attention with residual connection
         attn_out = self.attention(x, attention_mask)
         x = self.ln1(x + self.dropout(attn_out))
@@ -57,9 +55,7 @@ class SimpleTransformer(nn.Module):
         self.position_embedding = nn.Embedding(config.max_seq_len, config.d_model)
 
         # Transformer layers
-        self.layers = nn.ModuleList(
-            [TransformerLayer(config) for _ in range(config.n_layers)]
-        )
+        self.layers = nn.ModuleList([TransformerLayer(config) for _ in range(config.n_layers)])
 
         # Final layer norm and output projection
         self.ln_final = nn.LayerNorm(config.d_model)
@@ -92,9 +88,7 @@ class SimpleTransformer(nn.Module):
         device = input_ids.device
 
         # Create position ids
-        position_ids = (
-            torch.arange(seq_len, device=device).unsqueeze(0).expand(batch_size, -1)
-        )
+        position_ids = torch.arange(seq_len, device=device).unsqueeze(0).expand(batch_size, -1)
 
         # Embeddings
         token_embeds = self.token_embedding(input_ids)

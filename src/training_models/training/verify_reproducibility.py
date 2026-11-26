@@ -81,12 +81,12 @@ def _extract_identity(fn: str):
     elif "BF16" in fn_upper or "FP16WIKI" in fn_upper:
         dataset = "wikipedia_bf16"
     else:
-        m = re.search(r'_(c4|pes2o|redpajama|wikipedia|cosmopedia)_m\d+_', fn_lower)
+        m = re.search(r"_(c4|pes2o|redpajama|wikipedia|cosmopedia)_m\d+_", fn_lower)
         if m:
             dataset = m.group(1)
         else:
             # Last resort - leading dataset prefix on HF files
-            m = re.match(r'^(c4|pes2o|redpajama|wikipedia|cosmopedia)_', fn_lower)
+            m = re.match(r"^(c4|pes2o|redpajama|wikipedia|cosmopedia)_", fn_lower)
             dataset = m.group(1) if m else None
 
     # Design directory
@@ -96,17 +96,17 @@ def _extract_identity(fn: str):
         design = "non_colinear"
 
     # Param count and token count
-    m = re.search(r'_m(\d+)_token(\d+)', fn)
+    m = re.search(r"_m(\d+)_token(\d+)", fn)
     if not m:
         return None
     n_params = int(m.group(1))
     n_tokens = int(m.group(2))
 
     return {
-        "dataset":  dataset,
-        "design":   design,
-        "m":        n_params,
-        "token":    n_tokens,
+        "dataset": dataset,
+        "design": design,
+        "m": n_params,
+        "token": n_tokens,
         "run_type": _extract_run_type(fn),
     }
 
@@ -121,6 +121,7 @@ def _resolve_ambiguous(repo_dir: str, target_fn: str) -> str:
     `cosmopedia_NxD_GRID_N10M_D35M_cosmopedia_m10070160_token35000000_...`).
     Both share the same `_m{N}_token{D}_` core, which we use as the anchor."""
     from huggingface_hub import HfApi
+
     api = HfApi()
 
     try:
@@ -132,7 +133,8 @@ def _resolve_ambiguous(repo_dir: str, target_fn: str) -> str:
     if not candidates:
         raise FileNotFoundError(
             f"No reference files found at HF://{repo_dir}/. Check that the "
-            f"reproduced run's identity (dataset, design, N) is correct.")
+            f"reproduced run's identity (dataset, design, N) is correct."
+        )
 
     # Exact match first (rare - local timestamps almost never line up with HF)
     target_path = f"{repo_dir}/{target_fn}"
@@ -142,7 +144,8 @@ def _resolve_ambiguous(repo_dir: str, target_fn: str) -> str:
     target_id = _extract_identity(target_fn)
     if target_id is None:
         raise FileNotFoundError(
-            f"Could not extract m{{N}}_token{{D}} from {target_fn} for matching")
+            f"Could not extract m{{N}}_token{{D}} from {target_fn} for matching"
+        )
 
     target_ext = os.path.splitext(target_fn)[1]
 
@@ -178,7 +181,8 @@ def _resolve_ambiguous(repo_dir: str, target_fn: str) -> str:
         f"No HF reference matches m{target_id['m']}_token{target_id['token']} "
         f"(run_type={target_id['run_type'] or '?'}) in {repo_dir}/.\n"
         f"  Available: {[os.path.basename(c) for c in candidates[:5]]}"
-        + (f" ... ({len(candidates)} total)" if len(candidates) > 5 else ""))
+        + (f" ... ({len(candidates)} total)" if len(candidates) > 5 else "")
+    )
 
 
 def _filename_to_repo_dir(filename: str) -> str:
@@ -197,13 +201,10 @@ def _filename_to_repo_dir(filename: str) -> str:
 
     is_metrics = fn.endswith(".npz")
     prefix = "training_metrics/" if is_metrics else ""
-    return (
-        f"{prefix}{identity['dataset']}/{identity['design']}/N_{identity['m']}"
-    )
+    return f"{prefix}{identity['dataset']}/{identity['design']}/N_{identity['m']}"
 
 
-def fetch_reference(reproduced_path: str,
-                     cache_dir: str = DEFAULT_CACHE_DIR) -> str:
+def fetch_reference(reproduced_path: str, cache_dir: str = DEFAULT_CACHE_DIR) -> str:
     """Download the matching HF reference for a reproduced run.
 
     Returns the local path. Caches under `cache_dir` so re-runs are instant.
@@ -219,7 +220,7 @@ def fetch_reference(reproduced_path: str,
     # Strip local-only prefixes (REPRO_, SMOKE_TEST_) before stem matching  -
     # the matcher uses identity tokens not stems, but cleaning the target
     # filename gives nicer error messages on miss.
-    clean_fn = re.sub(r'^(REPRO_TEST_|REPRO_|SMOKE_TEST_)', '', fn)
+    clean_fn = re.sub(r"^(REPRO_TEST_|REPRO_|SMOKE_TEST_)", "", fn)
     repo_path = _resolve_ambiguous(repo_dir, clean_fn)
 
     print(f"  Downloading from HF: {repo_path}")
@@ -236,6 +237,7 @@ def fetch_reference(reproduced_path: str,
 # ============================================================
 # Loaders
 # ============================================================
+
 
 def load_checkpoint(path: str) -> dict:
     """Load a .pt checkpoint."""
@@ -254,6 +256,7 @@ def load_metrics(path: str) -> dict:
 # ============================================================
 # Comparators
 # ============================================================
+
 
 def compare_scalars(name: str, orig, repro, atol: float = 1e-6) -> bool:
     """Compare two scalar values."""
@@ -277,8 +280,7 @@ def compare_scalars(name: str, orig, repro, atol: float = 1e-6) -> bool:
     return match
 
 
-def compare_arrays(name: str, orig: np.ndarray, repro: np.ndarray,
-                   atol: float = 1e-6) -> bool:
+def compare_arrays(name: str, orig: np.ndarray, repro: np.ndarray, atol: float = 1e-6) -> bool:
     """Compare two numpy arrays element-wise."""
     if len(orig) != len(repro):
         print(f"  {name}: LENGTH MISMATCH - orig={len(orig)}, repro={len(repro)} ✗")
@@ -298,15 +300,17 @@ def compare_arrays(name: str, orig: np.ndarray, repro: np.ndarray,
         worst_idx = np.argsort(diffs)[-3:][::-1]
         print(f"  {name}: {len(orig)} values, max_diff={max_diff:.2e}, mean_diff={mean_diff:.2e} ✗")
         for idx in worst_idx:
-            print(f"    [{idx}] orig={orig[idx]:.6f}, repro={repro[idx]:.6f}, diff={diffs[idx]:.2e}")
+            print(
+                f"    [{idx}] orig={orig[idx]:.6f}, repro={repro[idx]:.6f}, diff={diffs[idx]:.2e}"
+            )
     return match
 
 
 def compare_checkpoints(orig_path: str, repro_path: str, atol: float = 1e-6):
     """Compare two .pt checkpoints."""
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("CHECKPOINT COMPARISON")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     orig = load_checkpoint(orig_path)
     repro = load_checkpoint(repro_path)
@@ -316,13 +320,30 @@ def compare_checkpoints(orig_path: str, repro_path: str, atol: float = 1e-6):
     # Compare metadata
     print("\n--- Metadata ---")
     results.append(compare_scalars("epoch", orig.get("epoch"), repro.get("epoch"), atol=0))
-    results.append(compare_scalars("total_tokens", orig.get("total_tokens"), repro.get("total_tokens"), atol=0))
-    results.append(compare_scalars("train_loss", orig.get("train_loss"), repro.get("train_loss"), atol=atol))
-    results.append(compare_scalars("val_loss", orig.get("val_loss"), repro.get("val_loss"), atol=atol))
-    results.append(compare_scalars("cumulative_time", orig.get("cumulative_time"), repro.get("cumulative_time"), atol=float("inf")))
+    results.append(
+        compare_scalars("total_tokens", orig.get("total_tokens"), repro.get("total_tokens"), atol=0)
+    )
+    results.append(
+        compare_scalars("train_loss", orig.get("train_loss"), repro.get("train_loss"), atol=atol)
+    )
+    results.append(
+        compare_scalars("val_loss", orig.get("val_loss"), repro.get("val_loss"), atol=atol)
+    )
+    results.append(
+        compare_scalars(
+            "cumulative_time",
+            orig.get("cumulative_time"),
+            repro.get("cumulative_time"),
+            atol=float("inf"),
+        )
+    )
     results.append(compare_scalars("seed", orig.get("seed"), repro.get("seed"), atol=0))
-    results.append(compare_scalars("weight_decay", orig.get("weight_decay"), repro.get("weight_decay"), atol=0))
-    results.append(compare_scalars("batch_size", orig.get("batch_size"), repro.get("batch_size"), atol=0))
+    results.append(
+        compare_scalars("weight_decay", orig.get("weight_decay"), repro.get("weight_decay"), atol=0)
+    )
+    results.append(
+        compare_scalars("batch_size", orig.get("batch_size"), repro.get("batch_size"), atol=0)
+    )
 
     # Compare model config
     orig_cfg = orig.get("model_config", {})
@@ -332,21 +353,23 @@ def compare_checkpoints(orig_path: str, repro_path: str, atol: float = 1e-6):
         for key in sorted(set(list(orig_cfg.keys()) + list(repro_cfg.keys()))):
             if key in ("total_params",):
                 continue
-            results.append(compare_scalars(
-                f"config.{key}",
-                orig_cfg.get(key),
-                repro_cfg.get(key),
-                atol=0,
-            ))
+            results.append(
+                compare_scalars(
+                    f"config.{key}",
+                    orig_cfg.get(key),
+                    repro_cfg.get(key),
+                    atol=0,
+                )
+            )
 
     print_verdict(results)
 
 
 def compare_metrics(orig_path: str, repro_path: str, atol: float = 1e-5):
     """Compare two .npz metrics files."""
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("METRICS COMPARISON")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     orig = load_metrics(orig_path)
     repro = load_metrics(repro_path)
@@ -358,8 +381,8 @@ def compare_metrics(orig_path: str, repro_path: str, atol: float = 1e-5):
         ("epoch_train_losses", atol),
         ("val_losses", atol),
         ("batch_losses", atol),
-        ("cumulative_tokens", 0),     # Must be exact
-        ("learning_rates", 1e-10),    # Should be exact (deterministic schedule)
+        ("cumulative_tokens", 0),  # Must be exact
+        ("learning_rates", 1e-10),  # Should be exact (deterministic schedule)
     ]
 
     # Informational arrays (will differ due to hardware/timing)
@@ -383,9 +406,9 @@ def compare_metrics(orig_path: str, repro_path: str, atol: float = 1e-5):
 
 def compare_weights(orig_path: str, repro_path: str, atol: float = 1e-6):
     """Compare model weights between two checkpoints."""
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("WEIGHT COMPARISON")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
     orig = load_checkpoint(orig_path)
     repro = load_checkpoint(repro_path)
@@ -461,18 +484,19 @@ def print_verdict(results):
     total = len(results)
     all_pass = all(results)
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     if all_pass:
         print(f"VERDICT: PASS - {passed}/{total} checks passed ✓")
     else:
         failed = total - passed
         print(f"VERDICT: FAIL - {failed}/{total} checks failed ✗")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
 
 
 # ============================================================
 # Glob expansion (so users can write `--reproduced path/REPRO_*.pt`)
 # ============================================================
+
 
 def _expand_glob(path: str, label: str) -> str:
     """Expand glob patterns and pick the most recent match if multiple."""
@@ -482,14 +506,14 @@ def _expand_glob(path: str, label: str) -> str:
     if not matches:
         raise FileNotFoundError(f"No files matched {label}: {path}")
     if len(matches) > 1:
-        print(f"  WARNING: {label} matched {len(matches)} files; "
-              f"using most recent: {matches[-1]}")
+        print(f"  WARNING: {label} matched {len(matches)} files; using most recent: {matches[-1]}")
     return matches[-1]
 
 
 # ============================================================
 # Main
 # ============================================================
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -509,29 +533,33 @@ Manually pair two local files:
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
     def _add_common(p):
-        p.add_argument("--reproduced", required=True,
-                       help="Path to reproduced .pt or .npz (glob OK)")
+        p.add_argument(
+            "--reproduced", required=True, help="Path to reproduced .pt or .npz (glob OK)"
+        )
         ref_group = p.add_mutually_exclusive_group(required=True)
-        ref_group.add_argument("--original", default=None,
-                               help="Path to a local reference file")
-        ref_group.add_argument("--from-hf", action="store_true",
-                               help=f"Auto-fetch matching reference from "
-                                    f"{HF_REPO_ID}")
-        p.add_argument("--cache-dir", default=DEFAULT_CACHE_DIR,
-                       help=f"Where HF references are cached "
-                            f"(default: {DEFAULT_CACHE_DIR})")
+        ref_group.add_argument("--original", default=None, help="Path to a local reference file")
+        ref_group.add_argument(
+            "--from-hf",
+            action="store_true",
+            help=f"Auto-fetch matching reference from {HF_REPO_ID}",
+        )
+        p.add_argument(
+            "--cache-dir",
+            default=DEFAULT_CACHE_DIR,
+            help=f"Where HF references are cached (default: {DEFAULT_CACHE_DIR})",
+        )
 
-    cmp_parser = subparsers.add_parser(
-        "compare", help="Compare checkpoints or metrics")
+    cmp_parser = subparsers.add_parser("compare", help="Compare checkpoints or metrics")
     _add_common(cmp_parser)
-    cmp_parser.add_argument("--atol", type=float, default=1e-5,
-                            help="Absolute tolerance (default: 1e-5)")
+    cmp_parser.add_argument(
+        "--atol", type=float, default=1e-5, help="Absolute tolerance (default: 1e-5)"
+    )
 
-    wt_parser = subparsers.add_parser(
-        "weights", help="Compare model weights between checkpoints")
+    wt_parser = subparsers.add_parser("weights", help="Compare model weights between checkpoints")
     _add_common(wt_parser)
-    wt_parser.add_argument("--atol", type=float, default=1e-6,
-                           help="Absolute tolerance (default: 1e-6)")
+    wt_parser.add_argument(
+        "--atol", type=float, default=1e-6, help="Absolute tolerance (default: 1e-6)"
+    )
 
     args = parser.parse_args()
 
@@ -552,13 +580,18 @@ Manually pair two local files:
         elif orig_path.endswith(".pt") and repro_path.endswith(".pt"):
             compare_checkpoints(orig_path, repro_path, atol=args.atol)
         else:
-            print("Both files must be the same type (.pt or .npz). "
-                  f"Got orig={orig_path}, repro={repro_path}", file=sys.stderr)
+            print(
+                "Both files must be the same type (.pt or .npz). "
+                f"Got orig={orig_path}, repro={repro_path}",
+                file=sys.stderr,
+            )
             sys.exit(1)
     elif args.mode == "weights":
         if not (orig_path.endswith(".pt") and repro_path.endswith(".pt")):
-            print(f"weights mode requires .pt files. "
-                  f"Got orig={orig_path}, repro={repro_path}", file=sys.stderr)
+            print(
+                f"weights mode requires .pt files. Got orig={orig_path}, repro={repro_path}",
+                file=sys.stderr,
+            )
             sys.exit(1)
         compare_weights(orig_path, repro_path, atol=args.atol)
 

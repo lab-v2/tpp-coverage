@@ -50,8 +50,10 @@ def test_c4_release_is_the_design_minus_three_runs():
 
 
 def test_bigtpp_matches_release():
-    assert _generated("--dataset", "wikipedia", "--design", "bigtpp") == \
-        _released_names()["wikipedia_bigtpp"]
+    assert (
+        _generated("--dataset", "wikipedia", "--design", "bigtpp")
+        == _released_names()["wikipedia_bigtpp"]
+    )
 
 
 def test_bf16_release_is_a_subset_of_the_design():

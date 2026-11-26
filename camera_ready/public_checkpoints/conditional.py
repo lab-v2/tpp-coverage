@@ -22,6 +22,7 @@ import pandas as pd
 from scipy.stats import binomtest
 
 from paths import WORK
+
 N_BOOT = 2000
 RNG_SEED = 20260801
 BETA_PRIMARY = 0.28
@@ -53,6 +54,7 @@ def coarse_stratum(n_gm: float) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 # Estimators
 # ════════════════════════════════════════════════════════════════════════════
+
 
 @dataclass(frozen=True)
 class Estimate:
@@ -87,8 +89,9 @@ def _design_matrix(df: pd.DataFrame, x_cols: Sequence[str], fe: str | None) -> n
     return np.column_stack(cols)
 
 
-def _ols(df: pd.DataFrame, y: str, x_cols: Sequence[str], fe: str | None,
-         weight: str | None = None) -> np.ndarray:
+def _ols(
+    df: pd.DataFrame, y: str, x_cols: Sequence[str], fe: str | None, weight: str | None = None
+) -> np.ndarray:
     x = _design_matrix(df, x_cols, fe)
     y_v = df[y].to_numpy(float)
     if weight is not None:
@@ -111,9 +114,15 @@ def _cluster_draws(df: pd.DataFrame, rng: np.random.Generator, n_boot: int):
         yield df.iloc[np.concatenate([clusters[k] for k in picked])], len(clusters)
 
 
-def regress(df: pd.DataFrame, y: str, x_cols: Sequence[str], fe: str | None,
-            rng: np.random.Generator, n_boot: int = N_BOOT,
-            suite_weighted: bool = False) -> dict[str, Estimate]:
+def regress(
+    df: pd.DataFrame,
+    y: str,
+    x_cols: Sequence[str],
+    fe: str | None,
+    rng: np.random.Generator,
+    n_boot: int = N_BOOT,
+    suite_weighted: bool = False,
+) -> dict[str, Estimate]:
     """OLS of y on x_cols with fixed effect `fe`; CIs from the E2 cluster bootstrap.
 
     `suite_weighted` is the A4.4 companion: observations are weighted so that every SUITE
@@ -146,12 +155,16 @@ def regress(df: pd.DataFrame, y: str, x_cols: Sequence[str], fe: str | None,
         except np.linalg.LinAlgError:
             continue
     if not draws:
-        return {c: Estimate(float(point[i]), np.nan, np.nan, len(df), n_cl)
-                for i, c in enumerate(x_cols)}
+        return {
+            c: Estimate(float(point[i]), np.nan, np.nan, len(df), n_cl)
+            for i, c in enumerate(x_cols)
+        }
     arr = np.asarray(draws)
     lo, hi = np.percentile(arr, [2.5, 97.5], axis=0)
-    return {c: Estimate(float(point[i]), float(lo[i]), float(hi[i]), len(df), n_cl)
-            for i, c in enumerate(x_cols)}
+    return {
+        c: Estimate(float(point[i]), float(lo[i]), float(hi[i]), len(df), n_cl)
+        for i, c in enumerate(x_cols)
+    }
 
 
 def boot_stat(x: np.ndarray, rng: np.random.Generator, stat=np.median) -> Estimate:
@@ -163,7 +176,9 @@ def boot_stat(x: np.ndarray, rng: np.random.Generator, stat=np.median) -> Estima
     return Estimate(float(stat(x)), *np.percentile(draws, [2.5, 97.5]), len(x), 0)
 
 
-def boot_stat_clustered(df: pd.DataFrame, col: str, rng: np.random.Generator, stat=np.median) -> Estimate:
+def boot_stat_clustered(
+    df: pd.DataFrame, col: str, rng: np.random.Generator, stat=np.median
+) -> Estimate:
     """Same statistic with the window-cluster bootstrap, for subgroups that may rest
     on very few windows. Deliberately wider than boot_stat; both are reported."""
     df = df[np.isfinite(df[col])]
@@ -178,6 +193,7 @@ def boot_stat_clustered(df: pd.DataFrame, col: str, rng: np.random.Generator, st
 # ════════════════════════════════════════════════════════════════════════════
 # Data
 # ════════════════════════════════════════════════════════════════════════════
+
 
 @dataclass
 class Arm:
@@ -194,10 +210,14 @@ ARMS = (
 )
 
 
-def load(n_rays: int = 1, results: str = "results.csv", margins: str = "margins.csv") -> pd.DataFrame:
+def load(
+    n_rays: int = 1, results: str = "results.csv", margins: str = "margins.csv"
+) -> pd.DataFrame:
     res = pd.read_csv(WORK / results)
     mar = pd.read_csv(WORK / margins)
-    df = res.merge(mar, on=["cell", "window", "ray_bin", "n_rays", "seed"], how="left", validate="many_to_one")
+    df = res.merge(
+        mar, on=["cell", "window", "ray_bin", "n_rays", "seed"], how="left", validate="many_to_one"
+    )
     assert df[f"CO_m_beta{BETA_PRIMARY}"].notna().all(), "margins did not join onto every row"
     df = df[df["n_rays"] == n_rays].copy()
     df["stratum"] = df["N_gm"].map(coarse_stratum)
@@ -237,39 +257,64 @@ def regimes(df: pd.DataFrame, kappa: float, tag: str) -> pd.Series:
 # A3.1  primary
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def primary(df: pd.DataFrame) -> pd.DataFrame:
     rows: list[dict] = []
 
     def record(kind: str, spec: str, arm: str, reg: str, est: Estimate, note: str = "") -> None:
-        rows.append({
-            "kind": kind, "spec": spec, "arm": arm, "regressor": reg,
-            "slope": est.value, "ci_lo": est.lo, "ci_hi": est.hi,
-            "n_pairs": est.n_obs, "n_windows": est.n_clusters,
-            "excludes_zero": est.excludes_zero, "note": note,
-        })
+        rows.append(
+            {
+                "kind": kind,
+                "spec": spec,
+                "arm": arm,
+                "regressor": reg,
+                "slope": est.value,
+                "ci_lo": est.lo,
+                "ci_hi": est.hi,
+                "n_pairs": est.n_obs,
+                "n_windows": est.n_clusters,
+                "excludes_zero": est.excludes_zero,
+                "note": note,
+            }
+        )
 
     print("=" * 104)
     print("A3.1  PRIMARY - continuous: off-ray gap regressed on the identifiability margin gap")
     print("      gap = log10(RMSE_offray(CO)/RMSE_offray(NC));  Delta = m_NC - m_CO, in decades")
-    print("      theory predicts slope > 0.  Delta is exactly kappa-invariant (Amendment 3, fact ii)")
+    print(
+        "      theory predicts slope > 0.  Delta is exactly kappa-invariant (Amendment 3, fact ii)"
+    )
     print("=" * 104)
     for arm in ARMS:
-        est = regress(df, arm.gap_col, [f"Delta_{arm.tag}"], "cell",
-                      rng_for("primary", arm.tag))[f"Delta_{arm.tag}"]
+        est = regress(df, arm.gap_col, [f"Delta_{arm.tag}"], "cell", rng_for("primary", arm.tag))[
+            f"Delta_{arm.tag}"
+        ]
         kind = "PRIMARY" if arm.tag == "NC" else "pre-registered companion"
         record(kind, "cell FE", arm.tag, "Delta", est)
-        print(f"  {arm.label:38s} beta_delta = {est}   pairs={est.n_obs} windows={est.n_clusters}"
-              f"{'   CI EXCLUDES ZERO' if est.excludes_zero else '   CI contains zero'}")
+        print(
+            f"  {arm.label:38s} beta_delta = {est}   pairs={est.n_obs} windows={est.n_clusters}"
+            f"{'   CI EXCLUDES ZERO' if est.excludes_zero else '   CI contains zero'}"
+        )
 
     print("\n  A4.4 suite-weighted pooled slope (each SUITE weighted equally; disclosed companion)")
     for arm in ARMS:
-        for spec, fe in (("no fixed effect, suite-weighted", None),
-                         ("cell FE, suite-weighted", "cell")):
-            est = regress(df, arm.gap_col, [f"Delta_{arm.tag}"], fe,
-                          rng_for("suitew", arm.tag, spec), suite_weighted=True)[f"Delta_{arm.tag}"]
+        for spec, fe in (
+            ("no fixed effect, suite-weighted", None),
+            ("cell FE, suite-weighted", "cell"),
+        ):
+            est = regress(
+                df,
+                arm.gap_col,
+                [f"Delta_{arm.tag}"],
+                fe,
+                rng_for("suitew", arm.tag, spec),
+                suite_weighted=True,
+            )[f"Delta_{arm.tag}"]
             record("disclosed companion (A4.4)", spec, arm.tag, "Delta", est)
-            print(f"    {arm.tag:4s} {spec:32s} {est}  pairs={est.n_obs}"
-                  f"{'  excludes zero' if est.excludes_zero else ''}")
+            print(
+                f"    {arm.tag:4s} {spec:32s} {est}  pairs={est.n_obs}"
+                f"{'  excludes zero' if est.excludes_zero else ''}"
+            )
 
     print("\n  pre-registered companions to the primary (A3.1)")
     for arm in ARMS:
@@ -282,47 +327,73 @@ def primary(df: pd.DataFrame) -> pd.DataFrame:
             record("pre-registered companion", spec, arm.tag, "Delta", est)
             print(f"    {arm.tag:4s} {spec:24s} {est}  pairs={est.n_obs}")
         est = regress(df, arm.gap_col, ["m_CO"], "cell", rng_for("mco", arm.tag))["m_CO"]
-        record("pre-registered companion", "cell FE, regressor = m_CO (predicted < 0)",
-               arm.tag, "m_CO", est)
+        record(
+            "pre-registered companion",
+            "cell FE, regressor = m_CO (predicted < 0)",
+            arm.tag,
+            "m_CO",
+            est,
+        )
         print(f"    {arm.tag:4s} {'secondary regressor m_CO':24s} {est}  (predicted negative)")
 
     print("\n  per law and per cell (pre-registered companion)")
     for arm in ARMS:
         for law, sub in df.groupby("law"):
-            est = regress(sub, arm.gap_col, [f"Delta_{arm.tag}"], "cell",
-                          rng_for("law", arm.tag, law))[f"Delta_{arm.tag}"]
+            est = regress(
+                sub, arm.gap_col, [f"Delta_{arm.tag}"], "cell", rng_for("law", arm.tag, law)
+            )[f"Delta_{arm.tag}"]
             record("pre-registered companion", f"law = {law}", arm.tag, "Delta", est)
             print(f"    {arm.tag:4s} law={law:12s} {est}  pairs={est.n_obs}")
         for suite, sub in df.groupby(suite_of(df["cell"])):
             fe = "cell" if sub["cell"].nunique() > 1 else None
-            est = regress(sub, arm.gap_col, [f"Delta_{arm.tag}"], fe,
-                          rng_for("suite", arm.tag, suite))[f"Delta_{arm.tag}"]
-            record("A4.5 per suite", f"suite = {suite}", arm.tag, "Delta", est,
-                   f"{sub['cell'].nunique()} cells")
+            est = regress(
+                sub, arm.gap_col, [f"Delta_{arm.tag}"], fe, rng_for("suite", arm.tag, suite)
+            )[f"Delta_{arm.tag}"]
+            record(
+                "A4.5 per suite",
+                f"suite = {suite}",
+                arm.tag,
+                "Delta",
+                est,
+                f"{sub['cell'].nunique()} cells",
+            )
             if arm.tag == "NC":
-                print(f"    {arm.tag:4s} SUITE {suite:28s} {est}  pairs={est.n_obs} "
-                      f"windows={est.n_clusters} cells={sub['cell'].nunique()}"
-                      f"{'  excludes zero' if est.excludes_zero else ''}")
+                print(
+                    f"    {arm.tag:4s} SUITE {suite:28s} {est}  pairs={est.n_obs} "
+                    f"windows={est.n_clusters} cells={sub['cell'].nunique()}"
+                    f"{'  excludes zero' if est.excludes_zero else ''}"
+                )
         for cell, sub in df.groupby("cell"):
-            est = regress(sub, arm.gap_col, [f"Delta_{arm.tag}"], None,
-                          rng_for("cell", arm.tag, cell))[f"Delta_{arm.tag}"]
-            record("pre-registered companion", f"cell = {cell}", arm.tag, "Delta", est,
-                   "single window" if est.n_clusters < 2 else "")
+            est = regress(
+                sub, arm.gap_col, [f"Delta_{arm.tag}"], None, rng_for("cell", arm.tag, cell)
+            )[f"Delta_{arm.tag}"]
+            record(
+                "pre-registered companion",
+                f"cell = {cell}",
+                arm.tag,
+                "Delta",
+                est,
+                "single window" if est.n_clusters < 2 else "",
+            )
             if arm.tag == "NC":
-                print(f"    {arm.tag:4s} {cell:44s} {est}  pairs={est.n_obs} "
-                      f"windows={est.n_clusters}")
+                print(
+                    f"    {arm.tag:4s} {cell:44s} {est}  pairs={est.n_obs} windows={est.n_clusters}"
+                )
 
     print("\n  C2 beta grid applied to the primary (pre-registered companion)")
     base = df
     for beta in BETA_GRID:
         d = add_margins(base, beta)
         for arm in ARMS:
-            est = regress(d, arm.gap_col, [f"Delta_{arm.tag}"], "cell",
-                          rng_for("beta", arm.tag, beta))[f"Delta_{arm.tag}"]
+            est = regress(
+                d, arm.gap_col, [f"Delta_{arm.tag}"], "cell", rng_for("beta", arm.tag, beta)
+            )[f"Delta_{arm.tag}"]
             record("pre-registered companion", f"beta_eff = {beta}", arm.tag, "Delta", est)
             if arm.tag == "NC":
-                print(f"    beta_eff={beta:<5} {est}  pairs={est.n_obs}"
-                      f"{'  excludes zero' if est.excludes_zero else ''}")
+                print(
+                    f"    beta_eff={beta:<5} {est}  pairs={est.n_obs}"
+                    f"{'  excludes zero' if est.excludes_zero else ''}"
+                )
     return pd.DataFrame(rows)
 
 
@@ -354,17 +425,28 @@ def dose_response(df: pd.DataFrame, stratum: str = "all") -> pd.DataFrame:
                 wins = int((g > 0).sum())
                 win = boot_stat(np.asarray(g > 0, float), rng, stat=np.mean)
                 p = binomtest(wins, len(g)).pvalue if len(g) else np.nan
-                rows.append({
-                    "stratum": stratum, "arm": arm.tag, "kappa_target": kappa,
-                    "regime_cell": name, "role": CELL_ROLE[name],
-                    "n_pairs": len(g), "n_windows": medc.n_clusters,
-                    "gap_median": med.value, "ci_lo": med.lo, "ci_hi": med.hi,
-                    "ci_lo_cluster": medc.lo, "ci_hi_cluster": medc.hi,
-                    "nc_win_rate": win.value, "win_lo": win.lo, "win_hi": win.hi,
-                    "sign_test_p": p,
-                    "excludes_zero_pairboot": med.excludes_zero,
-                    "excludes_zero_clusterboot": medc.excludes_zero,
-                })
+                rows.append(
+                    {
+                        "stratum": stratum,
+                        "arm": arm.tag,
+                        "kappa_target": kappa,
+                        "regime_cell": name,
+                        "role": CELL_ROLE[name],
+                        "n_pairs": len(g),
+                        "n_windows": medc.n_clusters,
+                        "gap_median": med.value,
+                        "ci_lo": med.lo,
+                        "ci_hi": med.hi,
+                        "ci_lo_cluster": medc.lo,
+                        "ci_hi_cluster": medc.hi,
+                        "nc_win_rate": win.value,
+                        "win_lo": win.lo,
+                        "win_hi": win.hi,
+                        "sign_test_p": p,
+                        "excludes_zero_pairboot": med.excludes_zero,
+                        "excludes_zero_clusterboot": medc.excludes_zero,
+                    }
+                )
     return pd.DataFrame(rows)
 
 
@@ -372,21 +454,28 @@ def print_dose(dr: pd.DataFrame, title: str) -> None:
     print("\n" + "=" * 118)
     print(title)
     print("=" * 118)
-    print(f"{'arm':5s} {'kappa':>7s} {'regime cell':11s} {'pairs':>6s} {'wnds':>6s} "
-          f"{'gap':>8s} {'95% CI (pairs)':>19s} {'95% CI (windows)':>19s} {'NCwin%':>7s} {'signp':>8s} role")
+    print(
+        f"{'arm':5s} {'kappa':>7s} {'regime cell':11s} {'pairs':>6s} {'wnds':>6s} "
+        f"{'gap':>8s} {'95% CI (pairs)':>19s} {'95% CI (windows)':>19s} {'NCwin%':>7s} {'signp':>8s} role"
+    )
     for r in dr.itertuples():
         if r.n_pairs == 0:
-            print(f"{r.arm:5s} {r.kappa_target:7.0e} {r.regime_cell:11s} {0:6d}      -        -"
-                  f"{'':>21s}{'':>20s}       -        -  {r.role}")
+            print(
+                f"{r.arm:5s} {r.kappa_target:7.0e} {r.regime_cell:11s} {0:6d}      -        -"
+                f"{'':>21s}{'':>20s}       -        -  {r.role}"
+            )
             continue
-        print(f"{r.arm:5s} {r.kappa_target:7.0e} {r.regime_cell:11s} {r.n_pairs:6d} {r.n_windows:6d} "
-              f"{r.gap_median:8.3f} [{r.ci_lo:8.3f},{r.ci_hi:8.3f}] [{r.ci_lo_cluster:8.3f},{r.ci_hi_cluster:8.3f}] "
-              f"{100 * r.nc_win_rate:6.1f}% {r.sign_test_p:8.1e}  {r.role}")
+        print(
+            f"{r.arm:5s} {r.kappa_target:7.0e} {r.regime_cell:11s} {r.n_pairs:6d} {r.n_windows:6d} "
+            f"{r.gap_median:8.3f} [{r.ci_lo:8.3f},{r.ci_hi:8.3f}] [{r.ci_lo_cluster:8.3f},{r.ci_hi_cluster:8.3f}] "
+            f"{100 * r.nc_win_rate:6.1f}% {r.sign_test_p:8.1e}  {r.role}"
+        )
 
 
 # ════════════════════════════════════════════════════════════════════════════
 # A3.4  scale
 # ════════════════════════════════════════════════════════════════════════════
+
 
 def scale(df: pd.DataFrame) -> pd.DataFrame:
     rows: list[dict] = []
@@ -400,26 +489,48 @@ def scale(df: pd.DataFrame) -> pd.DataFrame:
     for arm in ARMS:
         d = f"Delta_{arm.tag}"
         df["_ix"] = df[d] * df["logN_c"]
-        est = regress(df, arm.gap_col, [d, "_ix", "logN_c"], "cell",
-                      rng_for("scale", arm.tag))
+        est = regress(df, arm.gap_col, [d, "_ix", "logN_c"], "cell", rng_for("scale", arm.tag))
         for name, key in (("b0 Delta", d), ("b1 Delta x logN", "_ix"), ("b2 logN", "logN_c")):
             e = est[key]
-            rows.append({"kind": "interaction", "arm": arm.tag, "stratum": "all", "term": name,
-                         "value": e.value, "ci_lo": e.lo, "ci_hi": e.hi,
-                         "n_pairs": e.n_obs, "n_windows": e.n_clusters,
-                         "excludes_zero": e.excludes_zero})
-            print(f"  {arm.tag:4s} {name:18s} {e}"
-                  f"{'   CI EXCLUDES ZERO' if e.excludes_zero else ''}")
+            rows.append(
+                {
+                    "kind": "interaction",
+                    "arm": arm.tag,
+                    "stratum": "all",
+                    "term": name,
+                    "value": e.value,
+                    "ci_lo": e.lo,
+                    "ci_hi": e.hi,
+                    "n_pairs": e.n_obs,
+                    "n_windows": e.n_clusters,
+                    "excludes_zero": e.excludes_zero,
+                }
+            )
+            print(
+                f"  {arm.tag:4s} {name:18s} {e}{'   CI EXCLUDES ZERO' if e.excludes_zero else ''}"
+            )
         # CRITERIA E3: translate the interval on b1 into the per-decade change in the
         # conditional effect that the data cannot rule out, as a percentage of b0.
         b0, b1 = est[d].value, est["_ix"]
-        print(f"  {arm.tag:4s} {'E3 translation':18s} per decade of N the data cannot rule out "
-              f"anything from {100 * b1.lo / b0:+.0f}% to {100 * b1.hi / b0:+.0f}% of the "
-              f"conditional effect (b0 = {b0:+.4f})")
-        rows.append({"kind": "E3", "arm": arm.tag, "stratum": "all",
-                     "term": "b1 as pct of b0 per decade", "value": 100 * b1.value / b0,
-                     "ci_lo": 100 * b1.lo / b0, "ci_hi": 100 * b1.hi / b0,
-                     "n_pairs": b1.n_obs, "n_windows": b1.n_clusters, "excludes_zero": b1.excludes_zero})
+        print(
+            f"  {arm.tag:4s} {'E3 translation':18s} per decade of N the data cannot rule out "
+            f"anything from {100 * b1.lo / b0:+.0f}% to {100 * b1.hi / b0:+.0f}% of the "
+            f"conditional effect (b0 = {b0:+.4f})"
+        )
+        rows.append(
+            {
+                "kind": "E3",
+                "arm": arm.tag,
+                "stratum": "all",
+                "term": "b1 as pct of b0 per decade",
+                "value": 100 * b1.value / b0,
+                "ci_lo": 100 * b1.lo / b0,
+                "ci_hi": 100 * b1.hi / b0,
+                "n_pairs": b1.n_obs,
+                "n_windows": b1.n_clusters,
+                "excludes_zero": b1.excludes_zero,
+            }
+        )
 
     print("\n  beta_delta estimated separately inside each coarse stratum (W2)")
     for arm in ARMS:
@@ -427,18 +538,33 @@ def scale(df: pd.DataFrame) -> pd.DataFrame:
             sub = df[df["stratum"] == stratum]
             if sub.empty:
                 continue
-            e = regress(sub, arm.gap_col, [f"Delta_{arm.tag}"], "cell",
-                        rng_for("stratum", arm.tag, stratum))[f"Delta_{arm.tag}"]
-            rows.append({"kind": "stratum", "arm": arm.tag, "stratum": stratum, "term": "beta_delta",
-                         "value": e.value, "ci_lo": e.lo, "ci_hi": e.hi,
-                         "n_pairs": e.n_obs, "n_windows": e.n_clusters,
-                         "excludes_zero": e.excludes_zero})
-            print(f"    {arm.tag:4s} {stratum:9s} beta_delta = {e}  pairs={e.n_obs} windows={e.n_clusters}")
+            e = regress(
+                sub, arm.gap_col, [f"Delta_{arm.tag}"], "cell", rng_for("stratum", arm.tag, stratum)
+            )[f"Delta_{arm.tag}"]
+            rows.append(
+                {
+                    "kind": "stratum",
+                    "arm": arm.tag,
+                    "stratum": stratum,
+                    "term": "beta_delta",
+                    "value": e.value,
+                    "ci_lo": e.lo,
+                    "ci_hi": e.hi,
+                    "n_pairs": e.n_obs,
+                    "n_windows": e.n_clusters,
+                    "excludes_zero": e.excludes_zero,
+                }
+            )
+            print(
+                f"    {arm.tag:4s} {stratum:9s} beta_delta = {e}  pairs={e.n_obs} windows={e.n_clusters}"
+            )
     return pd.DataFrame(rows)
 
 
 def main(argv: list[str] | None = None) -> None:
-    ap = argparse.ArgumentParser(description="5-seed conditional analysis (CRITERIA Amendment 3): primary, dose-response, scale.")
+    ap = argparse.ArgumentParser(
+        description="5-seed conditional analysis (CRITERIA Amendment 3): primary, dose-response, scale."
+    )
     ap.add_argument("--results", default="results.csv")
     ap.add_argument("--margins", default="margins.csv")
     ap.add_argument("--prefix", default="conditional")
@@ -448,12 +574,18 @@ def main(argv: list[str] | None = None) -> None:
     raw = load(n_rays=1, results=args.results, margins=args.margins)
     df = add_margins(raw, BETA_PRIMARY)
 
-    print(f"single-ray design pairs = {len(df)}, windows = {df.groupby(CLUSTER).ngroups}, "
-          f"cells = {df['cell'].nunique()}, suites = {suite_of(df['cell']).nunique()}")
-    print(f"degenerate CO designs (V_K = 0, winsorised per A3.1) = {int(df['m_CO_degenerate'].sum())}")
-    print(f"m_CO   median {df['m_CO'].median():+.3f}   m_NC median {df['m_NC'].median():+.3f}   "
-          f"Delta_NC median {df['Delta_NC'].median():+.3f}  "
-          f"[{df['Delta_NC'].min():+.3f}, {df['Delta_NC'].max():+.3f}]\n")
+    print(
+        f"single-ray design pairs = {len(df)}, windows = {df.groupby(CLUSTER).ngroups}, "
+        f"cells = {df['cell'].nunique()}, suites = {suite_of(df['cell']).nunique()}"
+    )
+    print(
+        f"degenerate CO designs (V_K = 0, winsorised per A3.1) = {int(df['m_CO_degenerate'].sum())}"
+    )
+    print(
+        f"m_CO   median {df['m_CO'].median():+.3f}   m_NC median {df['m_NC'].median():+.3f}   "
+        f"Delta_NC median {df['Delta_NC'].median():+.3f}  "
+        f"[{df['Delta_NC'].min():+.3f}, {df['Delta_NC'].max():+.3f}]\n"
+    )
 
     primary(df).to_csv(WORK / f"{pre}_primary.csv", index=False)
 
@@ -476,8 +608,9 @@ def main(argv: list[str] | None = None) -> None:
     print("=" * 104)
     two = add_margins(load(n_rays=2, results=args.results, margins=args.margins), BETA_PRIMARY)
     for arm in ARMS:
-        e = regress(two, arm.gap_col, [f"Delta_{arm.tag}"], "cell",
-                    rng_for("tworay", arm.tag))[f"Delta_{arm.tag}"]
+        e = regress(two, arm.gap_col, [f"Delta_{arm.tag}"], "cell", rng_for("tworay", arm.tag))[
+            f"Delta_{arm.tag}"
+        ]
         print(f"  {arm.tag:4s} beta_delta = {e}  pairs={e.n_obs}")
 
 

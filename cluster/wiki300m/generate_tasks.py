@@ -22,6 +22,7 @@ This writes the first 100 cells, tasks 000-099 of the committed queue in tasks/.
 100-467 (densified arms and the seed-43/44 replicates) were added to that queue later and are
 committed as they were trained.
 """
+
 import os
 import sys
 import numpy as np
@@ -29,8 +30,7 @@ import numpy as np
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(REPO, "src", "tpp_analysis"))
 sys.path.insert(0, os.path.join(REPO, "src"))
-from subset_analysis.subset_analysis_bbox_seeded import (
-    compute_VK, compute_tauK, classify_regime)
+from subset_analysis.subset_analysis_bbox_seeded import compute_VK, compute_tauK, classify_regime
 from training_models.core.utils import generate_model_configs
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("QUEUE_DIR", "")
@@ -47,8 +47,7 @@ PUBLISHED_N = {22_796_832, 40_277_184, 68_127_488}
 
 # --model-size argument per row: published sizes hit the hot path directly;
 # new sizes must be requested by legacy_param_count (the search matches on it).
-TRAINER_KW = dict(vocab_size=100277, max_seq_len=256,
-                  min_params=100, max_params=1_000_000_000)
+TRAINER_KW = dict(vocab_size=100277, max_seq_len=256, min_params=100, max_params=1_000_000_000)
 _pool = generate_model_configs(2000, **TRAINER_KW)
 _by_total = {c.total_params: c for c in _pool}
 ARG = {}
@@ -60,10 +59,12 @@ for N in ROWS:
 lo = 0.9 * min(K_TRAIN) * min(TRAIN_N)
 hi = 1.15 * max(K_TRAIN) * max(TRAIN_N)
 D_TR = [int(round(d, -5)) for d in np.exp(np.linspace(np.log(lo), np.log(hi), NTC))]
-D_TE = [int(round(d, -5)) for d in
-        np.exp(np.linspace(np.log(1.10 * hi), np.log(1.46 * hi), NCOL - NTC))]
+D_TE = [
+    int(round(d, -5)) for d in np.exp(np.linspace(np.log(1.10 * hi), np.log(1.46 * hi), NCOL - NTC))
+]
 NC_COLS = D_TR + D_TE
 CO_COLS = K_TRAIN + K_TEST
+
 
 def occ(x, y):
     if x == NTC or y == NTR or (x > NTC and y > NTR):
@@ -72,8 +73,10 @@ def occ(x, y):
         return "train"
     return "unused"
 
+
 def fmt(v):
-    return f"{v/1e6:.2f}M"
+    return f"{v / 1e6:.2f}M"
+
 
 tasks = []
 for y, N in enumerate(ROWS):
@@ -82,18 +85,30 @@ for y, N in enumerate(ROWS):
         if role == "unused":
             continue
         k = CO_COLS[x]
-        D_co = int(round(k * N))                    # k is exact on the TRUE N
+        D_co = int(round(k * N))  # k is exact on the TRUE N
         tag = "COLINEAR" if role == "train" else "COLINEAR_HOLDOUT"
-        tasks.append(dict(
-            prefix=f"WIKI300M_{tag}_N{fmt(N)}_TPP{k}_D{fmt(D_co)}",
-            arg=ARG[N], tokens=D_co, role=role, N=N,
-            nh=6.0 * N * D_co / THRU / 3600.0))
+        tasks.append(
+            dict(
+                prefix=f"WIKI300M_{tag}_N{fmt(N)}_TPP{k}_D{fmt(D_co)}",
+                arg=ARG[N],
+                tokens=D_co,
+                role=role,
+                N=N,
+                nh=6.0 * N * D_co / THRU / 3600.0,
+            )
+        )
         D_nc = NC_COLS[x]
         tag = "NxD_GRID" if role == "train" else "HOLDOUT"
-        tasks.append(dict(
-            prefix=f"WIKI300M_{tag}_N{fmt(N)}_D{fmt(D_nc)}",
-            arg=ARG[N], tokens=D_nc, role=role, N=N,
-            nh=6.0 * N * D_nc / THRU / 3600.0))
+        tasks.append(
+            dict(
+                prefix=f"WIKI300M_{tag}_N{fmt(N)}_D{fmt(D_nc)}",
+                arg=ARG[N],
+                tokens=D_nc,
+                role=role,
+                N=N,
+                nh=6.0 * N * D_nc / THRU / 3600.0,
+            )
+        )
 
 # ---- verification --------------------------------------------------------
 co_tr = [t for t in tasks if "_COLINEAR_N" in t["prefix"]]
@@ -118,7 +133,7 @@ existing = [f for f in os.listdir(tdir) if f.endswith(".task")]
 if existing:
     sys.exit(f"REFUSING to overwrite: {len(existing)} task files already in {tdir}")
 
-tasks.sort(key=lambda t: -t["nh"])          # LPT: longest first
+tasks.sort(key=lambda t: -t["nh"])  # LPT: longest first
 with open(os.path.join(OUT, "manifest.tsv"), "w") as mf:
     mf.write("rank\tprefix\tmodel_size_arg\ttokens\trole\test_node_h\n")
     for i, t in enumerate(tasks):
@@ -127,11 +142,13 @@ with open(os.path.join(OUT, "manifest.tsv"), "w") as mf:
             f.write(f"PREFIX={t['prefix']}\n")
             f.write(f"MODEL_SIZE={t['arg']}\n")
             f.write(f"TOKENS={t['tokens']}\n")
-            f.write(f"SPLIT_FLAG={'--skip-val' if t['role']=='train' else '--use-train-as-val'}\n")
+            f.write(
+                f"SPLIT_FLAG={'--skip-val' if t['role'] == 'train' else '--use-train-as-val'}\n"
+            )
             f.write(f"EST_NH={t['nh']:.3f}\n")
         mf.write(f"{i:03d}\t{t['prefix']}\t{t['arg']}\t{t['tokens']}\t{t['role']}\t{t['nh']:.3f}\n")
 
 tot = sum(t["nh"] for t in tasks)
 print(f"wrote {len(tasks)} tasks -> {tdir}")
-print(f"total {tot:.1f} node-h | longest {longest:.2f} h | 4 slots ~{tot/4:.1f} h")
-print(f"V_K={V:.4e} (published 1.0222e-02) regime A | D_max={d_max/1e9:.2f}B")
+print(f"total {tot:.1f} node-h | longest {longest:.2f} h | 4 slots ~{tot / 4:.1f} h")
+print(f"V_K={V:.4e} (published 1.0222e-02) regime A | D_max={d_max / 1e9:.2f}B")

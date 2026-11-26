@@ -13,6 +13,7 @@ deliberately SERIAL -- a process pool here costs minutes of worker startup to
 save microseconds. The heavy fitting that produces bbox_strata.csv is what uses
 every core.
 """
+
 import numpy as np
 import pandas as pd
 import sys
@@ -27,13 +28,16 @@ d = pd.read_csv(CSV)
 d["win"] = (d.co_off_ray > d.nc_off_ray).astype(float)
 rng = np.random.default_rng(SEED)
 
+
 def agg(sub):
     g = sub.groupby("S")["win"].agg(["sum", "count"])
     return g["sum"].to_numpy(float), g["count"].to_numpy(float)
 
+
 def boot(w, c):
     idx = rng.integers(0, len(w), size=(B, len(w)))
-    return w[idx].sum(1) / c[idx].sum(1)          # ratio-of-sums, cluster bootstrap
+    return w[idx].sum(1) / c[idx].sum(1)  # ratio-of-sums, cluster bootstrap
+
 
 q = lambda a: np.percentile(a, [2.5, 97.5])
 print(f"{len(d)} comparisons, {d.S.nunique()} distinct CO subsets, {d.law.nunique()} laws")
@@ -44,17 +48,24 @@ for law in ["Chinchilla", "Kaplan", "Droppo-Elibol"]:
     H = d[(d.law == law) & (d.stratum == "high")]
     if L.empty or H.empty:
         continue
-    lw, lc = agg(L); hw, hc = agg(H)
+    lw, lc = agg(L)
+    hw, hc = agg(H)
     bl, bh = boot(lw, lc), boot(hw, hc)
     pl, ph = lw.sum() / lc.sum(), hw.sum() / hc.sum()
     cl, ch, cd = q(bl), q(bh), q(bh - bl)
-    print(f"{law:<15}{100*pl:6.1f}% [{100*cl[0]:4.1f},{100*cl[1]:5.1f}]"
-          f"{100*ph:8.1f}% [{100*ch[0]:4.1f},{100*ch[1]:5.1f}]"
-          f"{100*(ph-pl):+9.1f}pp [{100*cd[0]:+6.1f},{100*cd[1]:+6.1f}]"
-          f"{len(lw):>7}/{len(hw):<5}")
+    print(
+        f"{law:<15}{100 * pl:6.1f}% [{100 * cl[0]:4.1f},{100 * cl[1]:5.1f}]"
+        f"{100 * ph:8.1f}% [{100 * ch[0]:4.1f},{100 * ch[1]:5.1f}]"
+        f"{100 * (ph - pl):+9.1f}pp [{100 * cd[0]:+6.1f},{100 * cd[1]:+6.1f}]"
+        f"{len(lw):>7}/{len(hw):<5}"
+    )
 
-print(f"\ncorr(Delta, logN) = {np.corrcoef(d.Delta, d.logN)[0,1]:+.3f}   "
-      f"(was -0.993 before select_nc_bbox was applied per stratum)")
+print(
+    f"\ncorr(Delta, logN) = {np.corrcoef(d.Delta, d.logN)[0, 1]:+.3f}   "
+    f"(was -0.993 before select_nc_bbox was applied per stratum)"
+)
 L, H = d[d.stratum == "low"], d[d.stratum == "high"]
-print(f"FOOTNOTE ONLY - pooled: low {100*L.win.mean():.1f}% -> high {100*H.win.mean():.1f}% "
-      f"(+{100*(H.win.mean()-L.win.mean()):.1f}pp), a composition effect driven by Kaplan.")
+print(
+    f"FOOTNOTE ONLY - pooled: low {100 * L.win.mean():.1f}% -> high {100 * H.win.mean():.1f}% "
+    f"(+{100 * (H.win.mean() - L.win.mean()):.1f}pp), a composition effect driven by Kaplan."
+)

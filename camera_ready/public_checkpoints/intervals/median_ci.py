@@ -51,17 +51,25 @@ def intervals(jobs: list, replicates: range, workers: int) -> list[dict]:
             draws = {j: np.empty(N_BOOT) for j in usable}
             tasks = [(j, rep, c) for j in usable for c in range(N_BOOT // CHUNK)]
             for j, c, d in pool.imap_unordered(_chunk, tasks, chunksize=1):
-                draws[j][c * CHUNK:(c + 1) * CHUNK] = d
+                draws[j][c * CHUNK : (c + 1) * CHUNK] = d
             for j, (tag, vals, groups, key) in enumerate(jobs):
                 lo = hi = np.nan
                 if j in draws:
                     lo, hi = np.percentile(draws[j], [2.5, 97.5])
-                rows.append(dict(tag=tag, key=key, replicate=rep, n_pairs=len(vals),
-                                 n_windows=sum(len(x) for x in groups),
-                                 win=float((vals > 0).mean()) if len(vals) else np.nan,
-                                 median=float(np.median(vals)) if len(vals) else np.nan,
-                                 lo=float(lo), hi=float(hi),
-                                 excludes0=bool(lo > 0 or hi < 0)))
+                rows.append(
+                    dict(
+                        tag=tag,
+                        key=key,
+                        replicate=rep,
+                        n_pairs=len(vals),
+                        n_windows=sum(len(x) for x in groups),
+                        win=float((vals > 0).mean()) if len(vals) else np.nan,
+                        median=float(np.median(vals)) if len(vals) else np.nan,
+                        lo=float(lo),
+                        hi=float(hi),
+                        excludes0=bool(lo > 0 or hi < 0),
+                    )
+                )
     return rows
 
 
@@ -71,7 +79,9 @@ def check_released(jobs: list) -> None:
         _, vals, groups, key = job
         ref = EST._median_job(job)[1]
         rng = np.random.default_rng(zlib.crc32(key.encode()))
-        EST.pair_medians(vals, rng, EST.MED_BOOT)  # the pair-level draws the released code takes first
+        EST.pair_medians(
+            vals, rng, EST.MED_BOOT
+        )  # the pair-level draws the released code takes first
         lo, hi = np.percentile(EST.cluster_medians(vals, groups, rng, EST.MED_BOOT), [2.5, 97.5])
         assert np.isclose(lo, ref["lo_cl"]) and np.isclose(hi, ref["hi_cl"]), (key, lo, hi, ref)
         print(f"  released-path check {key}: [{lo:+.5f}, {hi:+.5f}] == _median_job")

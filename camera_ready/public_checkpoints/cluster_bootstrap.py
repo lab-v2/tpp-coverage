@@ -51,10 +51,17 @@ class ClusterOLS:
     `weights` is the A4.4 suite weighting when it is used; None otherwise.
     """
 
-    def __init__(self, df: pd.DataFrame, y: str, x_cols: Sequence[str],
-                 cluster_cols: Sequence[str] = ("cell", "window"),
-                 weights: np.ndarray | None = None, order_col: str | None = None,
-                 fe_col: str = "cell", group_col: str = "cell"):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        y: str,
+        x_cols: Sequence[str],
+        cluster_cols: Sequence[str] = ("cell", "window"),
+        weights: np.ndarray | None = None,
+        order_col: str | None = None,
+        fe_col: str = "cell",
+        group_col: str = "cell",
+    ):
         keep = np.isfinite(df[y].to_numpy(float))
         for c in x_cols:
             keep &= np.isfinite(df[c].to_numpy(float))
@@ -77,10 +84,12 @@ class ClusterOLS:
         m = 1 + p + 1 + p * p + p
         z = np.empty((len(df), m))
         z[:, 0] = w
-        z[:, 1:1 + p] = x * w[:, None]
+        z[:, 1 : 1 + p] = x * w[:, None]
         z[:, 1 + p] = yv * w
-        z[:, 2 + p:2 + p + p * p] = (x[:, :, None] * x[:, None, :]).reshape(len(df), p * p) * w[:, None]
-        z[:, 2 + p + p * p:] = x * (yv * w)[:, None]
+        z[:, 2 + p : 2 + p + p * p] = (x[:, :, None] * x[:, None, :]).reshape(len(df), p * p) * w[
+            :, None
+        ]
+        z[:, 2 + p + p * p :] = x * (yv * w)[:, None]
 
         stats = np.zeros((self.n_clusters, m))
         np.add.at(stats, unit_codes, z)
@@ -114,10 +123,10 @@ class ClusterOLS:
         """agg: (B, n_cells, m) -> (B, p) within-cell OLS coefficients."""
         p = self.p
         n = agg[..., 0]
-        sx = agg[..., 1:1 + p]
+        sx = agg[..., 1 : 1 + p]
         sy = agg[..., 1 + p]
-        sxx = agg[..., 2 + p:2 + p + p * p].reshape(*agg.shape[:-1], p, p)
-        sxy = agg[..., 2 + p + p * p:]
+        sxx = agg[..., 2 + p : 2 + p + p * p].reshape(*agg.shape[:-1], p, p)
+        sxy = agg[..., 2 + p + p * p :]
         safe = np.where(n > 0, n, 1.0)[..., None]
         a = sxx - (sx[..., :, None] * sx[..., None, :]) / safe[..., None]
         b = sxy - sx * (sy / np.where(n > 0, n, 1.0))[..., None]
@@ -150,8 +159,9 @@ class ClusterOLS:
             counts[:, idx] = draw
         return counts
 
-    def boot(self, rng: np.random.Generator, n_boot: int, block: int = 1,
-             chunk: int | None = None) -> np.ndarray:
+    def boot(
+        self, rng: np.random.Generator, n_boot: int, block: int = 1, chunk: int | None = None
+    ) -> np.ndarray:
         if chunk is None:
             chunk = int(max(200, min(20000, 2e7 / max(1, self.n_clusters))))
         out = np.empty((n_boot, self.p))
@@ -164,24 +174,50 @@ class ClusterOLS:
                 idx = self.by_cell[c]
                 if len(idx):
                     agg[:, c, :] = counts[:, idx] @ self.stats[idx]
-            out[done:done + b] = self._solve(agg)
+            out[done : done + b] = self._solve(agg)
             done += b
         return out
 
-    def estimate(self, rng: np.random.Generator, n_boot: int, block: int = 1,
-                 index: int = 0, keep_draws: bool = False) -> Estimate:
+    def estimate(
+        self,
+        rng: np.random.Generator,
+        n_boot: int,
+        block: int = 1,
+        index: int = 0,
+        keep_draws: bool = False,
+    ) -> Estimate:
         pt = self.point()[index]
         d = self.boot(rng, n_boot, block)[:, index]
         lo, hi = np.percentile(d, [2.5, 97.5])
         one = float(np.percentile(d, 5.0))
-        return Estimate(float(pt), float(lo), float(hi), self.n_obs, self.n_clusters,
-                        one, d if keep_draws else None)
+        return Estimate(
+            float(pt),
+            float(lo),
+            float(hi),
+            self.n_obs,
+            self.n_clusters,
+            one,
+            d if keep_draws else None,
+        )
 
-    def estimate_combo(self, rng: np.random.Generator, n_boot: int, combo: np.ndarray,
-                       block: int = 1, keep_draws: bool = False) -> Estimate:
+    def estimate_combo(
+        self,
+        rng: np.random.Generator,
+        n_boot: int,
+        combo: np.ndarray,
+        block: int = 1,
+        keep_draws: bool = False,
+    ) -> Estimate:
         """A linear combination c^T beta - used for the A5.4(c) slope at a given log N."""
         pt = float(self.point() @ combo)
         d = self.boot(rng, n_boot, block) @ combo
         lo, hi = np.percentile(d, [2.5, 97.5])
-        return Estimate(pt, float(lo), float(hi), self.n_obs, self.n_clusters,
-                        float(np.percentile(d, 5.0)), d if keep_draws else None)
+        return Estimate(
+            pt,
+            float(lo),
+            float(hi),
+            self.n_obs,
+            self.n_clusters,
+            float(np.percentile(d, 5.0)),
+            d if keep_draws else None,
+        )

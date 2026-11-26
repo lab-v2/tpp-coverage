@@ -39,16 +39,23 @@ from vk_ratio import TOP_STRATUM, margin_gaps, with_below_top
 N_BOOT = 10_000
 SCHEMES = ("E2", "pooled", "pairs")
 STRATA = ("<100M", "100M-1B", "<1B", ">=1B")
-COLUMNS = ["cell", "window", "N_gm", "N_min", "N_max",
-           f"CO_m_beta{C.BETA_PRIMARY}", f"NC_m_beta{C.BETA_PRIMARY}"]
+COLUMNS = [
+    "cell",
+    "window",
+    "N_gm",
+    "N_min",
+    "N_max",
+    f"CO_m_beta{C.BETA_PRIMARY}",
+    f"NC_m_beta{C.BETA_PRIMARY}",
+]
 
 
-def median_draws(d: pd.DataFrame, scheme: str, rng: np.random.Generator,
-                 n_boot: int) -> np.ndarray:
+def median_draws(d: pd.DataFrame, scheme: str, rng: np.random.Generator, n_boot: int) -> np.ndarray:
     """Bootstrap draws of the median of ``d["delta"]`` under one resampling scheme."""
     if scheme == "E2":
-        return np.array([np.median(sub["delta"].to_numpy())
-                         for sub, _ in C._cluster_draws(d, rng, n_boot)])
+        return np.array(
+            [np.median(sub["delta"].to_numpy()) for sub, _ in C._cluster_draws(d, rng, n_boot)]
+        )
     if scheme == "pooled":
         groups = [g.to_numpy() for _, g in d.groupby(C.CLUSTER)["delta"]]
         picks = (rng.integers(0, len(groups), len(groups)) for _ in range(n_boot))
@@ -64,19 +71,32 @@ def stratum_interval(task: tuple[str, str, pd.DataFrame, int]) -> dict:
     stratum, scheme, d, n_boot = task
     rng = C.rng_for("vk_ratio_boot", stratum, scheme)
     lo, hi = np.percentile(median_draws(d, scheme, rng, n_boot), [2.5, 97.5])
-    return {"stratum": stratum, "scheme": scheme, "n_boot": n_boot, "n_pairs": len(d),
-            "n_windows": d.groupby(C.CLUSTER).ngroups, "n_cells": d["cell"].nunique(),
-            "median_vk_ratio": 10 ** float(np.median(d["delta"])),
-            "lo95": 10 ** lo, "hi95": 10 ** hi}
+    return {
+        "stratum": stratum,
+        "scheme": scheme,
+        "n_boot": n_boot,
+        "n_pairs": len(d),
+        "n_windows": d.groupby(C.CLUSTER).ngroups,
+        "n_cells": d["cell"].nunique(),
+        "median_vk_ratio": 10 ** float(np.median(d["delta"])),
+        "lo95": 10**lo,
+        "hi95": 10**hi,
+    }
 
 
 def window_medians(pairs: pd.DataFrame, stratum: str = TOP_STRATUM) -> pd.DataFrame:
     """The median ratio of every window of one stratum, with the window's size range."""
-    return (pairs[pairs["stratum"] == stratum]
-            .groupby(C.CLUSTER)
-            .agg(N_min=("N_min", "first"), N_max=("N_max", "first"), N_gm=("N_gm", "first"),
-                 n_pairs=("delta", "size"),
-                 median_vk_ratio=("delta", lambda s: 10 ** s.median())))
+    return (
+        pairs[pairs["stratum"] == stratum]
+        .groupby(C.CLUSTER)
+        .agg(
+            N_min=("N_min", "first"),
+            N_max=("N_max", "first"),
+            N_gm=("N_gm", "first"),
+            n_pairs=("delta", "size"),
+            median_vk_ratio=("delta", lambda s: 10 ** s.median()),
+        )
+    )
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -85,14 +105,22 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--out", default="vk_ratio_boot.csv")
     ap.add_argument("--windows-out", default="vk_ratio_boot_ge1B_windows.csv")
     ap.add_argument("--n-boot", type=int, default=N_BOOT)
-    ap.add_argument("--workers", type=int, default=min(len(STRATA) * len(SCHEMES),
-                                                       os.cpu_count() or 1))
+    ap.add_argument(
+        "--workers", type=int, default=min(len(STRATA) * len(SCHEMES), os.cpu_count() or 1)
+    )
     args = ap.parse_args(argv)
 
     pairs = with_below_top(margin_gaps(pd.read_csv(WORK / args.results, usecols=COLUMNS)))
-    tasks = [(s, k, pairs.loc[pairs["stratum"] == s, ["cell", "window", "delta"]]
-              .reset_index(drop=True), args.n_boot)
-             for s in STRATA for k in SCHEMES]
+    tasks = [
+        (
+            s,
+            k,
+            pairs.loc[pairs["stratum"] == s, ["cell", "window", "delta"]].reset_index(drop=True),
+            args.n_boot,
+        )
+        for s in STRATA
+        for k in SCHEMES
+    ]
     with mp.get_context("fork").Pool(min(args.workers, len(tasks))) as pool:  # one per task
         out = pd.DataFrame(pool.map(stratum_interval, tasks, chunksize=1))
     print(out.to_string(index=False))

@@ -16,7 +16,6 @@ sys.path.append(project_root)
 from training_models.models import ModelConfig
 
 
-
 class BaseTrainer(ABC):
     """Base class for all training execution schemes."""
 

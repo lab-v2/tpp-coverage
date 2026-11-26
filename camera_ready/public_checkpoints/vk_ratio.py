@@ -37,18 +37,24 @@ def margin_gaps(df: pd.DataFrame, beta: float = C.BETA_PRIMARY) -> pd.DataFrame:
 
 def with_below_top(d: pd.DataFrame) -> pd.DataFrame:
     """`d` plus its pairs below 1B once more, as the pooled stratum "<1B"."""
-    return pd.concat([d, d[d["stratum"] != TOP_STRATUM].assign(stratum=BELOW_TOP)],
-                     ignore_index=True)
+    return pd.concat(
+        [d, d[d["stratum"] != TOP_STRATUM].assign(stratum=BELOW_TOP)], ignore_index=True
+    )
 
 
 def vk_ratio_by_stratum(df: pd.DataFrame, beta: float = C.BETA_PRIMARY) -> pd.DataFrame:
     d = with_below_top(margin_gaps(df, beta))
     rows = []
     for stratum, g in d.groupby("stratum"):
-        rows.append({"stratum": stratum, "n_pairs": len(g),
-                     "n_windows": g.groupby(["cell", "window"]).ngroups,
-                     "N_max": float(g["N_max"].max()),
-                     "median_vk_ratio": float(10 ** g["delta"].median())})
+        rows.append(
+            {
+                "stratum": stratum,
+                "n_pairs": len(g),
+                "n_windows": g.groupby(["cell", "window"]).ngroups,
+                "N_max": float(g["N_max"].max()),
+                "median_vk_ratio": float(10 ** g["delta"].median()),
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -57,8 +63,14 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--results", default="results_E_seeds512.csv")
     ap.add_argument("--out", default="vk_ratio.csv")
     args = ap.parse_args(argv)
-    cols = ["cell", "window", "N_gm", "N_max", f"CO_m_beta{C.BETA_PRIMARY}",
-            f"NC_m_beta{C.BETA_PRIMARY}"]
+    cols = [
+        "cell",
+        "window",
+        "N_gm",
+        "N_max",
+        f"CO_m_beta{C.BETA_PRIMARY}",
+        f"NC_m_beta{C.BETA_PRIMARY}",
+    ]
     out = vk_ratio_by_stratum(pd.read_csv(WORK / args.results, usecols=cols))
     print(out.to_string(index=False))
     out.to_csv(WORK / args.out, index=False)

@@ -44,10 +44,21 @@ def main(argv: list[str] | None = None) -> None:
         df = EST.prepare_frame(raw[raw["seed"] < seeds].copy())
         for spec, fe in SPECS:
             e = EST.est(df, "gap_offray", "Delta_NC", fe=fe)
-            rows.append(dict(seeds=seeds, spec=spec, beta=e.value, lo=e.lo, hi=e.hi,
-                             pct=EST.pct(e.value), pct_lo=EST.pct(e.lo), pct_hi=EST.pct(e.hi),
-                             n_pairs=e.n_obs, n_windows=e.n_clusters,
-                             n_cells=df["cell"].nunique()))
+            rows.append(
+                dict(
+                    seeds=seeds,
+                    spec=spec,
+                    beta=e.value,
+                    lo=e.lo,
+                    hi=e.hi,
+                    pct=EST.pct(e.value),
+                    pct_lo=EST.pct(e.lo),
+                    pct_hi=EST.pct(e.hi),
+                    n_pairs=e.n_obs,
+                    n_windows=e.n_clusters,
+                    n_cells=df["cell"].nunique(),
+                )
+            )
     out = pd.DataFrame(rows)
     print(out.to_string(index=False))
     out.to_csv(WORK / args.out, index=False)

@@ -214,6 +214,5 @@ def create_model(
 
     else:
         raise ValueError(
-            f"Unknown architecture: {architecture}. "
-            f"Supported architectures: 'llama', 'custom'"
+            f"Unknown architecture: {architecture}. Supported architectures: 'llama', 'custom'"
         )

@@ -28,10 +28,15 @@ from analysis import build_windows, screen_cell
 from paths import WORK
 
 STUDY = {  # cell prefix -> the study's name in per_study.csv, in the table's order
-    "farseer": "Farseer", "chinchilla_isoflop": "Chinchilla isoFLOP",
-    "gemstones_cooldown": "Gemstones annealed", "gadre_overtrain": "Gadre et al.",
-    "olmo_ladder": "OLMo ladder", "datadecide": "DataDecide", "mad": "MAD",
-    "gemstones_hot": "Gemstones constant LR", "gpt3": "GPT-3 curves",
+    "farseer": "Farseer",
+    "chinchilla_isoflop": "Chinchilla isoFLOP",
+    "gemstones_cooldown": "Gemstones annealed",
+    "gadre_overtrain": "Gadre et al.",
+    "olmo_ladder": "OLMo ladder",
+    "datadecide": "DataDecide",
+    "mad": "MAD",
+    "gemstones_hot": "Gemstones constant LR",
+    "gpt3": "GPT-3 curves",
     "opt_trajectories": "OPT trajectories",
 }
 CORPORA = {"E": {"E"}, "X": {"E", "X"}}
@@ -53,17 +58,24 @@ def study_row(prefix: str, g: pd.DataFrame) -> dict:
         n_windows += len(ws)
         in_win |= {(c, n) for w in ws for n in w.sizes}
     gw = g[[(c, n) in in_win for c, n in zip(g["cell"], g["N"])]]
-    return {"study": STUDY[prefix], "cell_prefix": prefix,
-            "corpus": "/".join(sorted(g["corpus"].unique())),
-            "n_cells": g["cell"].nunique(), "runs_used": len(g),
-            "distinct_N_union": g["N"].nunique(),
-            "distinct_N_sum_over_cells": int(per_cell.sum()),
-            "distinct_N_max_cell": int(per_cell.max()),
-            "N_min": g["N"].min(), "N_max": g["N"].max(),
-            "TPP_min": tpp.min(), "TPP_max": tpp.max(),
-            "n_windows_W1": n_windows, "rows_in_some_window": len(gw),
-            "distinct_N_in_some_window": gw["N"].nunique(),
-            "N_max_in_some_window": gw["N"].max()}
+    return {
+        "study": STUDY[prefix],
+        "cell_prefix": prefix,
+        "corpus": "/".join(sorted(g["corpus"].unique())),
+        "n_cells": g["cell"].nunique(),
+        "runs_used": len(g),
+        "distinct_N_union": g["N"].nunique(),
+        "distinct_N_sum_over_cells": int(per_cell.sum()),
+        "distinct_N_max_cell": int(per_cell.max()),
+        "N_min": g["N"].min(),
+        "N_max": g["N"].max(),
+        "TPP_min": tpp.min(),
+        "TPP_max": tpp.max(),
+        "n_windows_W1": n_windows,
+        "rows_in_some_window": len(gw),
+        "distinct_N_in_some_window": gw["N"].nunique(),
+        "N_max_in_some_window": gw["N"].max(),
+    }
 
 
 def main(argv: list[str] | None = None) -> None:

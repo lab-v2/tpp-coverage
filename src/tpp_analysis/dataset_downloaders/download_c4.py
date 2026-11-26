@@ -107,9 +107,7 @@ def download_shard(url, cache_dir):
     actual_size = os.path.getsize(tmp_path)
     if expected_size > 0 and actual_size < expected_size * 0.95:
         os.remove(tmp_path)
-        raise IOError(
-            f"Incomplete download: got {actual_size:,} of {expected_size:,} bytes"
-        )
+        raise IOError(f"Incomplete download: got {actual_size:,} of {expected_size:,} bytes")
 
     os.rename(tmp_path, local_path)
     return local_path
@@ -144,8 +142,7 @@ def read_shard_documents(local_path):
     return docs
 
 
-def download_all_shards(urls, cache_dir, seed, total_token_budget,
-                        max_shards=None, cleanup=False):
+def download_all_shards(urls, cache_dir, seed, total_token_budget, max_shards=None, cleanup=False):
     """
     Download shards in shuffled order, extract documents.
     Stops when estimated tokens exceed budget (with 15% buffer).
@@ -189,10 +186,7 @@ def download_all_shards(urls, cache_dir, seed, total_token_budget,
             print(f"\n  Hit --max-shards={max_shards}. Stopping.")
             break
 
-    print(
-        f"\n  Downloaded {shards_downloaded} shards, "
-        f"{len(all_documents):,} documents"
-    )
+    print(f"\n  Downloaded {shards_downloaded} shards, {len(all_documents):,} documents")
     return all_documents, shards_downloaded
 
 
@@ -255,10 +249,10 @@ def process_split(
     doc_indices_used = []
     pos = start_pos
 
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print(f"{split_name.upper()}: Walking shuffled indices from position {start_pos:,}")
-    print(f"  Target: {target_tokens:,} tokens ({target_tokens/1e9:.3f}B)")
-    print(f"{'='*70}")
+    print(f"  Target: {target_tokens:,} tokens ({target_tokens / 1e9:.3f}B)")
+    print(f"{'=' * 70}")
 
     t0 = time.time()
 
@@ -292,9 +286,9 @@ def process_split(
                 elapsed = time.time() - t0
                 pbar.set_postfix(
                     {
-                        "tokens": f"{total_tokens/1e9:.3f}B",
+                        "tokens": f"{total_tokens / 1e9:.3f}B",
                         "chunks": f"{total_chunks:,}",
-                        "doc/s": f"{docs_processed/max(1, elapsed):.0f}",
+                        "doc/s": f"{docs_processed / max(1, elapsed):.0f}",
                     }
                 )
 
@@ -302,12 +296,12 @@ def process_split(
 
     elapsed = time.time() - t0
 
-    print(f"\n  {split_name.capitalize()} complete ({elapsed/60:.1f} min):")
+    print(f"\n  {split_name.capitalize()} complete ({elapsed / 60:.1f} min):")
     print(f"  Shuffled positions: [{start_pos:,}, {pos:,})")
     print(f"  Documents: {docs_processed:,}")
     print(f"  Chunks:    {total_chunks:,}")
-    print(f"  Tokens:    {total_tokens:,} ({total_tokens/1e9:.3f}B)")
-    print(f"  Avg tok/doc: {total_tokens/max(1, docs_processed):.1f}")
+    print(f"  Tokens:    {total_tokens:,} ({total_tokens / 1e9:.3f}B)")
+    print(f"  Avg tok/doc: {total_tokens / max(1, docs_processed):.1f}")
     print(f"  Files: {tokens_bin_path}")
     print(f"         {lengths_bin_path}")
 
@@ -368,7 +362,9 @@ def main():
         if data_dir:
             cache_dir = os.path.join(data_dir, "c4")
         else:
-            cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "corpora", "c4")
+            cache_dir = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "corpora", "c4"
+            )
 
     shard_cache = os.path.join(cache_dir, "shard_cache")
     os.makedirs(cache_dir, exist_ok=True)
@@ -377,9 +373,9 @@ def main():
     total_token_budget = args.target_tokens * 2  # train + val
 
     print("C4 Train + Val Pipeline (SHUFFLED)")
-    print(f"{'='*60}")
-    print(f"Target/split:   {args.target_tokens:,} ({args.target_tokens/1e9:.2f}B)")
-    print(f"Total budget:   {total_token_budget:,} ({total_token_budget/1e9:.2f}B)")
+    print(f"{'=' * 60}")
+    print(f"Target/split:   {args.target_tokens:,} ({args.target_tokens / 1e9:.2f}B)")
+    print(f"Total budget:   {total_token_budget:,} ({total_token_budget / 1e9:.2f}B)")
     print(f"max_seq_len:    {args.max_seq_len}")
     print(f"Seed:           {args.seed}")
     print(f"Output dir:     {cache_dir}")
@@ -457,9 +453,9 @@ def main():
     )
 
     # -- Overlap verification --
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("OVERLAP VERIFICATION")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     train_set = set(train_doc_indices)
     val_set = set(val_doc_indices)
     overlap = train_set & val_set
@@ -506,9 +502,7 @@ def main():
             "chunks": train_chunks,
             "tokens": train_tokens,
             "avg_tokens_per_doc": avg_tok_train,
-            "avg_chunks_per_doc": (
-                train_chunks / max(1, len(train_doc_indices))
-            ),
+            "avg_chunks_per_doc": (train_chunks / max(1, len(train_doc_indices))),
         },
         "val": {
             "shuffled_positions": f"[{train_end_pos}, {val_end_pos})",
@@ -516,9 +510,7 @@ def main():
             "chunks": val_chunks,
             "tokens": val_tokens,
             "avg_tokens_per_doc": avg_tok_val,
-            "avg_chunks_per_doc": (
-                val_chunks / max(1, len(val_doc_indices))
-            ),
+            "avg_chunks_per_doc": (val_chunks / max(1, len(val_doc_indices))),
         },
         "unused": {
             "shuffled_positions": f"[{val_end_pos}, {n_docs})",
@@ -528,9 +520,7 @@ def main():
             "train_mean_tok_per_doc": avg_tok_train,
             "val_mean_tok_per_doc": avg_tok_val,
             "delta_mean": avg_tok_val - avg_tok_train,
-            "delta_pct": (
-                (avg_tok_val - avg_tok_train) / max(1, avg_tok_train) * 100
-            ),
+            "delta_pct": ((avg_tok_val - avg_tok_train) / max(1, avg_tok_train) * 100),
         },
     }
 
@@ -539,21 +529,21 @@ def main():
         json.dump(split_config, f, indent=2)
 
     # -- Summary --
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
     print("COMPLETE!")
-    print(f"{'='*70}")
+    print(f"{'=' * 70}")
     print("  Dataset:  allenai/c4 (en, train)")
     print(f"  Seed:     {args.seed}")
     print(f"  Shards:   {shards_downloaded} / {TOTAL_C4_SHARDS} (shuffled order)")
     print(
         f"  Train:    {len(train_doc_indices):,} docs, "
         f"{train_chunks:,} chunks, "
-        f"{train_tokens:,} tokens ({train_tokens/1e9:.3f}B)"
+        f"{train_tokens:,} tokens ({train_tokens / 1e9:.3f}B)"
     )
     print(
         f"  Val:      {len(val_doc_indices):,} docs, "
         f"{val_chunks:,} chunks, "
-        f"{val_tokens:,} tokens ({val_tokens/1e9:.3f}B)"
+        f"{val_tokens:,} tokens ({val_tokens / 1e9:.3f}B)"
     )
     print(f"  Unused:   {unused_docs:,} docs")
     print(f"  Overlap:  {len(overlap)} (verified zero)")
@@ -571,7 +561,7 @@ def main():
     print(f"  {train_indices_path}")
     print(f"  {val_indices_path}")
     print(f"  {config_path}")
-    print(f"\n{'='*70}")
+    print(f"\n{'=' * 70}")
 
 
 if __name__ == "__main__":

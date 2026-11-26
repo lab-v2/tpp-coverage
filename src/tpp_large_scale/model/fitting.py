@@ -252,8 +252,7 @@ class LawFitter:
         """
         if len(arrays) < law.min_points:
             raise ValueError(
-                f"{law.name} needs at least {law.min_points} design points, "
-                f"got {len(arrays)}"
+                f"{law.name} needs at least {law.min_points} design points, got {len(arrays)}"
             )
         bounds = law.bounds_fn(arrays.loss)
         if self._global_search:
@@ -322,7 +321,10 @@ class LawFitter:
         for _ in range(self._restarts):
             x0 = law.sampler(rng, arrays.loss)
             result = minimize(
-                objective, x0, method="L-BFGS-B", bounds=bounds,
+                objective,
+                x0,
+                method="L-BFGS-B",
+                bounds=bounds,
                 options={"maxiter": 2000},
             )
             if result.fun < best_loss:
@@ -349,9 +351,7 @@ def verify_upstream_parity(arrays: FitArrays, tolerance: float = 0.0) -> dict[st
     for law in LAWS:
         if law.upstream_fitter is None:
             continue
-        _, upstream_sse, _ = law.upstream_fitter(
-            arrays.n, arrays.d, arrays.loss, DEFAULT_RESTARTS
-        )
+        _, upstream_sse, _ = law.upstream_fitter(arrays.n, arrays.d, arrays.loss, DEFAULT_RESTARTS)
         ours = fitter.fit(law, arrays, seed=FIT_SEED_BASE)
         if ours is None:
             raise AssertionError(f"{law.name}: local fit failed where upstream succeeded")

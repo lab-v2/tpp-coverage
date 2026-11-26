@@ -57,7 +57,7 @@ def centred(d: pd.DataFrame, x: str) -> tuple[pd.DataFrame, float]:
     """`d` with log10 N_gm centred at its pair mean and the size terms of regressor `x`."""
     ctr = float(d["logN"].mean())
     lc = d["logN"] - ctr
-    return d.assign(logN_c=lc, _ix=d[x] * lc, _ix2=d[x] * lc ** 2, _l2=lc ** 2), ctr
+    return d.assign(logN_c=lc, _ix=d[x] * lc, _ix2=d[x] * lc**2, _l2=lc**2), ctr
 
 
 def smooth_engine(d: pd.DataFrame, gap: str, x: str, form: str = "linear") -> ClusterOLS:
@@ -65,8 +65,16 @@ def smooth_engine(d: pd.DataFrame, gap: str, x: str, form: str = "linear") -> Cl
     return ClusterOLS(d, gap, [x, *SMOOTH[form][0]], order_col="window")
 
 
-def slope(df: pd.DataFrame, gap: str, delta: str, cluster=("cell", "window"), n_boot: int = BIG,
-          block: int = 1, seed: int = 20260802, keep: bool = False) -> Estimate:
+def slope(
+    df: pd.DataFrame,
+    gap: str,
+    delta: str,
+    cluster=("cell", "window"),
+    n_boot: int = BIG,
+    block: int = 1,
+    seed: int = 20260802,
+    keep: bool = False,
+) -> Estimate:
     eng = ClusterOLS(df, gap, [delta], cluster_cols=cluster, order_col="window")
     return eng.estimate(np.random.default_rng(seed), n_boot, block=block, keep_draws=keep)
 
@@ -78,26 +86,51 @@ class Report:
         self.rows: list[dict] = []
 
     def add(self, corpus: str, spec: str, arm: str, e: Estimate, n_at: float = np.nan) -> None:
-        self.rows.append(dict(corpus=corpus, spec=spec, arm=arm, beta=e.value, lo=e.lo, hi=e.hi,
-                              pct=pct(e.value), pct_lo=pct(e.lo), pct_hi=pct(e.hi),
-                              pct_one_sided_lo=pct(e.lo_one_sided), n_pairs=e.n_obs,
-                              n_windows=e.n_clusters, excludes0=e.excludes_zero, N_at=n_at,
-                              note=""))
-        print(f"  {corpus} {arm:3s} {spec:58s} {pct(e.value):+6.1f}% [{pct(e.lo):+6.1f}%, "
-              f"{pct(e.hi):+6.1f}%]  one-sided lo {pct(e.lo_one_sided):+6.1f}%  "
-              f"windows {e.n_clusters}")
+        self.rows.append(
+            dict(
+                corpus=corpus,
+                spec=spec,
+                arm=arm,
+                beta=e.value,
+                lo=e.lo,
+                hi=e.hi,
+                pct=pct(e.value),
+                pct_lo=pct(e.lo),
+                pct_hi=pct(e.hi),
+                pct_one_sided_lo=pct(e.lo_one_sided),
+                n_pairs=e.n_obs,
+                n_windows=e.n_clusters,
+                excludes0=e.excludes_zero,
+                N_at=n_at,
+                note="",
+            )
+        )
+        print(
+            f"  {corpus} {arm:3s} {spec:58s} {pct(e.value):+6.1f}% [{pct(e.lo):+6.1f}%, "
+            f"{pct(e.hi):+6.1f}%]  one-sided lo {pct(e.lo_one_sided):+6.1f}%  "
+            f"windows {e.n_clusters}"
+        )
 
     def attenuation(self, corpus: str, name: str, a1: np.ndarray, a0: np.ndarray) -> None:
         frac, diff = 1.0 - a1 / a0, a0 - a1
-        self.rows.append(dict(
-            corpus=corpus, spec=f"A5.4d attenuation fraction, {name}", arm="NC",
-            beta=float(np.median(frac)), lo=float(np.percentile(frac, 2.5)),
-            hi=float(np.percentile(frac, 97.5)), pct_one_sided_lo=float(np.percentile(frac, 95)),
-            note=f"95th percentile = largest attenuation excluded at 5%; difference "
-                 f"{np.mean(a0) - np.mean(a1):+.4f} dex [{np.percentile(diff, 2.5):+.4f}, "
-                 f"{np.percentile(diff, 97.5):+.4f}]"))
-        print(f"  {corpus} A5.4d {name}: attenuation fraction median {100 * np.median(frac):+.0f}%,"
-              f" 95th percentile {100 * np.percentile(frac, 95):+.0f}%")
+        self.rows.append(
+            dict(
+                corpus=corpus,
+                spec=f"A5.4d attenuation fraction, {name}",
+                arm="NC",
+                beta=float(np.median(frac)),
+                lo=float(np.percentile(frac, 2.5)),
+                hi=float(np.percentile(frac, 97.5)),
+                pct_one_sided_lo=float(np.percentile(frac, 95)),
+                note=f"95th percentile = largest attenuation excluded at 5%; difference "
+                f"{np.mean(a0) - np.mean(a1):+.4f} dex [{np.percentile(diff, 2.5):+.4f}, "
+                f"{np.percentile(diff, 97.5):+.4f}]",
+            )
+        )
+        print(
+            f"  {corpus} A5.4d {name}: attenuation fraction median {100 * np.median(frac):+.0f}%,"
+            f" 95th percentile {100 * np.percentile(frac, 95):+.0f}%"
+        )
 
 
 def run(rep: Report, corpus: str, big: pd.DataFrame, win_dir: Path | None) -> None:
@@ -107,21 +140,41 @@ def run(rep: Report, corpus: str, big: pd.DataFrame, win_dir: Path | None) -> No
     rep.add(corpus, "A5.3 W1, moving block L=4", "NC", slope(hi, "gap_offray", "Delta_NC", block=4))
     if win_dir is not None:
         for name, (w, s) in CONSTRUCTIONS.items():
-            d = big[big["seed"] < 128] if name == "W1" else \
-                EST.prepare(win_dir / f"results_E_win{name}.csv")
+            d = (
+                big[big["seed"] < 128]
+                if name == "W1"
+                else EST.prepare(win_dir / f"results_E_win{name}.csv")
+            )
             d = d[d["stratum"] == TOP]
             L = int(np.ceil(w / s))
-            rep.add(corpus, f"A5.3 {name} ({w},{s}), 128 seeds, window cluster", "NC",
-                    slope(d, "gap_offray", "Delta_NC"))
-            rep.add(corpus, f"A5.3 {name} ({w},{s}), 128 seeds, moving block L={L}", "NC",
-                    slope(d, "gap_offray", "Delta_NC", block=L))
+            rep.add(
+                corpus,
+                f"A5.3 {name} ({w},{s}), 128 seeds, window cluster",
+                "NC",
+                slope(d, "gap_offray", "Delta_NC"),
+            )
+            rep.add(
+                corpus,
+                f"A5.3 {name} ({w},{s}), 128 seeds, moving block L={L}",
+                "NC",
+                slope(d, "gap_offray", "Delta_NC", block=L),
+            )
     for arm, gap in ARMS:
-        rep.add(corpus, "A5.4a pair cluster (anti-conservative)", arm,
-                slope(hi, gap, f"Delta_{arm}", cluster=("cell", "row_id"), n_boot=PAIRBOOT))
-        rep.add(corpus, "A5.4b (cell, window, ray) cluster", arm,
-                slope(hi, gap, f"Delta_{arm}", cluster=("cell", "ray_id")))
-    e_cw = ClusterOLS(hi, "gap_offray", ["Delta_NC"], order_col="window", fe_col="cell_win",
-                      group_col="cell").estimate(np.random.default_rng(99), BIG)
+        rep.add(
+            corpus,
+            "A5.4a pair cluster (anti-conservative)",
+            arm,
+            slope(hi, gap, f"Delta_{arm}", cluster=("cell", "row_id"), n_boot=PAIRBOOT),
+        )
+        rep.add(
+            corpus,
+            "A5.4b (cell, window, ray) cluster",
+            arm,
+            slope(hi, gap, f"Delta_{arm}", cluster=("cell", "ray_id")),
+        )
+    e_cw = ClusterOLS(
+        hi, "gap_offray", ["Delta_NC"], order_col="window", fe_col="cell_win", group_col="cell"
+    ).estimate(np.random.default_rng(99), BIG)
     rep.add(corpus, "companion: fixed effect per window", "NC", e_cw)
 
     smooth: dict[str, np.ndarray] = {}
@@ -131,15 +184,28 @@ def run(rep: Report, corpus: str, big: pd.DataFrame, win_dir: Path | None) -> No
         l0 = d.loc[d["stratum"] != TOP, "logN"].mean() - ctr
         for form, (_, combo) in SMOOTH.items():
             eng = smooth_engine(d, gap, f"Delta_{arm}", form)
-            rep.add(corpus, f"A5.4c smooth {form}, at the >=1B centroid", arm,
-                    eng.estimate_combo(np.random.default_rng(4242), BIG, np.array(combo(l1))),
-                    10 ** (l1 + ctr))
-            rep.add(corpus, f"A5.4c smooth {form}, interaction b1", arm,
-                    eng.estimate(np.random.default_rng(4242), BIG, index=1), 10 ** ctr)
+            rep.add(
+                corpus,
+                f"A5.4c smooth {form}, at the >=1B centroid",
+                arm,
+                eng.estimate_combo(np.random.default_rng(4242), BIG, np.array(combo(l1))),
+                10 ** (l1 + ctr),
+            )
+            rep.add(
+                corpus,
+                f"A5.4c smooth {form}, interaction b1",
+                arm,
+                eng.estimate(np.random.default_rng(4242), BIG, index=1),
+                10**ctr,
+            )
             for lg in (9.0, 9.5, 10.0):
-                rep.add(corpus, f"A5.4c smooth {form}, at log10 N = {lg}", arm,
-                        eng.estimate_combo(np.random.default_rng(4242), BIG,
-                                           np.array(combo(lg - ctr))), 10 ** lg)
+                rep.add(
+                    corpus,
+                    f"A5.4c smooth {form}, at log10 N = {lg}",
+                    arm,
+                    eng.estimate_combo(np.random.default_rng(4242), BIG, np.array(combo(lg - ctr))),
+                    10**lg,
+                )
             if arm == "NC" and form == "linear":
                 b = eng.boot(np.random.default_rng(4242), BIG)
                 smooth = dict(s1=b @ np.array(combo(l1)), s0=b @ np.array(combo(l0)))
@@ -154,8 +220,11 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--results", default="results_E_seeds512.csv")
     ap.add_argument("--results-x", default="results_X_seeds512.csv.gz")
     ap.add_argument("--skip-x", action="store_true", help="run on the E corpus alone")
-    ap.add_argument("--windows-dir", default=".",
-                    help="folder of results_E_win<V>.csv; 'none' skips the A5.3 constructions")
+    ap.add_argument(
+        "--windows-dir",
+        default=".",
+        help="folder of results_E_win<V>.csv; 'none' skips the A5.3 constructions",
+    )
     ap.add_argument("--out", default="amendment5_1b.csv")
     args = ap.parse_args(argv)
 
