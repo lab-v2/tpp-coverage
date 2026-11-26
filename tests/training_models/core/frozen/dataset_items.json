@@ -1,0 +1,1 @@
+{"attention_mask":{"max":1.0,"min":0.0,"n_nan":0,"shape":[20,32],"sq_sum":557.0,"sum":557.0,"wsum":-0.669567615239},"dtypes":["torch.int64","torch.int64"],"input_ids":{"max":100028.0,"min":0.0,"n_nan":0,"shape":[20,32],"sq_sum":103900605347.0,"sum":2992843.0,"wsum":80958.5281215},"len":20.0,"select":[3.0,"Subset"]}

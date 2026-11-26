@@ -1,0 +1,1 @@
+{"config":{"d_ff":32.0,"d_model":8.0,"dropout":0.0,"max_seq_len":16.0,"n_heads":2.0,"n_layers":1.0,"vocab_size":100277.0},"epoch":2.0,"type":"LlamaModelWrapper"}

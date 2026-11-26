@@ -66,6 +66,7 @@ markers = [
     "network: downloads public data from HuggingFace (cached after the first run)",
     "slow: large-scale analysis checks over the full grid or a process pool",
     "paper: the from-scratch refit of the paper's numbers; it takes every thread, so it runs alone (-n 0)",
+    "gpu: trains on a CUDA GPU (the trainer hard-codes cuda and nccl); skipped where torch sees none",
 ]
 
 [tool.ruff]
