@@ -2,24 +2,17 @@
 """
 Extract training losses from .npz metrics files and produce CSVs for scaling law fits.
 
-Two modes:
-  1. from_hf    - reads .npz metrics from the HuggingFace repo directory structure
-                  (dataset/design/N_{n}/*.npz).
-  2. from_local - reads .npz metrics from a flat training_metrics dump.
-                  Filenames contain the model's actual parameter count.
+Two modes: from_hf reads the HuggingFace repo layout (dataset/design/N_{n}/*.npz); from_local
+reads a flat training_metrics dump whose filenames carry the model's actual parameter count.
+Both take the trailing-100-batch converged loss at each epoch boundary (not epoch averages) and
+write one CSV per dataset into extracted_losses/, in the block format load_and_prepare reads:
+per run an "N=, D=, WD= [run_type]" line, a run_type/is_holdout/is_colinear line, then
+"Epoch,Train Loss,Val Loss,Cumulative Time (s)" rows.
 
-Both use trailing-100-batch converged loss at each epoch boundary (not epoch averages).
-Both produce one CSV per dataset in an extracted_losses/ folder.
+Tiers, independent flags: MAIN_DATASETS (the 5 main corpora); SPECIAL_DATASETS (BF16 Wikipedia
+replication; --include-special); PRELIM_DATASETS (BigTPP single-law prelim; --include-prelim).
 
-Three dataset tiers:
-  - MAIN_DATASETS:    the 5 corpora used for the main experiment.
-  - SPECIAL_DATASETS: BF16 replication (Wikipedia at BF16 precision).
-                      Enabled with --include-special.
-  - PRELIM_DATASETS:  preliminary BigTPP single-law experiment.
-                      Enabled with --include-prelim.
-  These are independent flags, so you can pull just what you need.
-
-Usage:
+Examples:
     # From a downloaded HF repo:
     python get_results.py from_hf /path/to/colinear_scaling_models -o extracted_losses
 
@@ -33,11 +26,11 @@ Usage:
     python get_results.py from_local /path/to/metrics -o extracted_losses --include-prelim
 
     # Both:
-    python get_results.py from_local /path/to/metrics -o extracted_losses --include-special --include-prelim
-
-Output CSV format (one per dataset):
-    run_type,N,D,tpp,wd,num_epochs,epoch,train_loss,val_loss,cumulative_time_s
+    python get_results.py from_local /path/to/metrics -o extracted_losses \\
+        --include-special --include-prelim
 """
+
+from __future__ import annotations
 
 import os
 import re
@@ -45,7 +38,6 @@ import glob
 import argparse
 import numpy as np
 from dataclasses import dataclass, field
-from typing import Optional, Dict, List, Tuple
 from collections import defaultdict
 
 # ============================================================
@@ -59,7 +51,7 @@ PRELIM_DATASETS = ["wikipedia_bigtpp"]
 VALID_DESIGNS = {"colinear", "non_colinear"}
 
 
-def selected_datasets(include_special: bool = False, include_prelim: bool = False) -> List[str]:
+def selected_datasets(include_special: bool = False, include_prelim: bool = False) -> list[str]:
     """Return the active dataset list given the flag combination."""
     out = list(MAIN_DATASETS)
     if include_special:
@@ -78,7 +70,7 @@ def selected_datasets(include_special: bool = False, include_prelim: bool = Fals
 class EpochRecord:
     epoch: int
     train_loss: float
-    val_loss: Optional[float]
+    val_loss: float | None
     cumulative_time_s: float
     cumulative_tokens: int
 
@@ -89,9 +81,9 @@ class RunResult:
     run_type: str
     N: int
     D: int
-    tpp: Optional[float]
+    tpp: float | None
     wd: float
-    epochs: List[EpochRecord] = field(default_factory=list)
+    epochs: list[EpochRecord] = field(default_factory=list)
 
 
 # ============================================================
@@ -99,7 +91,7 @@ class RunResult:
 # ============================================================
 
 
-def extract_unique_tokens(data: dict) -> Optional[int]:
+def extract_unique_tokens(data: dict[str, np.ndarray]) -> int | None:
     """Extract D (unique tokens per epoch) from cumulative_tokens array."""
     cumulative_tokens = data.get("cumulative_tokens", None)
     epoch_train_losses = data.get("epoch_train_losses", None)
@@ -115,7 +107,9 @@ def extract_unique_tokens(data: dict) -> Optional[int]:
     return int(cumulative_tokens[batches_per_epoch - 1])
 
 
-def compute_epoch_end_losses(data: dict, num_epochs: int, tail: int = 100) -> Optional[List[float]]:
+def compute_epoch_end_losses(
+    data: dict[str, np.ndarray], num_epochs: int, tail: int = 100
+) -> list[float] | None:
     """Compute trailing-average loss at each epoch boundary from per-batch losses.
 
     For each epoch, takes the mean of the last `tail` batch losses (or all
@@ -143,7 +137,7 @@ def compute_epoch_end_losses(data: dict, num_epochs: int, tail: int = 100) -> Op
     return epoch_end
 
 
-def extract_tpp_from_filename(filename: str) -> Optional[float]:
+def extract_tpp_from_filename(filename: str) -> float | None:
     """Extract TPP from filename if present."""
     m = re.search(r"_TPP([\d.]+)_", filename)
     return float(m.group(1)) if m else None
@@ -155,7 +149,7 @@ def extract_wd_from_filename(filename: str) -> float:
     return float(m.group(1)) if m else 0.1
 
 
-def extract_n_from_filename(filename: str) -> Optional[int]:
+def extract_n_from_filename(filename: str) -> int | None:
     """Extract exact N from the _m{N}_token or _m{N}_ pattern."""
     m = re.search(r"_m(\d+)_token\d+", filename)
     if m:
@@ -166,7 +160,9 @@ def extract_n_from_filename(filename: str) -> Optional[int]:
     return None
 
 
-def build_epoch_records(data: dict, use_final_loss: bool = True) -> Optional[List[EpochRecord]]:
+def build_epoch_records(
+    data: dict[str, np.ndarray], use_final_loss: bool = True
+) -> list[EpochRecord] | None:
     """Build epoch records from a loaded .npz file.
 
     Uses trailing-100-batch converged loss by default.
@@ -225,7 +221,7 @@ def build_epoch_records(data: dict, use_final_loss: bool = True) -> Optional[Lis
 #   <blank line>
 
 
-def write_dataset_csv(output_dir: str, dataset: str, runs: List[RunResult]):
+def write_dataset_csv(output_dir: str, dataset: str, runs: list[RunResult]) -> None:
     """Write one CSV per dataset in the block format that load_and_prepare expects."""
     os.makedirs(output_dir, exist_ok=True)
     path = os.path.join(output_dir, f"{dataset}.csv")
@@ -284,7 +280,7 @@ def extract_from_hf(
     include_special: bool = False,
     include_prelim: bool = False,
     use_final_loss: bool = True,
-):
+) -> None:
     """Extract results from HuggingFace repo directory structure (.npz files)."""
     datasets_to_process = selected_datasets(include_special, include_prelim)
 
@@ -392,7 +388,7 @@ SKIP_PATTERNS = [
 ]
 
 
-def detect_dataset(filename: str) -> Optional[str]:
+def detect_dataset(filename: str) -> str | None:
     """Detect dataset from a metrics filename.
 
     Order matters: BigTPP and BF16 markers are checked BEFORE the generic
@@ -426,7 +422,7 @@ def detect_dataset(filename: str) -> Optional[str]:
     return "cosmopedia"
 
 
-def detect_run_type(filename: str) -> Tuple[str, bool, bool]:
+def detect_run_type(filename: str) -> tuple[str, bool, bool]:
     """Detect run type from metrics filename.
     Returns: (run_type, is_colinear, is_holdout)
     """
@@ -451,14 +447,14 @@ def extract_from_local(
     include_special: bool = False,
     include_prelim: bool = False,
     use_final_loss: bool = True,
-):
+) -> None:
     """Extract results from flat training_metrics directory (.npz files)."""
 
     pattern = os.path.join(metrics_dir, "*_metrics.npz")
     all_files = sorted(glob.glob(pattern))
     print(f"Found {len(all_files)} metrics files in {metrics_dir}")
 
-    runs_by_dataset: Dict[str, List[RunResult]] = defaultdict(list)
+    runs_by_dataset: dict[str, list[RunResult]] = defaultdict(list)
     active = set(selected_datasets(include_special, include_prelim))
 
     for filepath in all_files:
@@ -572,7 +568,7 @@ def extract_from_local(
 # ============================================================
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Extract training losses for scaling law fits",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -595,7 +591,7 @@ Examples:
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
     # Shared flag definitions to keep both subcommands in sync
-    def _add_shared(p):
+    def _add_shared(p: argparse.ArgumentParser) -> None:
         p.add_argument(
             "-o",
             "--output-dir",
