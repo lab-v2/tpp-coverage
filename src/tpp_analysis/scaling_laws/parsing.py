@@ -10,10 +10,10 @@ Each run block looks like:
     3,3.654
 """
 
-from typing import List, Dict
+from __future__ import annotations
 
 
-def parse_epoch_results(filepath: str) -> List[Dict]:
+def parse_epoch_results(filepath: str) -> list[dict[str, object]]:
     """
     Parse the custom CSV with multiple run blocks.
 
@@ -24,7 +24,7 @@ def parse_epoch_results(filepath: str) -> List[Dict]:
         content = f.read()
 
     blocks = content.strip().split("\n\n")
-    runs: List[Dict] = []
+    runs: list[dict[str, object]] = []
 
     for block in blocks:
         if not block.strip():
