@@ -17,7 +17,7 @@ from tpp_large_scale.model.conditioning import (
     chinchilla_jacobian,
     numerical_jacobian,
 )
-from tpp_large_scale.config import KAPPA_TARGETS, Regime
+from tpp_large_scale.config import Regime
 from tpp_large_scale.model.diversity import DiversityCriterion
 from tpp_large_scale.model.fitting import (
     CHINCHILLA,
@@ -28,7 +28,7 @@ from tpp_large_scale.model.fitting import (
     verify_upstream_parity,
 )
 from tpp_large_scale.model.grid import FitArrays, LogBandAssigner, TrainingGrid
-from tpp_large_scale.upstream import chinchilla_loss, compute_tauK, compute_VK
+from tpp_large_scale.upstream import compute_tauK, compute_VK
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -45,7 +45,10 @@ class TestUpstreamReuse:
         assert all(d == 0.0 for d in deltas.values()), deltas
 
     def test_law_specs_wrap_the_upstream_loss_functions(self) -> None:
-        assert CHINCHILLA.loss_fn is chinchilla_loss
+        loss_fn = CHINCHILLA.loss_fn  # the paper's own function, by name and by value
+        assert (loss_fn.__module__, loss_fn.__name__) == ("scaling_laws.laws", "chinchilla_loss")
+        # E + A / N^alpha + B / D^beta at N = 1e6, D = 1e9 (Hoffmann et al.'s fitted values)
+        assert abs(loss_fn(1e6, 1e9, 1.69, 406.4, 0.34, 410.7, 0.28) - 6.636706222711524) < 1e-12
 
     def test_diversity_delegates_to_upstream(self) -> None:
         ratios = [20.0, 67.0, 215.0]
@@ -57,11 +60,11 @@ class TestUpstreamReuse:
 class TestLawSpecs:
     def test_chinchilla_gap_is_alpha_minus_beta(self) -> None:
         # params: E, A, alpha, B, beta
-        assert CHINCHILLA.exponent_gap([1.0, 10.0, 0.35, 20.0, 0.28]) == pytest.approx(0.07)
+        assert abs(CHINCHILLA.exponent_gap([1.0, 10.0, 0.35, 20.0, 0.28]) - 0.07) < 1e-12
 
     def test_kaplan_gap_is_alpha_d_minus_alpha_n(self) -> None:
         # params: N_c, D_c, alpha_N, alpha_D
-        assert KAPLAN.exponent_gap([1e6, 1e6, 0.30, 0.34]) == pytest.approx(0.04)
+        assert abs(KAPLAN.exponent_gap([1e6, 1e6, 0.30, 0.34]) - 0.04) < 1e-12
 
     def test_droppo_gap_is_scaled_by_the_shared_exponent(self) -> None:
         # params: L_inf, N_c, D_c, alpha_N, alpha_D, alpha
@@ -73,10 +76,10 @@ class TestLawSpecs:
             DROPPO_ELIBOL.exponent_gap([0.5, 1e6, 1e6, 0.4, 0.3, 0.0])
 
     def test_beta_index_selects_the_data_exponent(self) -> None:
-        assert CHINCHILLA.beta_eff([1.0, 10.0, 0.35, 20.0, 0.28]) == pytest.approx(0.28)
+        assert abs(CHINCHILLA.beta_eff([1.0, 10.0, 0.35, 20.0, 0.28]) - 0.28) < 1e-12
 
     def test_every_law_has_a_distinct_name(self) -> None:
-        assert len({law.name for law in LAWS}) == len(LAWS)
+        assert sorted(law.name for law in LAWS) == ["Chinchilla", "Droppo-Elibol", "Kaplan"]
 
 
 class TestFitting:
@@ -114,7 +117,7 @@ class TestFitting:
             CHINCHILLA, synthetic_chinchilla, seed=0
         )
         assert fit is not None
-        assert tuple(fit.named_params) == CHINCHILLA.param_names
+        assert tuple(fit.named_params) == ("E", "A", "alpha", "B", "beta")
 
 
 class TestJacobian:
@@ -230,7 +233,7 @@ class TestDiversityCriterion:
 
     def test_sweep_covers_every_configured_target(self) -> None:
         verdicts = DiversityCriterion(0.3).sweep_targets([20.0, 200.0])
-        assert len(verdicts) == len(KAPPA_TARGETS)
+        assert sorted(verdicts) == ["1e+04", "1e+05", "1e+06"]  # KAPPA_TARGETS, spelled out
 
 
 class TestBandAssignment:

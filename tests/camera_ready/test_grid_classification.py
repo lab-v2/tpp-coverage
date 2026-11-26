@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 
 from conftest import A1, run
+
+# The committed table, by its own path (not through A1, the directory the run uses).
+COMMITTED_RESULTS = (
+    Path(__file__).resolve().parents[2] / "camera_ready" / "grid_classification" / "results.csv"
+)
 
 
 def test_classification_reproduces_results_csv(tmp_path):
     out = tmp_path / "results.csv"
     proc = run(["python", A1 / "classify.py", "--out", out], cwd=A1)
-    assert out.read_bytes() == (A1 / "results.csv").read_bytes()
+    assert out.read_bytes() == COMMITTED_RESULTS.read_bytes()
     assert "included (corpus)   : 24" in proc.stdout
 
 

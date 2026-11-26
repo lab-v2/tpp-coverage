@@ -134,6 +134,7 @@ def test_data_root(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     assert _resolve_data_root("c4") == str(tmp_path / "c4")
     monkeypatch.delenv("DATA_DIR")
-    assert _resolve_data_root("c4") == str(REPO / "corpora" / "c4")
+    repo = Path(__file__).resolve().parents[3]  # spelled out, not conftest's REPO
+    assert _resolve_data_root("c4") == str(repo / "corpora" / "c4")
     with pytest.raises(FileNotFoundError, match="Preprocessed files not found"):
         PretokenizedLoader.load_c4_dataset_pretokenized_train(SEQ)
