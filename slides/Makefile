@@ -17,5 +17,9 @@ clean:
 	rm -rf build
 .PHONY: clean
 
+# `make check` builds the deck; with PDF_WIDOWS=<checker.py> it also runs that layout checker on
+# the PDF (`<checker.py> --balance <pdf>`, non-zero on a one-word last line). The repo ships none.
 check: tpp_neurips2026_slides.pdf
-	uv run --no-project python -I $$HOME/claude-code-skills/skills/document-writing/bin/pdf_widows.py --balance $<
+	@if [ -n "$(PDF_WIDOWS)" ]; then uv run --no-project python -I "$(PDF_WIDOWS)" --balance $<; \
+	else echo "check: built $<; no PDF_WIDOWS checker given, layout not checked"; fi
+.PHONY: check

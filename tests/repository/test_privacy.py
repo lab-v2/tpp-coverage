@@ -48,6 +48,15 @@ FORBIDDEN = {
     "review process": r"(\breviewers?\b|\bktkD\b|\bnK5Y\b|\bPnLF\b|\bQNJP\b|oVM1ErNilo|openreview\.net|rebuttal)",
     "anonymization": r"(anonymous\.4open|4open\.science)",
     "em dash": "\u2014",
+    "private tool paths": r"(claude-code-skills|\$\{?HOME\}?/|\$\$HOME/)",
+}
+# Files allowed to match one pattern, each with its reason.
+EXEMPT = {
+    "private tool paths": {
+        # The guard proves the job runs on the project's own runners by calling the copy each of
+        # them holds under $HOME; a machine outside that pool has no such file and fails.
+        ".github/workflows/own-runners-guard.yml",
+    },
 }
 
 
@@ -94,7 +103,7 @@ def test_no_forbidden_strings(label: str) -> None:
     hits = []
     for path in FILES:
         text = _text(path)
-        if text is None:
+        if text is None or str(path.relative_to(REPO)) in EXEMPT.get(label, set()):
             continue
         for n, line in enumerate(text.splitlines(), 1):
             if pattern.search(line):
@@ -124,7 +133,12 @@ def test_pattern_catches_a_planted_leak() -> None:
         "review process": "Reviewer ktkD",
         "anonymization": "anonymous.4open.science/r/x",
         "em dash": "a \u2014 b",
+        "private tool paths": "python $$HOME/claude-code-skills/x.py",
     }
+    assert sorted(samples) == sorted(FORBIDDEN)
+    for sample in ("$HOME/bin/x", "${HOME}/x", "make -C ~/claude-code-skills"):
+        assert re.search(FORBIDDEN["private tool paths"], sample), sample
+    assert not re.search(FORBIDDEN["private tool paths"], 'for v in "$HOME" "$(id -un)"')
     for label, sample in samples.items():
         assert re.search(FORBIDDEN[label], sample, re.IGNORECASE), label
 
@@ -136,3 +150,12 @@ def test_private_word_matcher_catches_a_planted_word() -> None:
     assert private_words("a planted host, not the word", planted) == []
     assert len(PRIVATE_WORD_HASHES) == 18
     assert all(re.fullmatch(r"[0-9a-f]{64}", h) for h in PRIVATE_WORD_HASHES)
+
+
+@pytest.mark.parametrize("label", sorted(EXEMPT))
+def test_every_exemption_is_still_needed(label: str) -> None:
+    pattern = re.compile(FORBIDDEN[label], re.IGNORECASE)
+    for rel in EXEMPT[label]:
+        assert pattern.search((REPO / rel).read_text()), (
+            f"{rel} no longer needs its {label} exemption"
+        )

@@ -19,7 +19,7 @@ component of the same name; `conftest.py` holds the shared paths and helpers.
 The suite checks law recovery on synthetic data, every entry point's `--help`, that the
 released tables are reproduced, the camera-ready analyses, and that the analysis modules still
 return, write and draw what the base commit did. It also checks the README's
-links, images, diagram and citation, and that no private host or path is in the tree.
+links, images, diagram and citation, and that no private host, path or private tool path (`claude-code-skills`, `$HOME/`) is in the tree.
 
 CI runs the suite, the hooks of `.pre-commit-config.yaml`, `ruff check .` and the privacy
 scan on every pull request and every push to `main`. A pull request may merge only when its author is a lab-v2 member, or when a
