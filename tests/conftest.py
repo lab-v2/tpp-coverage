@@ -23,6 +23,8 @@ SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache", "wo
 # tests start run pools of their own, so library thread pools only oversubscribe the host.
 for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
     os.environ.setdefault(_var, "1")
+# Figures draw off screen: the characterization tests read their data, never a window.
+os.environ.setdefault("MPLBACKEND", "Agg")
 
 for p in (ANALYSIS, SRC):
     if str(p) not in sys.path:
