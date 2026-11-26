@@ -16,6 +16,7 @@ import math
 import multiprocessing as mp
 import os
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Iterator, Sequence
 
@@ -258,7 +259,9 @@ def enumerate_pairs(
 # ════════════════════════════════════════════════════════════════════════════
 
 
-def _rmse(loss_fn, params, sub: pd.DataFrame) -> float:
+def _rmse(
+    loss_fn: Callable[..., np.ndarray], params: Sequence[float] | None, sub: pd.DataFrame
+) -> float:
     if len(sub) == 0 or params is None:
         return float("nan")
     pred = loss_fn(sub["N"].to_numpy(float), sub["D"].to_numpy(float), *params)
@@ -267,7 +270,7 @@ def _rmse(loss_fn, params, sub: pd.DataFrame) -> float:
     return float(np.sqrt(np.mean((pred - sub["loss"].to_numpy(float)) ** 2)))
 
 
-def _diagnostics(ks: Sequence[float]) -> dict:
+def _diagnostics(ks: Sequence[float]) -> dict[str, object]:
     rats = merged_ratios(ks)
     vk = float(repo.compute_VK(rats, BETA_EFF))
     tk = float(repo.compute_tauK(rats, BETA_EFF, KAPPA_TARGET))
@@ -309,7 +312,7 @@ def _init_worker(table: pd.DataFrame, n_restarts: int) -> None:
     repo.N_RESTARTS = n_restarts
 
 
-def _fit_one(job) -> dict | None:
+def _fit_one(job: tuple[DesignPair, list[int], str]) -> dict[str, object] | None:
     pair, holdout_idx, law_name = job
     table: pd.DataFrame = _STATE["table"]
     fit_fn, loss_fn, min_pts = LAWS[law_name]

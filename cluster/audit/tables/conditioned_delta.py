@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
 """Condition the size comparison on the design contrast Delta.
 
-select_nc_bbox removed the WITHIN-pair collinearity (corr(Delta, logN) -0.993 ->
--0.197) but not the BETWEEN-stratum mean shift: Delta median is +0.870 at low-N
-and +0.711 at high-N, 18% weaker, and within high-N corr(win, Delta) = -0.377.
-So an unconditioned low-vs-high difference confounds "the effect attenuated with
-N" with "the NC design got weaker". Two conditioned estimates:
-
-  A. Common-support trim: keep only comparisons whose Delta lies in the overlap
-     of the two strata's IQRs, then recompute the difference.
-  B. Linear probability model  win ~ logN + Delta, per law. The logN coefficient
-     is the size effect holding contrast fixed; reported in pp per decade.
-
+select_nc_bbox removed the WITHIN-pair collinearity (corr(Delta, logN) -0.993 -> -0.197) but
+not the BETWEEN-stratum mean shift: Delta median is +0.870 at low-N and +0.711 at high-N (18%
+weaker), and within high-N corr(win, Delta) = -0.377. So an unconditioned low-vs-high difference
+confounds "the effect attenuated with N" with "the NC design got weaker". Two conditioned estimates:
+  A. common-support trim: keep comparisons whose Delta lies in both strata's IQR overlap;
+  B. per law, the linear probability model win ~ logN + Delta, whose logN coefficient (pp per
+     decade) is the size effect with the contrast held fixed.
 Both use the design-clustered bootstrap (cluster = CO subset S), which remains
 anti-conservative because the 226 designs are drawn from 39 trained cells.
 Vectorised and serial: ~1 s total.
 """
+
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import importlib
 import json
 
@@ -12,6 +14,11 @@ from tpp_large_scale import upstream
 from tpp_large_scale.cli import build_parser, main
 from tpp_large_scale.config import AnalysisConfig, SeedBook
 from tpp_large_scale.runner import write_json_atomically
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from tpp_large_scale.model.grid import TrainingGrid
 
 
 class TestUpstreamBootstrap:
@@ -27,7 +34,9 @@ class TestUpstreamBootstrap:
             == "/elsewhere/src/tpp_analysis"
         )
 
-    def test_missing_checkout_raises_actionable_error(self, monkeypatch, tmp_path) -> None:
+    def test_missing_checkout_raises_actionable_error(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
         # A path under tmp_path is absent on every host; a fixed /nonexistent can exist unreadable.
         monkeypatch.setenv(upstream.CODE_REPO_ENV, str(tmp_path / "absent"))
         with pytest.raises(upstream.UpstreamNotFound, match="TPP_CODE_REPO"):
@@ -52,7 +61,7 @@ class TestUpstreamBootstrap:
 
 
 class TestConfig:
-    def test_missing_data_file_is_rejected(self, tmp_path) -> None:
+    def test_missing_data_file_is_rejected(self, tmp_path: Path) -> None:
         with pytest.raises(FileNotFoundError, match="grid metrics CSV"):
             AnalysisConfig(metrics_csv=tmp_path / "absent.csv")
 
@@ -65,7 +74,7 @@ class TestConfig:
         with pytest.raises(Exception):
             seeds.primary_fit = 5  # type: ignore[misc]
 
-    def test_output_dirs_are_created(self, tmp_path, config) -> None:
+    def test_output_dirs_are_created(self, tmp_path: Path, config: AnalysisConfig) -> None:
         cfg = AnalysisConfig(
             results_dir=tmp_path / "r",
             figures_dir=tmp_path / "f",
@@ -76,13 +85,13 @@ class TestConfig:
 
 
 class TestAtomicWrite:
-    def test_writes_and_leaves_no_temp_file(self, tmp_path) -> None:
+    def test_writes_and_leaves_no_temp_file(self, tmp_path: Path) -> None:
         target = tmp_path / "out.json"
         write_json_atomically(target, {"a": 1})
         assert json.loads(target.read_text()) == {"a": 1}
         assert not list(tmp_path.glob("*.tmp"))
 
-    def test_overwrites_existing(self, tmp_path) -> None:
+    def test_overwrites_existing(self, tmp_path: Path) -> None:
         target = tmp_path / "out.json"
         write_json_atomically(target, {"a": 1})
         write_json_atomically(target, {"b": 2})
@@ -112,7 +121,7 @@ class TestCli:
         ).stdout
         assert "--check-only" in out and "--workers" in out
 
-    def test_missing_data_file_exits_nonzero(self, tmp_path) -> None:
+    def test_missing_data_file_exits_nonzero(self, tmp_path: Path) -> None:
         assert main(["--data", str(tmp_path / "absent.csv")]) == 2
 
     @pytest.mark.slow
@@ -203,7 +212,7 @@ class TestResultsDocument:
 class TestFrontierSplit:
     """The train/holdout split is bucketed by the paper's own organise_runs."""
 
-    def test_buckets_partition_the_envelope(self, grid) -> None:
+    def test_buckets_partition_the_envelope(self, grid: TrainingGrid) -> None:
         from tpp_large_scale.model.splits import frontier_split
 
         split = frontier_split(grid)
@@ -211,14 +220,14 @@ class TestFrontierSplit:
         assert sum(counts.values()) == len(grid.envelope) == 29
         assert len(split.train) + len(split.holdout) == 29
 
-    def test_holdout_is_the_largest_model_frontier(self, grid) -> None:
+    def test_holdout_is_the_largest_model_frontier(self, grid: TrainingGrid) -> None:
         from tpp_large_scale.model.splits import frontier_split
 
         split = frontier_split(grid)
         assert (split.holdout["N"] == grid.envelope["N"].max()).all()
         assert split.train["N"].max() < grid.envelope["N"].max()
 
-    def test_bucketing_matches_the_package(self, grid) -> None:
+    def test_bucketing_matches_the_package(self, grid: TrainingGrid) -> None:
         """counts() comes straight from upstream organise_runs, not our code."""
         from tpp_large_scale.model.splits import frontier_split
         from tpp_large_scale.upstream import organise_runs

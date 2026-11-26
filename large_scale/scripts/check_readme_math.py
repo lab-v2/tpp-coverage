@@ -1,26 +1,14 @@
 #!/usr/bin/env python
 """Lint the README's math for GitHub rendering, and fail before committing.
 
-GitHub renders $...$ / $$...$$ with MathJax, but its markdown layer and macro
-restrictions break several things that are valid LaTeX. This checks the rules we
-have actually hit, so broken math is caught before it is committed:
-
-  1. balanced $$ (display) and inline $ delimiters;
-  2. inline $...$ content has no leading/trailing whitespace  (GitHub drops the
-     math when a space sits next to a delimiter, e.g. "...\\rbrace $");
-  3. an inline opening $ is not glued to a word char or '-'  (e.g.
-     "holdout-$R^2$"), and a closing $ is not glued to a following word char;
-  4. no raw \\{ or \\}  (markdown strips the backslash, so the braces vanish) ->
-     use \\lbrace / \\rbrace;
-  5. no GitHub-unsupported macros: \\operatorname, \\bigl, \\bigr, \\Bigl,
-     \\Bigr, \\biggl, \\biggr, \\tfrac, and the backslash-punctuation spacers
-     \\! \\, \\; \\:  (markdown strips the backslash, leaving literal
-     punctuation, e.g. "\\," -> ",");
-  6. balanced { } and \\left / \\right inside every span;
-  7. no '}_' inside inline math (a subscript right after a closing brace):
-     GitHub's markdown reads that _ (flanked by non-word chars) as emphasis and
-     drops the whole span -- put such sub/superscripted terms in a $$ display
-     block instead.
+GitHub renders $...$ / $$...$$ with MathJax, but its markdown layer and macro restrictions
+break some valid LaTeX. The rules we have hit: (1) balanced $$ and inline $ delimiters; (2) no
+whitespace just inside an inline $...$ (GitHub drops the math, e.g. "...\\rbrace $"); (3) no
+opening $ after a word char or '-' ("holdout-$R^2$"), nor a closing $ before a word char; (4) no
+raw \\{ or \\} (markdown strips the backslash): use \\lbrace / \\rbrace; (5) no \\operatorname,
+\\bigl, \\bigr, \\Bigl, \\Bigr, \\biggl, \\biggr, \\tfrac, nor the spacers \\! \\, \\; \\: (markdown
+leaves bare punctuation, "\\," -> ","); (6) balanced { } and \\left / \\right in every span;
+(7) no '}_' in inline math (markdown reads that _ as emphasis and drops the span): use a $$ block.
 
 Usage: python3 scripts/check_readme_math.py   (exit 0 clean, 1 on any issue)
 """

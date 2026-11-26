@@ -9,11 +9,17 @@ size that spreads its tokens-per-parameter ratios - the paper's central claim in
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pytest
 
 from scaling_laws.data import load_and_prepare, prepare_arrays
 from scaling_laws.laws import chinchilla_loss, fit_chinchilla, fit_kaplan, kaplan_loss
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
 
 CHINCHILLA = {"E": 1.69, "A": 406.4, "alpha": 0.34, "B": 410.7, "beta": 0.28}
 KAPLAN = {"N_c": 8.8e13, "D_c": 5.4e13, "alpha_N": 0.076, "alpha_D": 0.095}
@@ -23,7 +29,9 @@ D_GRID = np.geomspace(1e8, 1e11, 6)
 EPOCHS = 3
 
 
-def _write_released_csv(path, loss_fn, params) -> None:
+def _write_released_csv(
+    path: Path, loss_fn: Callable[..., float], params: dict[str, float]
+) -> None:
     """Blocks in the released format: header lines, then one row per epoch."""
     blocks = []
     for n in N_GRID:
@@ -46,13 +54,13 @@ def _write_released_csv(path, loss_fn, params) -> None:
 
 
 @pytest.fixture(scope="module")
-def chinchilla_csv(tmp_path_factory: pytest.TempPathFactory):
+def chinchilla_csv(tmp_path_factory: pytest.TempPathFactory) -> Path:
     path = tmp_path_factory.mktemp("smoke") / "synthetic.csv"
     _write_released_csv(path, chinchilla_loss, CHINCHILLA)
     return path
 
 
-def test_loader_splits_designs(chinchilla_csv):
+def test_loader_splits_designs(chinchilla_csv: Path) -> None:
     data = load_and_prepare(filepath=str(chinchilla_csv), dataset_name="synthetic", verbose=False)
     assert len(data.noncolinear_train) == len(N_GRID) * len(D_GRID)
     assert len(data.colinear_train) == 2 * len(N_GRID)
@@ -61,7 +69,7 @@ def test_loader_splits_designs(chinchilla_csv):
     np.testing.assert_allclose(L, chinchilla_loss(N, D, **CHINCHILLA), rtol=1e-8)
 
 
-def test_chinchilla_parameters_recovered(chinchilla_csv):
+def test_chinchilla_parameters_recovered(chinchilla_csv: Path) -> None:
     data = load_and_prepare(filepath=str(chinchilla_csv), dataset_name="synthetic", verbose=False)
     N, D, L = prepare_arrays(data.noncolinear_train, mode="final")
     params, sse, _ = fit_chinchilla(N, D, L, n_restarts=30)
@@ -69,7 +77,7 @@ def test_chinchilla_parameters_recovered(chinchilla_csv):
     np.testing.assert_allclose(params, list(CHINCHILLA.values()), rtol=1e-3)
 
 
-def test_kaplan_parameters_recovered(tmp_path):
+def test_kaplan_parameters_recovered(tmp_path: Path) -> None:
     path = tmp_path / "kaplan.csv"
     _write_released_csv(path, kaplan_loss, KAPLAN)
     data = load_and_prepare(filepath=str(path), dataset_name="synthetic", verbose=False)

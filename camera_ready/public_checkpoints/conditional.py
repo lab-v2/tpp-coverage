@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import argparse
 import zlib
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -170,7 +170,9 @@ def regress(
     }
 
 
-def boot_stat(x: np.ndarray, rng: np.random.Generator, stat=np.median) -> Estimate:
+def boot_stat(
+    x: np.ndarray, rng: np.random.Generator, stat: Callable[..., np.ndarray] = np.median
+) -> Estimate:
     """Percentile bootstrap over design pairs (CRITERIA E1)."""
     x = x[np.isfinite(x)]
     if len(x) == 0:
@@ -180,7 +182,10 @@ def boot_stat(x: np.ndarray, rng: np.random.Generator, stat=np.median) -> Estima
 
 
 def boot_stat_clustered(
-    df: pd.DataFrame, col: str, rng: np.random.Generator, stat=np.median
+    df: pd.DataFrame,
+    col: str,
+    rng: np.random.Generator,
+    stat: Callable[..., np.ndarray] = np.median,
 ) -> Estimate:
     """Same statistic with the window-cluster bootstrap, for subgroups that may rest
     on very few windows. Deliberately wider than boot_stat; both are reported."""
@@ -262,7 +267,7 @@ def regimes(df: pd.DataFrame, kappa: float, tag: str) -> pd.Series:
 
 
 def primary(df: pd.DataFrame) -> pd.DataFrame:
-    rows: list[dict] = []
+    rows: list[dict[str, object]] = []
 
     def record(kind: str, spec: str, arm: str, reg: str, est: Estimate, note: str = "") -> None:
         rows.append(
@@ -414,7 +419,7 @@ CELL_ROLE = {
 
 
 def dose_response(df: pd.DataFrame, stratum: str = "all") -> pd.DataFrame:
-    rows: list[dict] = []
+    rows: list[dict[str, object]] = []
     for arm in ARMS:
         for kappa in KAPPA_GRID:
             cells = regimes(df, kappa, arm.tag)
@@ -481,7 +486,7 @@ def print_dose(dr: pd.DataFrame, title: str) -> None:
 
 
 def scale(df: pd.DataFrame) -> pd.DataFrame:
-    rows: list[dict] = []
+    rows: list[dict[str, object]] = []
     df = df.copy()
     df["logN_c"] = df["logN"] - df["logN"].mean()
 

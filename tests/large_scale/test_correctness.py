@@ -7,6 +7,8 @@ that value rather than a golden number captured from a previous run.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pytest
 
@@ -27,6 +29,11 @@ from tpp_large_scale.model.fitting import (
 )
 from tpp_large_scale.model.grid import FitArrays, LogBandAssigner, TrainingGrid
 from tpp_large_scale.upstream import chinchilla_loss, compute_tauK, compute_VK
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import pandas as pd
 
 
 class TestUpstreamReuse:
@@ -252,23 +259,23 @@ class TestBandAssignment:
 
 
 class TestTrainingGrid:
-    def test_envelope_takes_the_minimum_loss_per_cell(self, tiny_runs_frame) -> None:
+    def test_envelope_takes_the_minimum_loss_per_cell(self, tiny_runs_frame: pd.DataFrame) -> None:
         grid = TrainingGrid(tiny_runs_frame)
         # Each (N, D) cell has two LR values with losses 5.0 and 5.4.
         assert grid.envelope["L"].max() == pytest.approx(5.0)
         assert len(grid.envelope) == 4
 
-    def test_missing_columns_are_reported(self, tiny_runs_frame) -> None:
+    def test_missing_columns_are_reported(self, tiny_runs_frame: pd.DataFrame) -> None:
         with pytest.raises(ValueError, match="missing columns"):
             TrainingGrid(tiny_runs_frame.drop(columns=["tokens"]))
 
-    def test_unknown_architecture_is_reported(self, tiny_runs_frame) -> None:
+    def test_unknown_architecture_is_reported(self, tiny_runs_frame: pd.DataFrame) -> None:
         frame = tiny_runs_frame.copy()
         frame.loc[0, "d_model"] = 999
         with pytest.raises(KeyError, match="non-embedding parameter count"):
             TrainingGrid(frame)
 
-    def test_all_unfinished_runs_is_an_error(self, tiny_runs_frame) -> None:
+    def test_all_unfinished_runs_is_an_error(self, tiny_runs_frame: pd.DataFrame) -> None:
         frame = tiny_runs_frame.copy()
         frame["has_final"] = False
         with pytest.raises(ValueError, match="no finished runs"):
@@ -297,6 +304,6 @@ class TestTrainingGrid:
         arrays = grid.arrays
         np.testing.assert_allclose(arrays.ratios, arrays.d / arrays.n)
 
-    def test_missing_csv_is_reported(self, tmp_path) -> None:
+    def test_missing_csv_is_reported(self, tmp_path: Path) -> None:
         with pytest.raises(FileNotFoundError):
             TrainingGrid.from_csv(tmp_path / "nope.csv")

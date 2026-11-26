@@ -8,6 +8,8 @@ repeatable.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pytest
 
@@ -26,6 +28,9 @@ from tpp_large_scale.experiments.sections import (
     RobustnessSection,
 )
 from tpp_large_scale.experiments.trials import Design, run_comparison
+
+if TYPE_CHECKING:
+    from tpp_large_scale.model.grid import FitArrays
 
 
 def _square(value: int) -> int:
@@ -55,7 +60,7 @@ class TestExecutorOrdering:
 
 
 class TestFitReproducibility:
-    def test_same_seed_gives_bit_identical_fit(self, envelope_arrays) -> None:
+    def test_same_seed_gives_bit_identical_fit(self, envelope_arrays: FitArrays) -> None:
         fitter = LawFitter(restarts=40, global_search=False)
         first = fitter.fit(CHINCHILLA, envelope_arrays, seed=123)
         second = fitter.fit(CHINCHILLA, envelope_arrays, seed=123)
@@ -63,7 +68,7 @@ class TestFitReproducibility:
         np.testing.assert_array_equal(first.params, second.params)
         assert first.sse == second.sse
 
-    def test_different_seeds_explore_differently(self, envelope_arrays) -> None:
+    def test_different_seeds_explore_differently(self, envelope_arrays: FitArrays) -> None:
         fitter = LawFitter(restarts=5, global_search=False)
         a = fitter.fit(CHINCHILLA, envelope_arrays, seed=1)
         b = fitter.fit(CHINCHILLA, envelope_arrays, seed=2)

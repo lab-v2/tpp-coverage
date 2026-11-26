@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """Cell-level bootstrap, flat-parallel.
 
-Resamples TRAINED CELLS (within N row), rebuilds the CO subsets and matched NC
-bbox from the resampled pool, refits. Cell-level sampling uncertainty therefore
-propagates, unlike the design-clustered bootstrap which treats 226 subsets built
-from ~39 cells as independent.
+Resamples TRAINED CELLS (within N row), rebuilds the CO subsets and matched NC bbox from
+the resampled pool, refits. Cell-level sampling uncertainty therefore propagates, unlike the
+design-clustered bootstrap, which treats 226 subsets built from ~39 cells as independent.
 
-PERFORMANCE: design construction (resample -> bins -> subsets -> select_nc_bbox)
-is pure bookkeeping and runs serially in a few seconds. Every (replicate, subset)
-FIT is then a separate job in ONE flat pool, so all cores stay busy. Mapping over
-replicates instead leaves cores idle -- 60 replicates cannot fill hundreds of workers.
+PERFORMANCE: design construction (resample -> bins -> subsets -> select_nc_bbox) is pure
+bookkeeping and runs serially in a few seconds. Every (replicate, subset) FIT is then a
+separate job in ONE flat pool, so all cores stay busy. Mapping over replicates instead
+leaves cores idle -- 60 replicates cannot fill hundreds of workers.
 
 GATE: the cell-level interval must be WIDER than the design-clustered one.
 """
+
+from __future__ import annotations
 
 import sys
 import os

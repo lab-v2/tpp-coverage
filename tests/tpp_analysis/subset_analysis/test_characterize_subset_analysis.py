@@ -9,6 +9,8 @@ rendered.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import sys
 from pathlib import Path
 
@@ -17,6 +19,9 @@ import pytest
 
 from characterize import FigureCapture, check_frozen, released
 from conftest import ANALYSIS, pool_width, run
+
+if TYPE_CHECKING:
+    from types import ModuleType
 
 pytestmark = pytest.mark.network
 FROZEN = Path(__file__).parent / "frozen"
@@ -39,7 +44,7 @@ def seed_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return out
 
 
-def _main(module, argv: list[str], monkeypatch) -> None:
+def _main(module: ModuleType, argv: list[str], monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(sys, "argv", [module.__file__, *map(str, argv)])
     module.main()
 

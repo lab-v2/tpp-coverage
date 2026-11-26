@@ -6,12 +6,17 @@ are the base commit's outputs, frozen in `frozen/` (see `tests/characterize.py`)
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
 from characterize import FigureCapture, check_frozen, released, released_fits
+
+if TYPE_CHECKING:
+    from scaling_laws.data import PreparedData
 
 pytestmark = pytest.mark.network
 FROZEN = Path(__file__).parent / "frozen"
@@ -31,7 +36,7 @@ def fits() -> list[dict[str, object]]:
 
 
 @pytest.fixture(scope="module")
-def wiki(losses: Path):
+def wiki(losses: Path) -> PreparedData:
     from scaling_laws.data import load_and_prepare
 
     return load_and_prepare(str(losses / "wikipedia.csv"), "Wikipedia", verbose=False)
@@ -76,7 +81,7 @@ def test_tables(fits: list[dict[str, object]]) -> None:
     )
 
 
-def test_exploration_figures(losses, wiki, tmp_path):
+def test_exploration_figures(losses: Path, wiki: PreparedData, tmp_path: Path) -> None:
     from scaling_laws import visualization as viz
 
     csv = str(losses / "wikipedia.csv")
@@ -88,7 +93,7 @@ def test_exploration_figures(losses, wiki, tmp_path):
     check_frozen(FROZEN / "exploration_figures.json", cap.figures)
 
 
-def test_surface_figures(fits, wiki):
+def test_surface_figures(fits: list[dict[str, object]], wiki: PreparedData) -> None:
     from scaling_laws import visualization as viz
 
     with FigureCapture() as cap:
@@ -96,7 +101,7 @@ def test_surface_figures(fits, wiki):
     check_frozen(FROZEN / "surface_figures.json", cap.figures)
 
 
-def test_isoflop_figures(fits, wiki):
+def test_isoflop_figures(fits: list[dict[str, object]], wiki: PreparedData) -> None:
     from scaling_laws import visualization as viz
 
     with FigureCapture() as cap:
@@ -108,7 +113,7 @@ def test_isoflop_figures(fits, wiki):
     check_frozen(FROZEN / "isoflop_figures.json", cap.figures)
 
 
-def test_dual_blanket_figures(fits, wiki):
+def test_dual_blanket_figures(fits: list[dict[str, object]], wiki: PreparedData) -> None:
     from scaling_laws import visualization as viz
 
     with FigureCapture() as cap:

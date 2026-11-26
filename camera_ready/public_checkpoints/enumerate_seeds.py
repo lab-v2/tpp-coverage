@@ -148,7 +148,7 @@ def _init_worker(runs: pd.DataFrame, n_restarts: int) -> None:
     A.repo.N_RESTARTS = n_restarts
 
 
-def _margins(ks: Sequence[float]) -> dict:
+def _margins(ks: Sequence[float]) -> dict[str, float]:
     rats = A.merged_ratios(list(ks))
     out = {"K": len(rats)}
     for beta in A.BETA_GRID:
@@ -158,7 +158,7 @@ def _margins(ks: Sequence[float]) -> dict:
     return out
 
 
-def _rows_for(task: Task) -> list[dict]:
+def _rows_for(task: Task) -> list[dict[str, object]]:
     runs: pd.DataFrame = _STATE["runs"]
     grp = runs[runs["cell"] == task.cell]
     split = A.Split.from_window(grp[grp["N"].isin(task.sizes)])
@@ -178,7 +178,7 @@ def _rows_for(task: Task) -> list[dict]:
     n_gm = float(np.exp(np.mean(np.log(task.sizes))))
     co_marg = _margins(runs.loc[co_idx, "k"].tolist())
 
-    out: list[dict] = []
+    out: list[dict[str, object]] = []
     for seed in range(task.seed_lo, task.seed_hi):
         bbox_seed = A.repo.stable_hash(task.cell, task.win_index, task.ray, 1, seed) & 0x7FFFFFFF
         nc_runs, *_ = A.repo.select_nc_bbox(
@@ -237,7 +237,7 @@ def _rows_for(task: Task) -> list[dict]:
             row["CO_k_min"] = float(runs.loc[co_idx, "k"].min())
             row["CO_k_max"] = float(runs.loc[co_idx, "k"].max())
 
-            def gap(num, den):
+            def gap(num: float, den: float) -> float:
                 return (
                     float(np.log10(num / den))
                     if np.isfinite(num) and np.isfinite(den) and den > 0
