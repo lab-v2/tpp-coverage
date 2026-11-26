@@ -121,28 +121,17 @@ def _draw_boundary_edges_occlusion(
             if end - start < 2:
                 continue
             slc = slice(start, end)
-            if in_front[start]:
-                ax.plot(
-                    n_arr[slc],
-                    d_arr[slc],
-                    z_self[slc],
-                    color=color,
-                    lw=lw_top,
-                    alpha=alpha_top,
-                    linestyle="-",
-                    zorder=3,
-                )
-            else:
-                ax.plot(
-                    n_arr[slc],
-                    d_arr[slc],
-                    z_self[slc],
-                    color=color,
-                    lw=lw_under,
-                    alpha=alpha_under,
-                    linestyle="--",
-                    zorder=1,
-                )
+            front = in_front[start]  # solid on top, dashed where the other surface hides it
+            ax.plot(
+                n_arr[slc],
+                d_arr[slc],
+                z_self[slc],
+                color=color,
+                lw=lw_top if front else lw_under,
+                alpha=alpha_top if front else alpha_under,
+                linestyle="-" if front else "--",
+                zorder=3 if front else 1,
+            )
 
     front_edges = [
         (L_self_clip[:, -1], N_mesh[:, -1], D_mesh[:, -1]),

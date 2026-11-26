@@ -27,6 +27,8 @@ NOT a single seed_N/ directory.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import argparse
 import re
 import sys
@@ -37,6 +39,10 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
 
 
 # Font sizing: 1.5× for paper readability, captions do the titling
@@ -763,6 +769,44 @@ def plot_small_multiples_ci(
     plt.close(fig)
 
 
+def _bar_row(g: pd.DataFrame, law: str, kt_values: tuple[float, ...]) -> dict[str, np.ndarray]:
+    """One law's bars: the aggregate rows nearest each decade kappa_target."""
+    sub = g[g["law"] == law].set_index("kappa_target")
+    nearest = [sub.index[np.argmin(np.abs(sub.index - kt))] for kt in kt_values]
+    rows = sub.loc[nearest]
+    return {
+        "kt": np.array(kt_values),
+        "mean": rows["mean_nc_wins_pct"].values,
+        "lo": rows["ci_lo"].values,
+        "hi": rows["ci_hi"].values,
+        "n_seeds": rows["n_seeds_valid"].values,
+        "regime_A": rows["mean_regime_A_size"].values,
+    }
+
+
+def _finish_bars(
+    fig: Figure,
+    ax: Axes,
+    x_base: np.ndarray,
+    kt_values: tuple[float, ...],
+    out_dir: Path,
+    name: str,
+) -> None:
+    """Axes, legend and grid of the bar chart; saved as name.pdf and name.png, then closed."""
+    ax.axhline(50, color="black", linestyle=":", linewidth=1.0, alpha=0.5, zorder=0)
+    ax.set_xticks(x_base)
+    ax.set_xticklabels([rf"$10^{{{int(np.log10(k))}}}$" for k in kt_values])
+    ax.set_xlabel(r"$\kappa_{\mathrm{target}}$")
+    ax.set_ylabel("NC-wins % within predicted Regime A (mean ± 95% CI)")
+    _percent_ylim(ax, top=115.0)
+    ax.legend(loc="upper right")
+    ax.grid(True, axis="y", alpha=0.25, linewidth=0.5)
+    fig.tight_layout()
+    for ext in ("pdf", "png"):
+        fig.savefig(out_dir / f"{name}.{ext}", bbox_inches="tight")
+    plt.close(fig)
+
+
 def plot_bars_ci(
     agg_law: pd.DataFrame,
     out_dir: Path,
@@ -777,17 +821,7 @@ def plot_bars_ci(
 
     bar_data = {}
     for law in laws:
-        sub = g[g["law"] == law].set_index("kappa_target")
-        nearest = [sub.index[np.argmin(np.abs(sub.index - kt))] for kt in kt_values]
-        rows = sub.loc[nearest]
-        bar_data[law] = {
-            "kt": np.array(kt_values),
-            "mean": rows["mean_nc_wins_pct"].values,
-            "lo": rows["ci_lo"].values,
-            "hi": rows["ci_hi"].values,
-            "n_seeds": rows["n_seeds_valid"].values,
-            "regime_A": rows["mean_regime_A_size"].values,
-        }
+        bar_data[law] = _bar_row(g, law, kt_values)
 
     fig, ax = plt.subplots(figsize=(11 * 1.6, 6 * 1.6))
     n_kt = len(kt_values)
@@ -828,18 +862,7 @@ def plot_bars_ci(
                 fontsize=8,
             )
 
-    ax.axhline(50, color="black", linestyle=":", linewidth=1.0, alpha=0.5, zorder=0)
-    ax.set_xticks(x_base)
-    ax.set_xticklabels([rf"$10^{{{int(np.log10(k))}}}$" for k in kt_values])
-    ax.set_xlabel(r"$\kappa_{\mathrm{target}}$")
-    ax.set_ylabel("NC-wins % within predicted Regime A (mean ± 95% CI)")
-    _percent_ylim(ax, top=115.0)
-    ax.legend(loc="upper right")
-    ax.grid(True, axis="y", alpha=0.25, linewidth=0.5)
-    fig.tight_layout()
-    for ext in ("pdf", "png"):
-        fig.savefig(out_dir / f"winrate_bars_with_ci_{mode}.{ext}", bbox_inches="tight")
-    plt.close(fig)
+    _finish_bars(fig, ax, x_base, kt_values, out_dir, f"winrate_bars_with_ci_{mode}")
 
 
 # ─────────────────────────────────────────────────────────────────────────
