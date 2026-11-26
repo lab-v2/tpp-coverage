@@ -1,8 +1,9 @@
-"""Characterization of `incremental_coverage`: the step builders, the incremental fits and the plots.
+"""Characterization of `incremental_coverage`: the step builders, the incremental fits, the plots.
 
-Inputs are the released Wikipedia loss table. The plots draw from `frozen/incremental_wikipedia.parquet`,
-the base commit's `run_full_incremental` output for every law (1 restart), written when the frozen
-files are (TPP_FREEZE=1); the other expected values are frozen in `frozen/*.json`.
+Inputs are the released Wikipedia loss table. The plots draw from
+`frozen/incremental_wikipedia.parquet`, the base commit's `run_full_incremental` output for every
+law (1 restart), written when the frozen files are (TPP_FREEZE=1); the other expected values are
+frozen in `frozen/*.json`.
 """
 
 from __future__ import annotations

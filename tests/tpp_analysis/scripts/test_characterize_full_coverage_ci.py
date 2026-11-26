@@ -2,7 +2,8 @@
 
 The tables are built from the released per-seed fits (`full_coverage_all_seeds.parquet`); the fits
 run on the released Wikipedia loss table with 2 seeds of 1 restart. Expected values are the base
-commit's outputs, frozen in `frozen/` (see `tests/characterize.py`).
+commit's outputs, frozen in `frozen/full_coverage_ci/` (see
+`tests/characterize.py`).
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import pytest
 from characterize import check_frozen, released
 
 pytestmark = pytest.mark.network
-FROZEN = Path(__file__).parent / "frozen"
+FROZEN = Path(__file__).parent / "frozen" / "full_coverage_ci"
 
 
 @pytest.fixture(scope="module")
@@ -30,7 +31,7 @@ def test_tables(seeds):
     summary = fc.build_summary_table(seeds)
     per_combo_wins, winrate = fc.build_winrate_table(seeds)
     check_frozen(
-        FROZEN / "full_coverage_ci_tables.json",
+        FROZEN / "tables.json",
         {
             "summary": summary,
             "per_combo": fc.build_per_combo_table(seeds),
@@ -64,4 +65,4 @@ def test_seeded_fits_and_cache(tmp_path):
     cached = fc.run_all_full_coverage(data, modes=["final"], save_dir=str(tmp_path), **kwargs)
     pd.testing.assert_frame_equal(fresh, cached)
     assert len(list(tmp_path.glob("pci_fullcov_*.parquet"))) == 6
-    check_frozen(FROZEN / "full_coverage_ci_fits.json", fresh)
+    check_frozen(FROZEN / "fits.json", fresh)

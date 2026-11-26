@@ -2,7 +2,7 @@
 
 The fits run on the released Wikipedia loss table (2 seeds of 1 restart per step); the plot also
 draws the released seed-variance results. Expected values are the base commit's outputs, frozen
-in `frozen/` (see `tests/characterize.py`).
+in `frozen/seed_variance/` (see `tests/characterize.py`).
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ import pytest
 from characterize import FigureCapture, check_frozen, released
 
 pytestmark = pytest.mark.network
-FROZEN = Path(__file__).parent / "frozen"
+FROZEN = Path(__file__).parent / "frozen" / "seed_variance"
 
 
 @pytest.fixture(scope="module")
@@ -36,7 +36,7 @@ def test_convergence(wiki, law, mode):
     import seed_variance as sv
 
     df = sv.run_seed_variance_convergence(wiki, law_name=law, mode=mode, n_seeds=2, n_restarts=1)
-    check_frozen(FROZEN / f"seed_variance_{law}_{mode}.json", df)
+    check_frozen(FROZEN / f"{law}_{mode}.json", df)
 
 
 def test_run_and_plot(wiki, tmp_path):
@@ -65,4 +65,4 @@ def test_run_and_plot(wiki, tmp_path):
     saved = pd.read_parquet(tmp_path / "seed_variance_Wikipedia_Kaplan_final.parquet")
     pd.testing.assert_frame_equal(saved, df)
     assert (tmp_path / "seed_variance_Wikipedia_Kaplan_final.pdf").exists()
-    check_frozen(FROZEN / "seed_variance_plots.json", cap.figures)
+    check_frozen(FROZEN / "plots.json", cap.figures)
