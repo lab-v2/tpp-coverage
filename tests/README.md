@@ -8,7 +8,7 @@ component of the same name; `conftest.py` holds the shared paths and helpers.
 | Folder | Tests |
 |---|---|
 | `tpp_analysis/` | `src/tpp_analysis/`: law recovery on synthetic data, the Skaling law, the job generator against the released runs, the anonymous download, the paper's main analysis refit from scratch against the released results, and characterization tests of the analysis modules (subfolders mirror `src/tpp_analysis/`; `scripts/` holds its top-level scripts) |
-| `training_models/` | `src/training_models/`: the trainer's loss masking, gradient accumulation, optimizers and schedules |
+| `training_models/` | `src/training_models/`: the trainer's loss masking, gradient accumulation, optimizers and schedules, and characterization tests (subfolders mirror `src/training_models/`; `trainer_run/` trains on a GPU) |
 | `large_scale/` | `large_scale/` and `src/tpp_large_scale/`: correctness, determinism, the pipeline |
 | `camera_ready/` | `camera_ready/`: both analyses rerun against their committed outputs |
 | `cluster/` | `cluster/`: the task generator, the queue scripts and the audit |
@@ -31,7 +31,22 @@ revision) and compare their tables, CSVs, fits and figure data with the base com
 frozen in `frozen/` beside each test. They pin behaviour for refactors; `TPP_FREEZE=1` refreezes
 them, on the base commit only. Figures are compared by their data, never by image bytes.
 
+The `training_models/` ones compare what the code returns and writes with the
+base commit's outputs, frozen in `frozen/` beside each test (helpers in `characterize.py`;
+`TPP_FREEZE=1` refreezes them, on the base commit only). `models/`, `core/`, `utils/`, `distributed/`
+and `training/` run on the CPU: seeded models on the LICENSE's text, the pre-tokenized dataset and
+loaders, the checkpoint and metrics files and the resume helpers. `trainer_run/` runs
+`dist_trainer_main.py` itself, which needs CUDA and nccl: three two-epoch runs of a one-layer
+model on the first 64 rows of the real Wikipedia corpus, compared by checkpoint tensors, loss
+arrays and metadata (found by glob, never by file bytes or names, which carry time stamps).
+
 Tests marked `network` download public data from HuggingFace; `slow` ones run the full grid.
+Tests marked `gpu` are skipped where torch sees no CUDA device, as on the CI hosts. On a GPU host,
+with the CUDA build of the locked torch (`uv pip install --reinstall --extra-index-url
+https://download.pytorch.org/whl/cu124 torch==2.5.1` after `uv sync --locked`; the locked aarch64
+wheel is CPU-only) and `DATA_DIR` holding `wikipedia/{train,val}_{tokens,lengths}.bin`, run them
+alone: `DATA_DIR=<corpora> .venv/bin/python -m pytest -n 0 -m gpu` (about 30 s on a GH200; their
+frozen values were taken on a GH200 with torch 2.5.1+cu124).
 The `paper` test refits the paper's main analysis on every thread, so the default run leaves it out
 and it runs alone: `uv run pytest -n 0 -m paper` (CI runs both).
 
