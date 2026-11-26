@@ -4,27 +4,17 @@
 EXHAUSTIVE TPP SUBSET ANALYSIS  -  BOUNDING-BOX NC GRID  (seeded)
 ════════════════════════════════════════════════════════════════════
 
-Identical to subset_analysis_bbox.py except it takes a --seed N flag
-which offsets the fit RNG and the NC-bbox RNG so the entire run is
-reproducible AND varies consistently across seeds.
-
-Seed-zero reproduces the original paper run exactly:
-  FIT_SEED_BASE = 42      (was hardcoded 42 in original)
-  bbox_seed = hash(...)   (args.seed XORs with 0, no change)
-
-Any nonzero seed produces a fully independent realization:
-  FIT_SEED = 42 + args.seed * 100003
-  bbox_seed = hash(...) ^ (args.seed * 2654435761)
-
-The holdout sampling seed is intentionally NOT varied - holdout
-composition is part of the experimental definition, not a pipeline
-knob.
-
-Output layout:
-  <out-dir>/seed_<N>/subset_bbox_<dataset>.csv
-
-Aggregator reads <out-dir>/seed_*/subset_bbox_*.csv.
+Identical to subset_analysis_bbox.py except that a --seed N flag offsets the fit RNG and
+the NC-bbox RNG, so the run is reproducible AND varies consistently across seeds. Seed zero
+reproduces the original paper run exactly (FIT_SEED_BASE = 42, as hardcoded in the original;
+bbox_seed = hash(...) XOR 0). Any nonzero seed gives an independent realization:
+FIT_SEED = 42 + seed * 100003 and bbox_seed = hash(...) ^ (seed * 2654435761). The holdout
+sampling seed is intentionally NOT varied: holdout composition is part of the experimental
+definition, not a pipeline setting. Output goes to <out-dir>/seed_<N>/subset_bbox_<dataset>.csv,
+which the aggregator reads as <out-dir>/seed_*/subset_bbox_*.csv.
 """
+
+from __future__ import annotations
 
 import os
 import sys
@@ -100,7 +90,7 @@ def current_fit_seed() -> int:
     return FIT_SEED_BASE + GLOBAL_SEED * FIT_SEED_STRIDE
 
 
-def stable_hash(*args) -> int:
+def stable_hash(*args: object) -> int:
     """Deterministic 31-bit hash independent of PYTHONHASHSEED.
     Python's built-in hash() is salted per interpreter process, so it
     cannot be used to reproduce results across machines or across
@@ -122,10 +112,12 @@ def bbox_seed_for(ds_name: str, mode: str, mask_int: int) -> int:
 # ════════════════════════════════════════════════════════════════
 
 
-def _fit_kaplan(N, D, L):
+def _fit_kaplan(
+    N: np.ndarray, D: np.ndarray, L: np.ndarray
+) -> tuple[np.ndarray | None, float, bool]:
     bounds = [(1e3, 1e14), (1e3, 1e14), (0.01, 2.0), (0.01, 2.0)]
 
-    def sampler(rng, L):
+    def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
         return [
             10 ** rng.uniform(5, 12),
             10 ** rng.uniform(5, 12),
@@ -136,10 +128,12 @@ def _fit_kaplan(N, D, L):
     return _fit_generic(kaplan_loss, N, D, L, bounds, sampler, N_RESTARTS, seed=current_fit_seed())
 
 
-def _fit_chinchilla(N, D, L):
+def _fit_chinchilla(
+    N: np.ndarray, D: np.ndarray, L: np.ndarray
+) -> tuple[np.ndarray | None, float, bool]:
     bounds = [(0.0, 10.0), (1e-2, 1e10), (0.01, 2.0), (1e-2, 1e10), (0.01, 2.0)]
 
-    def sampler(rng, L):
+    def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
         return [
             rng.uniform(0.0, min(L) * 0.9),
             10 ** rng.uniform(0, 8),
@@ -153,7 +147,9 @@ def _fit_chinchilla(N, D, L):
     )
 
 
-def _fit_droppo_elibol(N, D, L):
+def _fit_droppo_elibol(
+    N: np.ndarray, D: np.ndarray, L: np.ndarray
+) -> tuple[np.ndarray | None, float, bool]:
     bounds = [
         (1e-6, min(L) * 0.99),
         (1e3, 1e14),
@@ -163,7 +159,7 @@ def _fit_droppo_elibol(N, D, L):
         (0.01, 2.0),
     ]
 
-    def sampler(rng, L):
+    def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
         return [
             rng.uniform(0.01, min(L) * 0.8),
             10 ** rng.uniform(5, 12),
@@ -190,18 +186,18 @@ FITTERS = {
 # ════════════════════════════════════════════════════════════════
 
 
-def compute_VK(ks, beta_eff):
+def compute_VK(ks: list[float], beta_eff: float) -> float:
     vals = np.asarray(ks, dtype=float) ** (-beta_eff)
     return np.mean(vals**2) - np.mean(vals) ** 2
 
 
-def compute_tauK(ks, beta_eff, kappa_target):
+def compute_tauK(ks: list[float], beta_eff: float, kappa_target: float) -> float:
     K = len(ks)
     s2b = np.sum(np.asarray(ks, dtype=float) ** (-2 * beta_eff))
     return (K + s2b) ** 2 / (K**2 * kappa_target)
 
 
-def classify_regime(VK, tauK):
+def classify_regime(VK: float, tauK: float) -> str:
     return "B" if VK >= tauK else "A"
 
 
@@ -210,12 +206,14 @@ def classify_regime(VK, tauK):
 # ════════════════════════════════════════════════════════════════
 
 
-def discover_co_tpp_levels(co_train, mode):
+def discover_co_tpp_levels(co_train: list[dict[str, object]], mode: str) -> list[float]:
     binned = assign_tpp_bins(co_train, mode=mode)
     return sorted(set(binned))
 
 
-def select_co_runs(co_train, tpp_levels_to_keep, mode):
+def select_co_runs(
+    co_train: list[dict[str, object]], tpp_levels_to_keep: list[float], mode: str
+) -> list[dict[str, object]]:
     binned = assign_tpp_bins(co_train, mode=mode)
     keep = set(tpp_levels_to_keep)
     return [r for r, t in zip(co_train, binned) if t in keep]
@@ -226,7 +224,15 @@ def select_co_runs(co_train, tpp_levels_to_keep, mode):
 # ════════════════════════════════════════════════════════════════
 
 
-def _priority_subsample(ring, needed, run_tpp, target_tpp_set, covered_tpps, covered_any, rng):
+def _priority_subsample(
+    ring: list[dict[str, object]],
+    needed: int,
+    run_tpp: dict[int, float],
+    target_tpp_set: set[float],
+    covered_tpps: set[float],
+    covered_any: set[float],
+    rng: np.random.RandomState,
+) -> list[dict[str, object]]:
     bucket_a, bucket_b, bucket_c = [], [], []
     for r in ring:
         t = run_tpp[id(r)]
@@ -242,7 +248,13 @@ def _priority_subsample(ring, needed, run_tpp, target_tpp_set, covered_tpps, cov
     return (bucket_a + bucket_b + bucket_c)[:needed]
 
 
-def select_nc_bbox(target_n_points, target_tpps, run_tpp, grid_info, bbox_seed=42):
+def select_nc_bbox(
+    target_n_points: int,
+    target_tpps: list[float],
+    run_tpp: dict[int, float],
+    grid_info: dict[str, object],
+    bbox_seed: int = 42,
+) -> tuple[list[dict[str, object]], int, int, int, list[float], int, list[float]]:
     rng = np.random.RandomState(bbox_seed)
     target_tpp_set = set(target_tpps)
 
@@ -258,7 +270,7 @@ def select_nc_bbox(target_n_points, target_tpps, run_tpp, grid_info, bbox_seed=4
     covered_tpps = set()
     covered_any = set()
 
-    def _collect_new(nl, nh, dl, dh):
+    def _collect_new(nl: int, nh: int, dl: int, dh: int) -> list[dict[str, object]]:
         out = []
         for ni in range(nl, nh + 1):
             for di in range(dl, dh + 1):
@@ -267,7 +279,7 @@ def select_nc_bbox(target_n_points, target_tpps, run_tpp, grid_info, bbox_seed=4
                         out.append(r)
         return out
 
-    def _absorb(runs):
+    def _absorb(runs: list[dict[str, object]]) -> None:
         selected_list.extend(runs)
         for r in runs:
             selected_ids.add(id(r))
@@ -276,7 +288,7 @@ def select_nc_bbox(target_n_points, target_tpps, run_tpp, grid_info, bbox_seed=4
             if t in target_tpp_set:
                 covered_tpps.add(t)
 
-    def _score_ring(ring):
+    def _score_ring(ring: list[dict[str, object]]) -> tuple[int, int]:
         new_target, new_any = set(), set()
         for r in ring:
             t = run_tpp[id(r)]
@@ -382,8 +394,14 @@ _G = {}
 
 
 def _init_worker(
-    prepared_dict, holdout_dict, co_tpp_sorted, nc_train_dict, n_restarts, modes_list, global_seed
-):
+    prepared_dict: dict[str, dict[str, list[dict[str, object]]]],
+    holdout_dict: dict[tuple[str, str], tuple[np.ndarray, np.ndarray, np.ndarray]],
+    co_tpp_sorted: dict[tuple[str, str], list[float]],
+    nc_train_dict: dict[str, list[dict[str, object]]],
+    n_restarts: int,
+    modes_list: list[str],
+    global_seed: int,
+) -> None:
     _G["prepared"] = prepared_dict
     _G["holdouts"] = holdout_dict
     _G["co_tpp"] = co_tpp_sorted
@@ -423,7 +441,7 @@ def _init_worker(
 # ════════════════════════════════════════════════════════════════
 
 
-def _worker(job):
+def _worker(job: tuple[str, str, str, tuple[int, ...]]) -> list[dict[str, object]]:
     ds_name, law_name, mode, idx_tuple = job
     indices = list(idx_tuple)
     K = len(indices)
@@ -564,7 +582,7 @@ def _worker(job):
 # ════════════════════════════════════════════════════════════════
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser(description="Exhaustive TPP subset analysis (seeded bbox)")
     ap.add_argument(
         "--seed",
@@ -703,7 +721,7 @@ def main():
     buffers = {name: [] for name in prepared_light}
     flush_every = 500
 
-    def flush(ds):
+    def flush(ds: str) -> int:
         if not buffers[ds]:
             return 0
         csv_path = os.path.join(seed_out_dir, f"subset_bbox_{ds}.csv")

@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
@@ -69,7 +70,7 @@ def slope(
     df: pd.DataFrame,
     gap: str,
     delta: str,
-    cluster=("cell", "window"),
+    cluster: Sequence[str] = ("cell", "window"),
     n_boot: int = BIG,
     block: int = 1,
     seed: int = 20260802,
@@ -83,7 +84,7 @@ class Report:
     """The output rows, printed as they are recorded."""
 
     def __init__(self) -> None:
-        self.rows: list[dict] = []
+        self.rows: list[dict[str, object]] = []
 
     def add(self, corpus: str, spec: str, arm: str, e: Estimate, n_at: float = np.nan) -> None:
         self.rows.append(

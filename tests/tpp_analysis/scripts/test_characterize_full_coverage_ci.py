@@ -25,7 +25,7 @@ def seeds() -> pd.DataFrame:
     return pd.read_parquet(root / "full_coverage_results/full_coverage_all_seeds.parquet")
 
 
-def test_tables(seeds):
+def test_tables(seeds: pd.DataFrame) -> None:
     import full_coverage_ci as fc
 
     summary = fc.build_summary_table(seeds)
@@ -47,7 +47,7 @@ def test_tables(seeds):
     )
 
 
-def test_seeded_fits_and_cache(tmp_path):
+def test_seeded_fits_and_cache(tmp_path: Path) -> None:
     """Two seeds per (law, mode, design) on Wikipedia; a second call reads the cached parquets."""
     import full_coverage_ci as fc
     from scaling_laws.data import load_and_prepare

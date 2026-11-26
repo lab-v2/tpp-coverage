@@ -10,11 +10,13 @@ Scope deliberately narrowed:
   - Reports Wilson 95% CI on the NC win rate
 
 Data source: extracted_losses/wikipedia_bigtpp.csv, produced by
-download_and_extract.py with --include-special.
+download_and_extract.py with --include-prelim.
 
-Usage:
+Examples:
     python run_prelim_bigtpp.py --data-dir extracted_losses/ --n-workers 32
 """
+
+from __future__ import annotations
 
 import os
 import sys

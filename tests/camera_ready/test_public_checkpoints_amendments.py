@@ -32,7 +32,7 @@ FULL_X = WORK / "results_X_seeds512.csv.gz"
 WINDOWS = [WORK / f"results_E_win{v}.csv" for v in ("V1", "V2", "V3", "V4", "V7")]
 
 
-def rounded(row: pd.Series, cols=("pct", "pct_lo", "pct_hi")) -> list[int]:
+def rounded(row: pd.Series, cols: tuple[str, ...] = ("pct", "pct_lo", "pct_hi")) -> list[int]:
     return [round(row[c]) for c in cols]
 
 
@@ -44,7 +44,7 @@ def a5() -> pd.DataFrame:
     return pd.read_csv(RESULTS / "amendment5_1b.csv").set_index(["corpus", "spec", "arm"])
 
 
-def test_amendment5_as_printed(a5):
+def test_amendment5_as_printed(a5: pd.DataFrame) -> None:
     pre = "pre-registered (W1, window cluster)"
     centroid = "A5.4c smooth linear, at the >=1B centroid"
     e = a5.loc["E"]
@@ -77,7 +77,7 @@ def test_amendment5_as_printed(a5):
     assert round(x.loc[(centroid, "NC"), "N_at"] / 1e9, 1) == 1.9
 
 
-def test_amendment5_agrees_with_the_estimates(a5):
+def test_amendment5_agrees_with_the_estimates(a5: pd.DataFrame) -> None:
     """The pre-registered row and the b1 rows are the estimates_seeds512.csv rows, recomputed."""
     est = pd.read_csv(RESULTS / "estimates_seeds512.csv")
     for corpus in ("E", "X"):
@@ -101,7 +101,7 @@ def test_amendment5_agrees_with_the_estimates(a5):
     assert [round(b1[c].iloc[0]) for c in ("pct_512", "pct_lo_512", "pct_hi_512")] == [-25, -43, -8]
 
 
-def test_size_interaction_as_printed():
+def test_size_interaction_as_printed() -> None:
     ic = pd.read_csv(RESULTS / "interaction_check.csv").set_index(["corpus", "spec"])
     centre = ic.xs("b0, at the centre", level="spec")
     assert round(centre.loc["E", "N_centre"] / 1e7) * 10 == 630  # 630M on the five
@@ -115,7 +115,7 @@ def test_size_interaction_as_printed():
     np.testing.assert_allclose(centre["beta"], b0.loc[centre.index], rtol=1e-9)
 
 
-def test_three_study_estimate_as_printed():
+def test_three_study_estimate_as_printed() -> None:
     t = pd.read_csv(RESULTS / "three_study_pooled.csv").set_index(["seeds", "spec"])
     assert rounded(t.loc[(5, "pooled, no fixed effect")]) == [8, -1, 16]
     assert rounded(t.loc[(512, "pooled, no fixed effect")]) == [6, -4, 15]
@@ -129,7 +129,7 @@ def test_three_study_estimate_as_printed():
 # ── 2. each script on the committed slice, against a direct computation ────────────────────
 
 
-def test_three_study_pooled_on_slice(tmp_path):
+def test_three_study_pooled_on_slice(tmp_path) -> None:
     run(
         [
             "python",
@@ -157,7 +157,7 @@ def test_three_study_pooled_on_slice(tmp_path):
         assert out.loc[(seeds, "pooled, no fixed effect"), "n_pairs"] == ok.sum()
 
 
-def test_interaction_check_on_slice(tmp_path):
+def test_interaction_check_on_slice(tmp_path) -> None:
     run(
         [
             "python",
@@ -180,7 +180,7 @@ def test_interaction_check_on_slice(tmp_path):
     assert (out["n_pairs"] == len(d)).all()
 
 
-def test_amendment5_on_slice(tmp_path):
+def test_amendment5_on_slice(tmp_path) -> None:
     run(
         [
             "python",
@@ -219,7 +219,7 @@ def test_amendment5_on_slice(tmp_path):
 # ── 3. with the full tables, each script gives back its committed output ───────────────────
 
 
-def _needs(*paths):
+def _needs(*paths) -> pytest.MarkDecorator:
     missing = [str(p) for p in paths if not p.exists()]
     return pytest.mark.skipif(
         bool(missing),
@@ -235,13 +235,13 @@ def _needs(*paths):
     ],
 )
 @_needs(FULL_E, FULL_X)
-def test_full_small_scripts_reproduce(tmp_path, script, out, keys, args):
+def test_full_small_scripts_reproduce(tmp_path, script, out, keys, args) -> None:
     run(["python", SCRIPTS / script, "--out", tmp_path / out, *args], cwd=A2)
     assert_same_rows(pd.read_csv(tmp_path / out), pd.read_csv(RESULTS / out), keys)
 
 
 @_needs(FULL_E, FULL_X, *WINDOWS)
-def test_full_amendment5_reproduces(tmp_path):
+def test_full_amendment5_reproduces(tmp_path) -> None:
     run(["python", SCRIPTS / "amendment5_1b.py", "--out", tmp_path / "a.csv"], cwd=A2, timeout=3600)
     fresh, ref = pd.read_csv(tmp_path / "a.csv"), pd.read_csv(RESULTS / "amendment5_1b.csv")
     assert_same_rows(fresh, ref, ["corpus", "spec", "arm"])

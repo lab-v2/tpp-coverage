@@ -25,7 +25,7 @@ SEEDS, DATASETS = (0, 1), ("C4", "Wikipedia")
 
 
 @pytest.fixture(scope="module")
-def seed_dir(tmp_path_factory) -> Path:
+def seed_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """A seed directory (seed_0/, seed_1/) linking the released per-seed subset results."""
     patterns = [f"subset_bbox_seeds/seed_{s}/subset_bbox_{d}.csv" for s in SEEDS for d in DATASETS]
     root = released(*patterns) / "subset_bbox_seeds"
@@ -44,11 +44,13 @@ def _main(module, argv: list[str], monkeypatch) -> None:
     module.main()
 
 
-def _csvs(out: Path) -> dict:
+def _csvs(out: Path) -> dict[str, pd.DataFrame]:
     return {p.name: pd.read_csv(p) for p in sorted(out.glob("*.csv"))}
 
 
-def test_aggregate_seed_runs(seed_dir, tmp_path, monkeypatch):
+def test_aggregate_seed_runs(
+    seed_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from matplotlib.figure import Figure
 
     from subset_analysis import aggregate_seed_runs as agg
@@ -63,7 +65,7 @@ def test_aggregate_seed_runs(seed_dir, tmp_path, monkeypatch):
     )
 
 
-def test_aggregate_helpers():
+def test_aggregate_helpers() -> None:
     from subset_analysis import aggregate_seed_runs as agg
 
     check_frozen(
@@ -80,7 +82,7 @@ def test_aggregate_helpers():
     )
 
 
-def test_aggregate_released_seeds():
+def test_aggregate_released_seeds() -> None:
     """The bootstrap aggregation over all released seeds (the per-seed sweep by law)."""
     from subset_analysis import aggregate_seed_runs as agg
 
@@ -97,7 +99,9 @@ def test_aggregate_released_seeds():
     )
 
 
-def test_per_law_winrate_ci(seed_dir, tmp_path, monkeypatch):
+def test_per_law_winrate_ci(
+    seed_dir: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from subset_analysis import per_law_winrate_ci as pl
 
     for mode in ("first", "final"):
@@ -110,7 +114,7 @@ def test_per_law_winrate_ci(seed_dir, tmp_path, monkeypatch):
         check_frozen(FROZEN / f"per_law_winrate_ci_{mode}.json", _csvs(out))
 
 
-def test_subset_analysis_bbox_seeded(tmp_path):
+def test_subset_analysis_bbox_seeded(tmp_path: Path) -> None:
     losses = released("extracted_losses/c4.csv") / "extracted_losses"
     args = [
         "--data-dir",

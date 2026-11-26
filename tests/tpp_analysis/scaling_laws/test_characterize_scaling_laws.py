@@ -23,7 +23,7 @@ def losses() -> Path:
 
 
 @pytest.fixture(scope="module")
-def fits() -> list[dict]:
+def fits() -> list[dict[str, object]]:
     root = released("full_coverage_results/full_coverage_all_seeds.parquet")
     return released_fits(
         pd.read_parquet(root / "full_coverage_results/full_coverage_all_seeds.parquet")
@@ -31,14 +31,14 @@ def fits() -> list[dict]:
 
 
 @pytest.fixture(scope="module")
-def wiki(losses):
+def wiki(losses: Path):
     from scaling_laws.data import load_and_prepare
 
     return load_and_prepare(str(losses / "wikipedia.csv"), "Wikipedia", verbose=False)
 
 
 @pytest.mark.slow
-def test_run_full_analysis(losses):
+def test_run_full_analysis(losses: Path) -> None:
     """Every law, design and epoch mode fitted on the Wikipedia table (2 restarts each)."""
     from scaling_laws import run_full_analysis
 
@@ -46,7 +46,7 @@ def test_run_full_analysis(losses):
     check_frozen(FROZEN / "run_full_analysis_wikipedia.json", results)
 
 
-def test_single_epoch_fits_on_filtered_data(losses):
+def test_single_epoch_fits_on_filtered_data(losses: Path) -> None:
     """Final mode only, on the lowest-loss half of the C4 training runs."""
     from scaling_laws import load_and_prepare, run_dataset_fits
 
@@ -59,7 +59,7 @@ def test_single_epoch_fits_on_filtered_data(losses):
     )
 
 
-def test_tables(fits):
+def test_tables(fits: list[dict[str, object]]) -> None:
     from scaling_laws import tables
 
     check_frozen(

@@ -180,20 +180,24 @@ class DesignPair:
     ncm_idx: list[int] = field(default_factory=list)
 
 
-def _grid_info(core: pd.DataFrame) -> tuple[dict, list[dict]]:
+def _grid_info(
+    core: pd.DataFrame,
+) -> tuple[dict[str, object], list[dict[str, float]]]:
     """Build the (sorted N) x (sorted D) index grid the repo's selector consumes."""
     runs = [{"N": float(r.N), "D": float(r.D), "_row": int(r.Index)} for r in core.itertuples()]
     all_N = sorted({r["N"] for r in runs})
     all_D = sorted({r["D"] for r in runs})
     n_idx = {v: i for i, v in enumerate(all_N)}
     d_idx = {v: i for i, v in enumerate(all_D)}
-    grid: dict[tuple[int, int], list[dict]] = {}
+    grid: dict[tuple[int, int], list[dict[str, float]]] = {}
     for r in runs:
         grid.setdefault((n_idx[r["N"]], d_idx[r["D"]]), []).append(r)
     return {"m": len(all_N), "n": len(all_D), "grid": grid}, runs
 
 
-def enumerate_pairs(window: Window, split: Split, n_rays_variants=(1, 2)) -> Iterator[DesignPair]:
+def enumerate_pairs(
+    window: Window, split: Split, n_rays_variants: tuple[int, ...] = (1, 2)
+) -> Iterator[DesignPair]:
     """CRITERIA W5/W6: every admissible ray, budget-matched NC from the same core."""
     core = split.core
     if core.empty:
@@ -297,7 +301,7 @@ def _subsample(idx: Sequence[int], seed: int) -> tuple[list[int], list[int]]:
     return keep, drop
 
 
-_STATE: dict = {}
+_STATE: dict[str, object] = {}
 
 
 def _init_worker(table: pd.DataFrame, n_restarts: int) -> None:

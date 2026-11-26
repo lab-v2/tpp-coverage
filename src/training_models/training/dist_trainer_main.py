@@ -1,7 +1,7 @@
+from __future__ import annotations
 import argparse
 import sys
 import os
-from typing import Optional
 import torch
 import torch.distributed as dist
 import numpy as np
@@ -101,7 +101,7 @@ def load_metrics_from_npz(npz_path: str) -> dict:
 
 def resume_distributed_training(
     args: argparse.Namespace, rank: int
-) -> tuple[Optional[str], Optional[str], Optional[dict]]:
+) -> tuple[str | None, str | None, dict | None]:
     resume_checkpoint_path = None
     resume_metrics_path = None
     prior_metrics = None
@@ -129,7 +129,7 @@ def resume_distributed_training(
     return resume_checkpoint_path, resume_metrics_path, prior_metrics
 
 
-def main():
+def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Distributed LLM Training")

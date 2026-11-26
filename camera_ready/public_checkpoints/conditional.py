@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import zlib
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -100,10 +101,12 @@ def _ols(
     return np.linalg.lstsq(x, y_v, rcond=None)[0]
 
 
-def _cluster_draws(df: pd.DataFrame, rng: np.random.Generator, n_boot: int):
+def _cluster_draws(
+    df: pd.DataFrame, rng: np.random.Generator, n_boot: int
+) -> Iterator[tuple[pd.DataFrame, int]]:
     """Resample (cell, window) clusters within cell, exactly as CRITERIA E2 does."""
     clusters = df.groupby(CLUSTER).indices
-    by_cell: dict[str, list] = {}
+    by_cell: dict[str, list[tuple[str, int]]] = {}
     for key in clusters:
         by_cell.setdefault(key[0], []).append(key)
     for _ in range(n_boot):

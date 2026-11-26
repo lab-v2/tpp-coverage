@@ -35,7 +35,7 @@ def _bib_field(bib: str, name: str) -> str:
 
 
 @pytest.mark.parametrize("src", re.findall(r'(?:src|srcset)="([^"]+)"', README))
-def test_local_images_exist_and_are_images(src: str):
+def test_local_images_exist_and_are_images(src: str) -> None:
     if src.startswith("http"):
         return
     path = REPO / src
@@ -44,7 +44,7 @@ def test_local_images_exist_and_are_images(src: str):
     assert head.startswith(b"\x89PNG") or b"<svg" in head or head.lstrip().startswith(b"<?xml"), src
 
 
-def test_logos_of_the_three_institutions():
+def test_logos_of_the_three_institutions() -> None:
     for alt in (
         "Syracuse University",
         "College of Engineering and Computer Science",
@@ -53,7 +53,7 @@ def test_logos_of_the_three_institutions():
         assert re.search(rf'<img alt="[^"]*{alt}[^"]*" src="images/', README), alt
 
 
-def test_diagram_labels_are_plain_words():
+def test_diagram_labels_are_plain_words() -> None:
     diagram = _block("mermaid")
     assert re.search(r"^flowchart\b", diagram, re.M)
     labels = re.findall(r'\(\[?"([^"]+)"\]?\)|\["([^"]+)"\]', diagram)
@@ -64,7 +64,7 @@ def test_diagram_labels_are_plain_words():
         assert not re.search(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]", label), label
 
 
-def test_diagram_edges_only_join_declared_nodes():
+def test_diagram_edges_only_join_declared_nodes() -> None:
     diagram = _block("mermaid")
     declared = set(re.findall(r"\b(\w+)[\[(]\S", diagram))
     used = set(re.findall(r"(\w+)(?:\[[^\]]*\]|\(\[[^\]]*\]\))?\s*-\.?->", diagram))
@@ -74,7 +74,7 @@ def test_diagram_edges_only_join_declared_nodes():
     assert used <= declared, used - declared
 
 
-def test_bibtex_matches_the_arxiv_paper():
+def test_bibtex_matches_the_arxiv_paper() -> None:
     bib = _block("bibtex")
     assert bib.count("{") == bib.count("}")
     assert _bib_field(bib, "title").replace("{LLM}", "LLM") == TITLE
@@ -84,12 +84,12 @@ def test_bibtex_matches_the_arxiv_paper():
     assert _bib_field(bib, "url") == f"https://arxiv.org/abs/{ARXIV_ID}"
 
 
-def test_byline_lists_the_authors_in_order():
+def test_byline_lists_the_authors_in_order() -> None:
     byline = re.search(r"<p align=\"center\">\n(Joshua.*?)<br/>", README).group(1)
     assert [a.strip(" *") for a in byline.split(",")] == AUTHORS
 
 
-def test_citation_cff_agrees_with_the_readme():
+def test_citation_cff_agrees_with_the_readme() -> None:
     cff = yaml.safe_load((REPO / "CITATION.cff").read_text())
     assert cff["title"] == TITLE
     for people in (cff["authors"], cff["preferred-citation"]["authors"]):

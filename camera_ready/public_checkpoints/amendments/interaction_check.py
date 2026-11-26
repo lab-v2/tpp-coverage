@@ -32,7 +32,7 @@ from paths import WORK
 READINGS = (("b0, at the centre", 0.0), ("b0 + b1, one decade above the centre", 1.0))
 
 
-def readings(corpus: str, df: pd.DataFrame) -> list[dict]:
+def readings(corpus: str, df: pd.DataFrame) -> list[dict[str, object]]:
     d, ctr = centred(df, "Delta_NC")
     eng = smooth_engine(d, "gap_offray", "Delta_NC")
     rows = []

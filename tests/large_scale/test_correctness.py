@@ -32,7 +32,7 @@ from tpp_large_scale.upstream import chinchilla_loss, compute_tauK, compute_VK
 class TestUpstreamReuse:
     """The point of the refactor: we compute what the paper's code computes."""
 
-    def test_fits_match_the_papers_own_fitters(self, envelope_arrays) -> None:
+    def test_fits_match_the_papers_own_fitters(self, envelope_arrays: FitArrays) -> None:
         deltas = verify_upstream_parity(envelope_arrays)
         assert set(deltas) == {"Chinchilla", "Kaplan", "Droppo-Elibol"}
         assert all(d == 0.0 for d in deltas.values()), deltas
@@ -111,7 +111,7 @@ class TestFitting:
 
 
 class TestJacobian:
-    def test_analytic_matches_central_difference(self, envelope_arrays) -> None:
+    def test_analytic_matches_central_difference(self, envelope_arrays: FitArrays) -> None:
         params = [1.0, 100.0, 0.35, 2000.0, 0.28]
         analytic = chinchilla_jacobian(envelope_arrays, params)
         numeric = numerical_jacobian(CHINCHILLA, envelope_arrays, params)
@@ -174,7 +174,9 @@ class TestConditioning:
         with pytest.raises(ValueError, match="2-D"):
             GaussNewtonConditioning(np.ones(5))
 
-    def test_from_fit_refuses_laws_without_an_analytic_jacobian(self, synthetic_chinchilla) -> None:
+    def test_from_fit_refuses_laws_without_an_analytic_jacobian(
+        self, synthetic_chinchilla: FitArrays
+    ) -> None:
         fit = LawFitter(restarts=10, global_search=False).fit(KAPLAN, synthetic_chinchilla, seed=0)
         assert fit is not None
         with pytest.raises(NotImplementedError, match="no analytic Jacobian"):

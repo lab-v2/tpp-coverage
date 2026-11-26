@@ -2,20 +2,16 @@
 """
 Audit architectures across all training-run checkpoints.
 
-For each .pt checkpoint under --root:
-  1. Read model_config (the architecture that was actually built).
-  2. Sum state_dict.numel() (independent verification of param count).
-  3. Recompute the expected param count from (d_model, n_layers, d_ff,
-     vocab_size) using the Llama+RoPE+SwiGLU formula and check it matches
-     the actual state_dict. This is a per-checkpoint internal-consistency
-     sanity check - the config and the weights should agree.
+For each .pt checkpoint under the root: read model_config (the architecture actually
+built), sum state_dict.numel() (independent param count), and recompute the expected
+count from (d_model, n_layers, d_ff, vocab_size) with the Llama+RoPE+SwiGLU formula.
+The two must agree: a per-checkpoint internal-consistency check of config vs weights.
 
-Outputs:
-  --out  (default architecture_audit.csv)
-        One row per checkpoint with the recorded architecture and the
-        true parameter count from the state_dict.
+``--out`` (default architecture_audit.csv) gets one row per checkpoint with the
+recorded architecture and the true parameter count from the state_dict.
 
-Run inside tmux for backgrounding:
+Examples:
+  Run inside tmux for backgrounding:
   tmux new -s audit
   python audit_architectures.py /path/to/checkpoints/
   # detach: Ctrl-b d
@@ -26,8 +22,11 @@ final epoch is the artifact of record):
   python audit_architectures.py /path/to/checkpoints/ --only-epoch 3
 """
 
+from __future__ import annotations
+
 import sys
 import csv
+from collections.abc import Iterator
 import argparse
 from pathlib import Path
 
@@ -40,7 +39,7 @@ from tqdm import tqdm
 # ============================================================
 
 
-def llama_param_count(d_model, n_layers, d_ff, vocab_size):
+def llama_param_count(d_model: int, n_layers: int, d_ff: int, vocab_size: int) -> int:
     """Parameter count for a Llama-style transformer with rotary position
     embeddings (no learned positional embeddings), SwiGLU FFN (3 weight
     matrices: gate_proj, up_proj, down_proj), and RMSNorm (1 weight, no bias).
@@ -60,7 +59,7 @@ def llama_param_count(d_model, n_layers, d_ff, vocab_size):
 # ============================================================
 
 
-def inspect_checkpoint(path: Path):
+def inspect_checkpoint(path: Path) -> dict[str, object]:
     """Read architecture from a .pt checkpoint without GPU."""
     try:
         ckpt = torch.load(str(path), map_location="cpu", weights_only=False)
@@ -96,7 +95,7 @@ def inspect_checkpoint(path: Path):
 # ============================================================
 
 
-def find_checkpoints(root: Path, only_epoch=None):
+def find_checkpoints(root: Path, only_epoch: int | None = None) -> Iterator[Path]:
     """Yield all .pt files under root."""
     for p in root.rglob("*.pt"):
         if only_epoch is not None and f"_epoch{only_epoch}" not in p.name:
@@ -104,7 +103,7 @@ def find_checkpoints(root: Path, only_epoch=None):
         yield p
 
 
-def categorize_path(path: Path, root: Path):
+def categorize_path(path: Path, root: Path) -> dict[str, str]:
     """Extract dataset / design / N folder structure from path.
     Expected layout: root / <dataset> / <design> / N_<count> / <file>.pt"""
     try:
@@ -122,7 +121,7 @@ def categorize_path(path: Path, root: Path):
         return {"dataset": "?", "design": "?", "N_folder": "?", "filename": path.name}
 
 
-def audit_checkpoint(path: Path, root: Path):
+def audit_checkpoint(path: Path, root: Path) -> dict[str, object]:
     """Inspect one checkpoint and check internal consistency."""
     cat = categorize_path(path, root)
     info = inspect_checkpoint(path)
@@ -198,7 +197,7 @@ AUDIT_COLS = [
 ]
 
 
-def write_audit(rows, out_path):
+def write_audit(rows: list[dict[str, object]], out_path: Path) -> None:
     with open(out_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=AUDIT_COLS, extrasaction="ignore")
         writer.writeheader()
@@ -211,7 +210,7 @@ def write_audit(rows, out_path):
 # ============================================================
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Audit architectures across training-run checkpoints",
     )

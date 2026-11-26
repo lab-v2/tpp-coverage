@@ -112,7 +112,7 @@ LADDER_PARAMS = {
 LADDER_MULTIPLIERS = ("0.5xC", "1xC", "1xC-rerun", "2xC", "5xC", "10xC")
 
 # Source-level screening verdicts (P1/P2'/P3/P4), logged for every candidate examined.
-SOURCE_SCREEN: list[dict] = []
+SOURCE_SCREEN: list[dict[str, str]] = []
 
 COLPRET_KEEP = [
     "original_paper",

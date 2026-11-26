@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -56,10 +55,10 @@ class AnalysisContext:
     config: AnalysisConfig
     grid: TrainingGrid
     executor: DeterministicExecutor = field(default_factory=DeterministicExecutor)
-    chinchilla_fit: Optional[LawFit] = None
+    chinchilla_fit: LawFit | None = None
     #: Populated by the runner once the holdout section has run; the win-rate
     #: significance check in the robustness section reads it.
-    holdout_summary: Optional[dict[str, object]] = None
+    holdout_summary: dict[str, object] | None = None
 
     def require_chinchilla(self) -> LawFit:
         if self.chinchilla_fit is None:
@@ -160,7 +159,7 @@ class CollinearRaySection(AnalysisSection):
         self._fitter = LawFitter(restarts=RAY_RESTARTS, global_search=True)
         self.equal_n_control: dict[str, object] = {}
 
-    def _kappa_scale_block(self, frame: pd.DataFrame, seed: int) -> Optional[float]:
+    def _kappa_scale_block(self, frame: pd.DataFrame, seed: int) -> float | None:
         arrays = TrainingGrid.arrays_of(frame)
         fit = self._fitter.fit(CHINCHILLA, arrays, seed=seed)
         if fit is None:
@@ -343,14 +342,14 @@ class RobustnessSection(AnalysisSection):
 
     def _fit_and_condition(
         self, arrays: FitArrays, seed: int, restarts: int = DEFAULT_RESTARTS
-    ) -> Optional[tuple[LawFit, float]]:
+    ) -> tuple[LawFit, float] | None:
         fit = LawFitter(restarts=restarts, global_search=True).fit(CHINCHILLA, arrays, seed=seed)
         if fit is None:
             return None
         kappa = GaussNewtonConditioning.from_fit(fit, arrays).kappa_scale_block()
         return fit, kappa
 
-    def _drop_small_models(self, context: AnalysisContext) -> Optional[dict[str, object]]:
+    def _drop_small_models(self, context: AnalysisContext) -> dict[str, object] | None:
         """Refit above the embedding-dominated model sizes."""
         big = context.grid.envelope[context.grid.envelope["N"] >= SMALL_N_CUTOFF]
         outcome = self._fit_and_condition(
@@ -370,7 +369,7 @@ class RobustnessSection(AnalysisSection):
             "kappa_AB": kappa,
         }
 
-    def _median_envelope(self, context: AnalysisContext) -> Optional[dict[str, object]]:
+    def _median_envelope(self, context: AnalysisContext) -> dict[str, object] | None:
         """Median-over-hyperparameters envelope instead of the min frontier."""
         frame = context.grid.median_envelope()
         arrays = FitArrays(
@@ -393,7 +392,7 @@ class RobustnessSection(AnalysisSection):
             "kappa_AB": kappa,
         }
 
-    def _fair_extrapolation(self, context: AnalysisContext) -> Optional[dict[str, object]]:
+    def _fair_extrapolation(self, context: AnalysisContext) -> dict[str, object] | None:
         """Both arms train off the held-out band and extrapolate onto it.
 
         Removes the objection that CO is disadvantaged by construction: neither
@@ -458,11 +457,13 @@ class RobustnessSection(AnalysisSection):
             "ci95": [low, high],
         }
 
-    def _fixed_irreducible_loss(self, context: AnalysisContext) -> Optional[dict[str, object]]:
+    def _fixed_irreducible_loss(self, context: AnalysisContext) -> dict[str, object] | None:
         """Refit Chinchilla with E pinned, so E cannot absorb the exponent gap."""
         arrays = context.grid.arrays
 
-        def loss_fn(n: np.ndarray, d: np.ndarray, a: float, alpha: float, b: float, beta: float):
+        def loss_fn(
+            n: np.ndarray, d: np.ndarray, a: float, alpha: float, b: float, beta: float
+        ) -> np.ndarray:
             return CHINCHILLA.loss_fn(n, d, FIXED_IRREDUCIBLE_LOSS, a, alpha, b, beta)
 
         bounds = [(1e-2, 1e10), (0.01, 2.0), (1e-2, 1e10), (0.01, 2.0)]
@@ -494,7 +495,7 @@ class RobustnessSection(AnalysisSection):
         )
         return {"alpha": alpha, "beta": beta, "eps": abs(alpha - beta)}
 
-    def _random_two_d_designs(self, context: AnalysisContext) -> Optional[dict[str, object]]:
+    def _random_two_d_designs(self, context: AnalysisContext) -> dict[str, object] | None:
         """Conditioning of randomly drawn genuine-2D 5-point designs.
 
         Guards against the reading that "2D fixes it": most random 2D designs
@@ -539,7 +540,7 @@ class RobustnessSection(AnalysisSection):
             "frac_below_1e4": below,
         }
 
-    def _winrate_significance(self, context: AnalysisContext) -> Optional[dict[str, object]]:
+    def _winrate_significance(self, context: AnalysisContext) -> dict[str, object] | None:
         """Is the NC win rate significantly above chance?"""
         holdout = context.holdout_summary
         if not holdout:
@@ -563,14 +564,10 @@ class RobustnessSection(AnalysisSection):
 class FormalValidationSection(AnalysisSection):
     """Direct checks of every formal statement in the companion paper.
 
-    Prop. 1 and Cor. 1 are demonstrated by a *controlled exponent-gap sweep*
-    rather than by reading the gap off the full-grid fit. This grid spans N over
-    about 6200x, which by itself keeps the (A, B) block well-conditioned at
-    fixed true exponents; plugging the full-grid exponents into the ray Jacobian
-    therefore gives a misleadingly small, non-monotone kappa. The blow-up comes
-    from the single-ray *fit* collapsing the two exponents, so the clean way to
-    exhibit the Theta(eps^-2) rate is to hold alpha at its well-identified grid
-    value and shrink the gap.
+    Prop. 1 and Cor. 1 use a *controlled exponent-gap sweep*: N spans ~6200x here, which
+    keeps the (A, B) block well-conditioned at fixed exponents, so the full-grid exponents
+    give a misleadingly small, non-monotone kappa. The Theta(eps^-2) rate is shown by
+    holding alpha at its grid value and shrinking the gap.
     """
 
     key = "formal_validation"

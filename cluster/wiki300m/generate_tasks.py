@@ -3,25 +3,20 @@
 WIKI300M stratum - task generator (SEPARATE config; the published EXPERIMENTAL
 DESIGN block in generate_grid_jobs.py is untouched).
 
-Design (approved): 8 cols (5 train k + 3 test k) x 9 rows (6 train N + 3
-holdout-only N), same L-shaped occupancy as the published appendix figure.
-CO train 30 == NC train 30 (budget-matched); ONE pooled holdout of 40.
-Wikipedia, 1 epoch, LR 3e-4, bs 96/GPU x 4 GPUs, seq 256, wd 0.1, llama.
+Design (approved): 8 cols (5 train k + 3 test k) x 9 rows (6 train N + 3 holdout-only N),
+L-shaped as the published appendix; CO train 30 == NC train 30, one holdout of 40.
+Wikipedia, 1 epoch, LR 3e-4, bs 96/GPU x 4 GPUs, seq 256, wd 0.1, llama; train cells
+--skip-val, holdout cells --use-train-as-val, as the published generators.
 
-Split protocol copied from the published generators:
-  train cells   -> --skip-val          (train split)
-  holdout cells -> --use-train-as-val  (val split)   [generate_holdout_grid.py]
+Emits <out>/tasks/NNN_<name>.task (KEY=VALUE, longest first) and <out>/manifest.tsv for
+cluster/queue/ (<out> = first argument, else $QUEUE_DIR): tasks 000-099 of the committed
+queue in tasks/; 100-467 (densified arms, seed-43/44 replicates) came later, as trained.
 
-Emits: <out>/tasks/NNN_<name>.task (KEY=VALUE files), ordered longest-first (LPT),
-plus <out>/manifest.tsv, where <out> is the first argument, else $QUEUE_DIR. The queue
-scripts in cluster/queue/ consume them.
-
+Examples:
     python cluster/wiki300m/generate_tasks.py /path/to/run
-
-This writes the first 100 cells, tasks 000-099 of the committed queue in tasks/. Tasks
-100-467 (densified arms and the seed-43/44 replicates) were added to that queue later and are
-committed as they were trained.
 """
+
+from __future__ import annotations
 
 import os
 import sys

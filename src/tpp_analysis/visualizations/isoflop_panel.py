@@ -6,6 +6,8 @@ isoFLOP plot (curve set, colors, residual style, etc.) propagate to
 every caller without hand-editing each notebook.
 """
 
+from __future__ import annotations
+
 from collections.abc import Callable
 
 import numpy as np
@@ -84,7 +86,7 @@ def generic_isoflop(
     N_range: np.ndarray,
     C: float,
     law_name: str,
-    params: tuple | list,
+    params: tuple[float, ...] | list[float],
 ) -> np.ndarray:
     D = C / (6.0 * N_range)
     return LAW_LOSS_FNS[law_name](N_range, D, *params)
@@ -93,7 +95,7 @@ def generic_isoflop(
 def generic_optimal_N(
     C_range: np.ndarray | float,
     law_name: str,
-    params: tuple | list,
+    params: tuple[float, ...] | list[float],
     N_lo: float = 1e4,
     N_hi: float = 1e12,
 ) -> np.ndarray:
@@ -122,10 +124,10 @@ def generic_optimal_N(
 
 
 def draw_isoflop_panel(
-    ax,
-    fits: list[dict],
+    ax: plt.Axes,
+    fits: list[dict[str, object]],
     law_name: str,
-    holdout_data: list[dict] | None,
+    holdout_data: list[dict[str, object]] | None,
     holdout_label: str,
     flop_budgets: np.ndarray,
     N_range: np.ndarray,
@@ -139,15 +141,12 @@ def draw_isoflop_panel(
     holdout_mode: str = "final",
     style_legends_fn: Callable | None = None,
     debug: bool = False,
-):
-    """
-    Draw isoFLOP curves.  When ``holdout_data`` is supplied the
-    n_H induced budgets C_i = 6 N_i D_i (one per kept holdout point,
-    after the highest-D-per-unique-N filter) are used as the curve
-    set, and each residual lands exactly on its own induced curve.
-
-    ``style_legends_fn`` is an optional callback ``(ax) -> None`` used
-    by callers to harmonize legend frames across panels.
+) -> None:
+    """Draw isoFLOP curves; with ``holdout_data``, the curve set is the n_H induced budgets
+    C_i = 6 N_i D_i (one per kept holdout point, after the highest-D-per-unique-N filter),
+    so each residual lands exactly on its own induced curve.
+    ``style_legends_fn`` is an optional callback ``(ax) -> None`` that callers use to
+    harmonize legend frames across panels.
     """
     _DESIGN_ABBREV = {"Non-Colinear": "NC", "Colinear": "CO"}
     design_cfg = {

@@ -27,7 +27,7 @@ def _anchors(path: Path) -> set[str]:
 
 
 @pytest.mark.parametrize("doc", DOCS, ids=lambda p: str(p.relative_to(REPO)))
-def test_relative_links_resolve(doc: Path):
+def test_relative_links_resolve(doc: Path) -> None:
     broken = []
     for target in LINK.findall(doc.read_text()):
         if re.match(r"(https?|mailto):", target):
@@ -41,6 +41,6 @@ def test_relative_links_resolve(doc: Path):
     assert not broken, broken
 
 
-def test_docs_are_found():
+def test_docs_are_found() -> None:
     names = {p.name for p in DOCS}
     assert {"README.md", "TRAINING.md", "ANALYSIS.md", "DOWNLOADING.md", "CRITERIA.md"} <= names

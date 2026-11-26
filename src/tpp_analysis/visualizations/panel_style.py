@@ -6,6 +6,8 @@ grid colors, legend styling and errorbar darkening so all three
 panels (surface, convergence, isoFLOP) read at the same density.
 """
 
+from __future__ import annotations
+
 from matplotlib.legend import Legend
 from matplotlib.container import ErrorbarContainer
 from matplotlib.ticker import ScalarFormatter
@@ -51,7 +53,7 @@ def _sv_tag(dataset: str, law: str, mode: str) -> str:
 class FixedOrderFormatter(ScalarFormatter):
     """Lock the offset to a fixed power of 10 with integer tick labels."""
 
-    def __init__(self, oom: int = 8, fmt: str = "%d", **kw):
+    def __init__(self, oom: int = 8, fmt: str = "%d", **kw: object) -> None:
         super().__init__(useMathText=False, useOffset=False, **kw)
         self._fixed_oom = oom
         self._fixed_fmt = fmt
@@ -114,7 +116,7 @@ def style_ticks_3d(ax) -> None:
         axis.pane.set_facecolor(GRID_BG_COLOR)
 
 
-def _style_legend(legend, alpha: float | None = None) -> None:
+def _style_legend(legend: Legend | None, alpha: float | None = None) -> None:
     """Restyle a legend frame to a uniform white/black/square look."""
     if legend is None:
         return

@@ -70,7 +70,7 @@ def queue_state(queue_dir: Path) -> QueueState:
     return QueueState(tasks, names("done"), names("failed"), names("claims"), est)
 
 
-def heartbeats(shared_dir: Path) -> list[dict]:
+def heartbeats(shared_dir: Path) -> list[dict[str, object]]:
     """Every readable heartbeat, in file-name order.
 
     Sorted because `glob` returns the directory's own order, which differs between
@@ -85,7 +85,7 @@ def heartbeats(shared_dir: Path) -> list[dict]:
     return out
 
 
-def loss_alert(hb: dict) -> str | None:
+def loss_alert(hb: dict[str, float]) -> str | None:
     """The loss-sanity alert for one heartbeat, or None."""
     loss, pct = hb.get("loss", float("nan")), hb.get("pct", 0.0)
     if math.isnan(loss) or math.isinf(loss):

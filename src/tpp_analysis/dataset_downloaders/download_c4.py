@@ -2,38 +2,22 @@
 """
 Download + pretokenize C4 train and val splits using SHUFFLED SHARDS and indices.
 
-APPROACH (shuffled, distribution-matched):
-  1. Generate the 1,024 standard Hugging Face URLs for the C4 'en' train split.
-  2. Shuffle the URL list (avoids sequential crawling bias in C4).
-  3. Download shards one-by-one, extract documents into memory, cache raw files
-     in shard_cache (delete with --cleanup-shards if disk is tight).
-  4. Generate a random permutation of all document indices (with fixed seed).
-  5. Walk through shuffled indices, tokenize + chunk each document into
-     ceil(tokens / max_seq_len) sequences. Write train bins until we
-     hit the target token count.
-  6. Continue walking through the SAME shuffled permutation (no overlap
-     by construction) and write val bins until we hit the target token count.
-  7. Save split_config.json with all metadata for reproducibility.
+Dataset allenai/c4 (en, train split), tokenizer cl100k_base. Shuffle the 1,024 standard HF
+shard URLs, download shards one by one into memory (raw files cached in shard_cache; delete
+with --cleanup-shards), draw a fixed-seed permutation of all document indices and walk it,
+chunking each document into ceil(tokens / max_seq_len) sequences (no truncation): train bins
+up to the target token count, then val bins along the SAME permutation; split_config.json
+records all metadata. Why shuffled: shards are organized by WARC file origin, so early and late
+shards cluster by domain differently; shuffling shard and document order removes this bias.
+Train gets shuffled_doc_indices[0 : T] and val [T : T+V]: zero overlap by construction.
 
-WHY SHUFFLED:
-  C4 shards are organized by WARC file origin. Documents in early shards
-  cluster by domain differently from later shards. Shuffling both shard
-  order and document order eliminates this content bias.
-
-OVERLAP GUARANTEE:
-  Train gets shuffled_doc_indices[0 : T] and val gets shuffled_doc_indices[T : T+V].
-  These are disjoint contiguous slices of a permutation -- zero overlap by
-  construction. An explicit set-intersection check is run and asserted.
-
-Dataset: allenai/c4 (en, train split)
-Tokenizer: cl100k_base
-Chunking: documents split into max_seq_len-token sequences (no truncation)
-
-Usage:
+Examples:
     python download_c4.py
     python download_c4.py --target-tokens 1700000000 --max-seq-len 256
     python download_c4.py --max-shards 50 --cleanup-shards
 """
+
+from __future__ import annotations
 
 import os
 import json

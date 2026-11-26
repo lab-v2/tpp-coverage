@@ -7,16 +7,19 @@ Each worker is independent - loads data, fits, saves its own parquet.
 Main process aggregates into summary tables AND LaTeX tables matching
 the paper's tab:summary_full and tab:winrate format.
 
-Usage:
+Prerequisites: the scaling_laws/ and incremental_coverage/ packages must be importable,
+and the CSVs must be in --data-dir (one per dataset, from get_results.py).
+
+Examples:
     python run_analysis.py full_coverage --data-dir extracted_losses/ --n-workers 16
     python run_analysis.py seed_variance --data-dir extracted_losses/ --n-workers 16
     python run_analysis.py all --data-dir extracted_losses/ --n-workers 16
     python run_analysis.py all --data-dir extracted_losses/ --clear-cache
-
-Prerequisites:
-    The scaling_laws/ and incremental_coverage/ packages must be importable.
-    CSVs must be in --data-dir (one per dataset, from get_results.py).
 """
+
+from __future__ import annotations
+
+from collections.abc import Callable
 
 import faulthandler
 import os
@@ -86,7 +89,9 @@ DEFAULT_BASE_SEED = 0
 # ============================================================
 
 
-def _get_seed_fitters():
+def _get_seed_fitters() -> dict[
+    str, tuple[Callable[..., tuple[np.ndarray | None, float, bool]], Callable[..., np.ndarray]]
+]:
     """Build seed-aware fitters for the three (N, D, L)-shape laws.
     Import inside function for fork safety.
 
@@ -101,10 +106,12 @@ def _get_seed_fitters():
         droppo_elibol_loss,
     )
 
-    def _fit_kaplan_seed(N, D, L, n_restarts=300, seed=42):
+    def _fit_kaplan_seed(
+        N: np.ndarray, D: np.ndarray, L: np.ndarray, n_restarts: int = 300, seed: int = 42
+    ) -> tuple[np.ndarray | None, float, bool]:
         bounds = [(1e3, 1e14), (1e3, 1e14), (0.01, 2.0), (0.01, 2.0)]
 
-        def sampler(rng, L):
+        def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
             return [
                 10 ** rng.uniform(5, 12),
                 10 ** rng.uniform(5, 12),
@@ -114,10 +121,12 @@ def _get_seed_fitters():
 
         return _fit_generic(kaplan_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
-    def _fit_chinchilla_seed(N, D, L, n_restarts=300, seed=42):
+    def _fit_chinchilla_seed(
+        N: np.ndarray, D: np.ndarray, L: np.ndarray, n_restarts: int = 300, seed: int = 42
+    ) -> tuple[np.ndarray | None, float, bool]:
         bounds = [(0.0, 10.0), (1e-2, 1e10), (0.01, 2.0), (1e-2, 1e10), (0.01, 2.0)]
 
-        def sampler(rng, L):
+        def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
             return [
                 rng.uniform(0.0, min(L) * 0.9),
                 10 ** rng.uniform(0, 8),
@@ -128,7 +137,9 @@ def _get_seed_fitters():
 
         return _fit_generic(chinchilla_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
-    def _fit_droppo_elibol_seed(N, D, L, n_restarts=300, seed=42):
+    def _fit_droppo_elibol_seed(
+        N: np.ndarray, D: np.ndarray, L: np.ndarray, n_restarts: int = 300, seed: int = 42
+    ) -> tuple[np.ndarray | None, float, bool]:
         bounds = [
             (1e-6, 10.0),
             (1e3, 1e14),
@@ -138,7 +149,7 @@ def _get_seed_fitters():
             (0.01, 2.0),
         ]
 
-        def sampler(rng, L):
+        def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
             return [
                 rng.uniform(0.01, min(L) * 0.8),
                 10 ** rng.uniform(5, 12),
@@ -547,7 +558,7 @@ def _unit_data(csv_path, dataset_name):
     return load_and_prepare(csv_path, dataset_name)
 
 
-def _fc_unit(task):
+def _fc_unit(task: tuple[str, str, str, str, str, int, int, int]) -> dict[str, object] | None:
     """One full-coverage fit: (dataset, law, mode, design, seed) -> its row, or None.
 
     The body is the per-combo worker's for one design and one seed, unchanged.
@@ -657,7 +668,9 @@ def _fc_unit(task):
     return row
 
 
-def _sv_steps(csv_path, dataset_name, mode):
+def _sv_steps(
+    csv_path: str, dataset_name: str, mode: str
+) -> list[tuple[str, int, int, list[dict[str, object]]]]:
     """The seed-variance coverage steps of one combo: [(design, step_idx, n_steps, step_data)]."""
     from incremental_coverage.coverage import build_colinear_steps, build_noncolinear_steps
 
@@ -672,7 +685,7 @@ def _sv_steps(csv_path, dataset_name, mode):
     return out
 
 
-def _sv_unit(task):
+def _sv_unit(task: tuple[str, str, str, str, int, int, int, int]) -> dict[str, float]:
     """One seed-variance fit: (combo, design, step, seed) -> {holdout: R^2} (absent = skipped).
 
     The per-combo worker fits the same (step, seed) once per holdout; the fit is deterministic
@@ -722,7 +735,7 @@ def _sv_unit(task):
     return r2s
 
 
-def _sv_n_steps(args):
+def _sv_n_steps(args: tuple[int, tuple[str, str, str, str]]) -> tuple[int, int]:
     """(combo index, number of steps) - run in the pool, so step building is parallel too."""
     i, (dataset_name, csv_path, law_name, mode) = args
     try:
@@ -737,7 +750,7 @@ def _sv_n_steps(args):
 # ============================================================
 
 
-def _wilson_ci(k, n, z=1.96):
+def _wilson_ci(k: int, n: int, z: float = 1.96) -> tuple[float, float, float]:
     if n == 0:
         return 0, 0, 0
     p_hat = k / n
@@ -752,7 +765,7 @@ def _wilson_ci(k, n, z=1.96):
 # ============================================================
 
 
-def build_paper_tables(df: pd.DataFrame, save_dir: str):
+def build_paper_tables(df: pd.DataFrame, save_dir: str) -> tuple[pd.DataFrame, pd.DataFrame | None]:
     """Emit summary + winrate tables in the paper's format.
 
     Summary table: Train (D) and Holdout (H) splits only, R² + RMSE stats.
@@ -844,11 +857,11 @@ def build_paper_tables(df: pd.DataFrame, save_dir: str):
         design = row["Design"]
         is_best = best.get(tex_label) == design
 
-        def _w(val, fmt=".4f"):
+        def _w(val: float, fmt: str = ".4f") -> str:
             s = f"{val:{fmt}}"
             return rf"\win{{{s}}}" if is_best else s
 
-        def _wci(lo, hi):
+        def _wci(lo: float, hi: float) -> str:
             s = f"[{lo:.3f}, {hi:.3f}]"
             return rf"\win{{{s}}}" if is_best else s
 
@@ -983,7 +996,7 @@ def build_paper_tables(df: pd.DataFrame, save_dir: str):
 
 def build_holdout_split_winrate(
     df: pd.DataFrame, save_dir: str, label: str = "appendix", include_per_dataset: bool = True
-):
+) -> None:
     """Emit a winrate table broken down by holdout-split definition.
 
     Top section: aggregate over all (law × mode × dataset) for each of
@@ -1002,7 +1015,7 @@ def build_holdout_split_winrate(
         print("  No holdout columns found - skipping appendix winrate")
         return
 
-    def _pair_wins(group, r2_col):
+    def _pair_wins(group: pd.DataFrame, r2_col: str) -> tuple[int, int]:
         co = group[group["design"] == "CO"].set_index("seed")[r2_col]
         nc = group[group["design"] == "NC"].set_index("seed")[r2_col]
         co_a, nc_a = co.align(nc, join="inner")
@@ -1115,7 +1128,9 @@ def build_holdout_split_winrate(
 # ============================================================
 
 
-def run_full_coverage(data_dir, output_dir, n_workers, n_seeds, n_restarts, base_seed):
+def run_full_coverage(
+    data_dir: str, output_dir: str, n_workers: int, n_seeds: int, n_restarts: int, base_seed: int
+) -> None:
     print(f"\n{'=' * 60}\nFULL COVERAGE ANALYSIS")
     print(f"  Workers: {n_workers}  Seeds: {n_seeds}  Restarts: {n_restarts}")
     print(f"  Laws: {LAWS}\n{'=' * 60}\n")
@@ -1179,7 +1194,9 @@ def run_full_coverage(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
         print("No results!")
 
 
-def run_seed_variance(data_dir, output_dir, n_workers, n_seeds, n_restarts, base_seed):
+def run_seed_variance(
+    data_dir: str, output_dir: str, n_workers: int, n_seeds: int, n_restarts: int, base_seed: int
+) -> None:
     print(f"\n{'=' * 60}\nSEED VARIANCE ANALYSIS")
     print(f"  Workers: {n_workers}  Seeds: {n_seeds}  Restarts: {n_restarts}\n{'=' * 60}\n")
 
@@ -1279,7 +1296,7 @@ def run_seed_variance(data_dir, output_dir, n_workers, n_seeds, n_restarts, base
         print("No results!")
 
 
-def main():
+def main() -> None:
     # `kill -USR1` prints every thread's stack, in the driver and in each forked pool worker
     # (the handler is inherited); the test harness sends it before killing a run that hangs.
     faulthandler.register(signal.SIGUSR1, all_threads=True)
@@ -1298,7 +1315,7 @@ def main():
     parser.add_argument("--clear-cache", action="store_true")
     args = parser.parse_args()
 
-    def _maybe_clear(out_dir):
+    def _maybe_clear(out_dir: str) -> None:
         if not args.clear_cache or not os.path.isdir(out_dir):
             return
         import glob

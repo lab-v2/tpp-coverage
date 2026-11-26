@@ -3,13 +3,12 @@ Data organisation, filtering, and array preparation.
 
 Handles the split into colinear / non-colinear, train / holdout,
 loss-based filtering, and conversion to (N, D, L) numpy arrays
-with three epoch modes: 'final', 'first', 'all'.
+with three epoch modes: 'final', 'first', 'second'.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List
 
 import numpy as np
 
@@ -19,9 +18,9 @@ from scaling_laws.parsing import parse_epoch_results
 # ── Organising ────────────────────────────────────────────────────────────
 
 
-def _organise(runs: List[Dict]) -> Dict[str, List[Dict]]:
+def _organise(runs: list[dict[str, object]]) -> dict[str, list[dict[str, object]]]:
     """Split raw runs into four buckets."""
-    buckets: Dict[str, List[Dict]] = {
+    buckets: dict[str, list[dict[str, object]]] = {
         "colinear_train": [],
         "colinear_holdout": [],
         "noncolinear_train": [],
@@ -48,10 +47,10 @@ def _organise(runs: List[Dict]) -> Dict[str, List[Dict]]:
 
 
 def _filter_by_loss(
-    data: List[Dict],
+    data: list[dict[str, object]],
     keep_fraction: float = 1.0,
     loss_key: str = "final_loss",
-) -> List[Dict]:
+) -> list[dict[str, object]]:
     """Keep only the *keep_fraction* runs with lowest loss."""
     if not data or keep_fraction >= 1.0:
         return data
@@ -64,16 +63,13 @@ def _filter_by_loss(
 
 
 def prepare_arrays(
-    data: List[Dict], mode: str = "final"
+    data: list[dict[str, object]], mode: str = "final"
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Convert a list of run dicts to (N, D, L) numpy arrays.
+    """Convert a list of run dicts to (N, D, L) numpy arrays.
 
-    Modes
-    -----
-    'final' : D = dataset_size × n_epochs  (total tokens seen)
-    'first' : D = dataset_size              (single pass)
-    'all'   : one point per epoch, D = dataset_size × epoch_index
+    Modes: 'final' uses D = dataset_size x n_epochs (total tokens seen) and the final loss;
+    'first' uses D = dataset_size (single pass) and the epoch-1 loss; 'second' keeps runs that
+    reached epoch 2, with D = dataset_size x 2 and the epoch-2 loss. Any other mode raises.
     """
     if not data:
         return np.array([]), np.array([]), np.array([])
@@ -107,17 +103,14 @@ def prepare_arrays(
 
 
 def prepare_epoch_expanded(
-    data: List[Dict],
+    data: list[dict[str, object]],
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Expand runs → one point per epoch for the Parametric Epoch law.
+    """Expand runs to one point per epoch for the Parametric Epoch law.
 
-    Returns (N, U_D, R, epoch, L) where:
-      N    = model params (U_N)
-      U_D  = unique tokens (dataset size, NOT scaled by epoch)
-      R    = epoch - 1  (repetition count, same for data and params)
-      epoch = epoch number (1, 2, 3, ...)
-      L    = loss at that epoch
+    Returns:
+        (N, U_D, R, epoch, L): N = model params (U_N); U_D = unique tokens (dataset size, NOT
+        scaled by epoch); R = epoch - 1 (repetition count, same for data and params);
+        epoch = epoch number (1, 2, 3, ...); L = loss at that epoch.
     """
     if not data:
         empty = np.array([], dtype=np.float64)
@@ -152,16 +145,16 @@ class PreparedData:
     dataset_name: str
 
     # Filtered train lists (for fitting)
-    colinear_train: List[Dict] = field(default_factory=list)
-    noncolinear_train: List[Dict] = field(default_factory=list)
+    colinear_train: list[dict[str, object]] = field(default_factory=list)
+    noncolinear_train: list[dict[str, object]] = field(default_factory=list)
 
     # Three holdout variants
-    unified_holdout: List[Dict] = field(default_factory=list)  # NC + CO
-    colinear_holdout: List[Dict] = field(default_factory=list)  # CO only
-    noncolinear_holdout: List[Dict] = field(default_factory=list)  # NC only
+    unified_holdout: list[dict[str, object]] = field(default_factory=list)  # NC + CO
+    colinear_holdout: list[dict[str, object]] = field(default_factory=list)  # CO only
+    noncolinear_holdout: list[dict[str, object]] = field(default_factory=list)  # NC only
 
     # Counts (for display)
-    raw_counts: Dict[str, int] = field(default_factory=dict)
+    raw_counts: dict[str, int] = field(default_factory=dict)
 
 
 def load_and_prepare(
@@ -171,15 +164,13 @@ def load_and_prepare(
     holdout_keep: float = 1.0,
     verbose: bool = True,
 ) -> PreparedData:
-    """
-    Parse → organise → filter → return a `PreparedData` object.
+    """Parse, organise and filter one dataset into a `PreparedData` object.
 
-    Parameters
-    ----------
-    filepath : path to the epoch-results CSV
-    dataset_name : label used in tables / plots
-    train_keep : fraction of training runs to keep (by lowest loss)
-    holdout_keep : fraction of holdout runs to keep (by lowest loss)
+    Args:
+        filepath: path to the epoch-results CSV.
+        dataset_name: label used in tables / plots.
+        train_keep: fraction of training runs to keep (by lowest loss).
+        holdout_keep: fraction of holdout runs to keep (by lowest loss).
     """
     raw_runs = parse_epoch_results(filepath)
     org = _organise(raw_runs)

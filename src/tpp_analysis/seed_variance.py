@@ -16,6 +16,7 @@
 #     clear unique minimum
 #   - If both are tight → 300 restarts + DE is thorough enough
 #     that optimizer randomness is negligible (also valid)
+from __future__ import annotations
 import sys
 import os
 
@@ -187,17 +188,16 @@ def run_seed_variance_convergence(
     times with different optimizer seeds. Reports mean, std,
     and percentiles of R².
 
-    Parameters
-    ----------
-    data        : PreparedData object
-    law_name    : "Chinchilla", "Kaplan", or "Droppo-Elibol"
-    mode        : "final", "first", or "second"
-    n_seeds     : number of optimizer seeds per step
-    n_restarts  : random restarts per fit (can be lower than 300)
-    base_seed   : starting seed
+    Args:
+        data: PreparedData object
+        law_name: "Chinchilla", "Kaplan", or "Droppo-Elibol"
+        mode: "final", "first", or "second"
+        n_seeds: number of optimizer seeds per step
+        n_restarts: random restarts per fit (can be lower than 300)
+        base_seed: starting seed
 
-    Returns DataFrame with columns:
-        design, step, coverage_frac, holdout_split,
+    Returns:
+        DataFrame with columns: design, step, coverage_frac, holdout_split,
         r2_mean, r2_std, r2_p5, r2_p25, r2_p50, r2_p75, r2_p95,
         r2_min, r2_max, n_seeds_ok
     """

@@ -10,8 +10,6 @@ Returns a flat list of result dicts that can be turned into DataFrames.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
-
 
 from scaling_laws.data import PreparedData, load_and_prepare, prepare_arrays, prepare_epoch_expanded
 from scaling_laws.laws import LAWS, evaluate, evaluate_parametric_epoch
@@ -24,10 +22,10 @@ def _run_one_fit(
     law,
     design_label: str,
     mode: str,
-    train_data: list,
-    holdouts: Dict[str, list],
+    train_data: list[dict[str, object]],
+    holdouts: dict[str, list[dict[str, object]]],
     n_restarts: int,
-) -> Optional[Dict]:
+) -> dict[str, object] | None:
     """Fit one (law, design, mode) combo; evaluate on each holdout variant."""
     N_tr, D_tr, L_tr = prepare_arrays(train_data, mode)
     if len(L_tr) < 5:
@@ -63,10 +61,10 @@ def _run_one_fit(
 def _run_one_epoch_fit(
     law,
     design_label: str,
-    train_data: list,
-    holdouts: Dict[str, list],
+    train_data: list[dict[str, object]],
+    holdouts: dict[str, list[dict[str, object]]],
     n_restarts: int,
-) -> Optional[Dict]:
+) -> dict[str, object] | None:
     """Fit the Parametric-Epoch law (uses N, U_D, R arrays instead of N, D)."""
     N_tr, U_D_tr, R_tr, _ep_tr, L_tr = prepare_epoch_expanded(train_data)
     if len(L_tr) < 5:
@@ -116,18 +114,17 @@ def run_dataset_fits(
     n_restarts: int = 300,
     multi_epoch: bool = True,
     verbose: bool = True,
-) -> List[Dict]:
-    """
-    Run all fits for a single PreparedData object.
+) -> list[dict[str, object]]:
+    """Run all fits for a single PreparedData object.
 
-    Parameters
-    ----------
-    multi_epoch : if True (default), fits Final/First/All modes + Parametric-Epoch law.
-                  if False, fits Final mode only and skips Parametric-Epoch.
-                  Set to False for single-epoch datasets.
+    Args:
+        multi_epoch: if True (default), fits Final/First/Second modes + Parametric-Epoch law;
+            if False, fits Final mode only and skips Parametric-Epoch. Set to False for
+            single-epoch datasets.
 
-    Returns a list of result dicts (one per law × design × mode).
-    Each dict contains R² on unified / colinear / noncolinear holdouts.
+    Returns:
+        A list of result dicts (one per law x design x mode), each with R² on the unified,
+        colinear and noncolinear holdouts.
     """
 
     holdouts = {
@@ -153,7 +150,7 @@ def run_dataset_fits(
     if verbose and not multi_epoch:
         print("  [multi_epoch=False] Running Final mode only, skipping epoch laws")
 
-    results: List[Dict] = []
+    results: list[dict[str, object]] = []
     done = 0
 
     # ── Standard laws (Kaplan, Chinchilla, Droppo-Elibol) ──
@@ -228,17 +225,16 @@ def run_full_analysis(
     holdout_keep: float = 1.0,
     multi_epoch: bool = True,
     verbose: bool = True,
-) -> List[Dict]:
-    """
-    End-to-end: parse CSV → organise → filter → fit all combos.
+) -> list[dict[str, object]]:
+    """End-to-end: parse the CSV, organise, filter and fit all combos.
 
-    Parameters
-    ----------
-    multi_epoch : if True (default), fits Final/First/All modes + Parametric-Epoch law.
-                  if False, fits Final mode only and skips Parametric-Epoch.
-                  Set to False for single-epoch datasets.
+    Args:
+        multi_epoch: if True (default), fits Final/First/Second modes + Parametric-Epoch law;
+            if False, fits Final mode only and skips Parametric-Epoch. Set to False for
+            single-epoch datasets.
 
-    Returns list of result dicts ready for `build_summary_df()`.
+    Returns:
+        A list of result dicts ready for `build_summary_df()`.
     """
     data = load_and_prepare(
         filepath,

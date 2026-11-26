@@ -2,43 +2,23 @@
 """
 Download + pretokenize RedPajama-V2 train and val splits using SHUFFLED indices.
 
-APPROACH (shuffled, distribution-matched):
-  1. Fetch shard manifest for a single CC snapshot (default: 2023-06, en, head_middle).
-  2. Shuffle shard download order (avoids WARC-file domain clustering bias).
-  3. Download shards, extract documents into memory.
-  4. Generate a random permutation of all document indices (with fixed seed).
-  5. Walk through shuffled indices, tokenize + chunk each document into
-     ceil(tokens / max_seq_len) sequences. Write train bins until we
-     hit the target token count.
-  6. Continue walking through the SAME shuffled permutation (no overlap
-     by construction) and write val bins until we hit the target token count.
-  7. Save split_config.json with all metadata for reproducibility.
+Dataset togethercomputer/RedPajama-Data-V2, one stable CC snapshot (default 2023-06, en,
+head_middle: high-quality, Wikipedia-like perplexity), tokenizer cl100k_base. Shuffle the shard
+download order, download shards into memory, draw a fixed-seed permutation of all document
+indices and walk it, chunking each document into ceil(tokens / max_seq_len) sequences (no
+truncation): train bins up to the target token count, then val bins along the SAME permutation;
+split_config.json records all metadata. Why shuffled: shards follow WARC file origin, so early
+ones cluster by domain (news, forums, etc.) unlike later ones; sequential first-N/last-N splits
+have 5.2x worse unigram KL than a shuffled split. Train gets shuffled_doc_indices[0 : T] and
+val [T : T+V]: zero overlap by construction.
 
-WHY SHUFFLED:
-  RedPajama shards are organized by WARC file origin. Documents in early
-  shards cluster by domain (news, forums, etc.) differently from later shards.
-  Within a single snapshot, unigram KL between sequential first-N / last-N
-  splits is 5.2x worse than a shuffled split. Shuffling both shard order
-  and document order eliminates this content bias.
-
-OVERLAP GUARANTEE:
-  Train gets shuffled_doc_indices[0 : T] and val gets shuffled_doc_indices[T : T+V].
-  These are disjoint contiguous slices of a permutation - zero overlap by
-  construction. An explicit set-intersection check is run and asserted.
-
-Dataset: togethercomputer/RedPajama-Data-V2
-  Snapshot: 2023-06 (single, stable)
-  Language: en
-  Partition: head_middle (high-quality, Wikipedia-like perplexity)
-
-Tokenizer: cl100k_base
-Chunking: documents split into max_seq_len-token sequences (no truncation)
-
-Usage:
-    python redpajama_train_val.py
-    python redpajama_train_val.py --target-tokens 600000000 --max-seq-len 256 --seed 42
-    python redpajama_train_val.py --snapshot 2023-06 --max-shards 20
+Examples:
+    python download_redpj.py
+    python download_redpj.py --target-tokens 600000000 --max-seq-len 256 --seed 42
+    python download_redpj.py --snapshot 2023-06 --max-shards 20
 """
+
+from __future__ import annotations
 
 import os
 import json

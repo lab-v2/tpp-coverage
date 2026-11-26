@@ -15,7 +15,7 @@ Plot families
 
 from __future__ import annotations
 
-from typing import Dict, List
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
@@ -74,7 +74,7 @@ def _runs_to_df(filepath: str) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-def _savefig_and_show(fig, save_path=None, dpi=150):
+def _savefig_and_show(fig: plt.Figure, save_path: str | None = None, dpi: int = 150) -> None:
     """Optionally save, then show (and close) a figure."""
     if save_path:
         fig.savefig(save_path, dpi=dpi, bbox_inches="tight")
@@ -87,7 +87,7 @@ def _savefig_and_show(fig, save_path=None, dpi=150):
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-def plot_3d_overview(filepath: str, title: str = "", save_dir: str | None = None):
+def plot_3d_overview(filepath: str, title: str = "", save_dir: str | None = None) -> None:
     """
     Two **separate** 3-D scatter figures:
       • Non-Colinear (train + holdout)
@@ -127,7 +127,7 @@ def plot_3d_overview(filepath: str, title: str = "", save_dir: str | None = None
         _savefig_and_show(fig, sp)
 
 
-def plot_overlay(filepath: str, title: str = "", save_path: str | None = None):
+def plot_overlay(filepath: str, title: str = "", save_path: str | None = None) -> None:
     """Single 3-D scatter with all four run types colour-coded."""
     df = _runs_to_df(filepath)
     fig = plt.figure(figsize=(12, 10))
@@ -164,19 +164,15 @@ def plot_overlay(filepath: str, title: str = "", save_path: str | None = None):
 def plot_distributions(
     prepared_data,
     save_dir: str | None = None,
-):
+) -> None:
     """
     For each dataset × {Colinear, Non-Colinear} × {Train, Holdout},
-    produce **one figure** with four distribution sub-panels:
-      • N (params)  histogram
-      • D (tokens)  histogram
-      • Loss        histogram
-      • N vs D      scatter coloured by loss
+    produce **one figure** with four distribution sub-panels: N (params),
+    D (tokens) and Loss histograms, and an N vs D scatter coloured by loss.
 
-    Parameters
-    ----------
-    prepared_data : PreparedData or dict {name: PreparedData}
-    save_dir      : if set, save PNGs here
+    Args:
+        prepared_data: PreparedData or dict {name: PreparedData}.
+        save_dir: if set, save PNGs here.
     """
     from scaling_laws.data import PreparedData
 
@@ -278,7 +274,13 @@ def plot_distributions(
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-def _build_surface_grid(N_pts, D_pts, loss_fn, params, log_space=True):
+def _build_surface_grid(
+    N_pts: np.ndarray,
+    D_pts: np.ndarray,
+    loss_fn: Callable[..., np.ndarray],
+    params: np.ndarray,
+    log_space: bool = True,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Evaluate a standard (N, D, *params) loss function on a 2-D mesh.
 
@@ -304,29 +306,30 @@ _HOLDOUT_STYLES = [
 
 
 def plot_scaling_law_surface(
-    result_dict: Dict,
-    train_data: List[Dict],
-    holdout_data: List[Dict] | Dict[str, List[Dict]] | None = None,
+    result_dict: dict[str, object],
+    train_data: list[dict[str, object]],
+    holdout_data: list[dict[str, object]] | dict[str, list[dict[str, object]]] | None = None,
     mode: str = "final",
     elev: float = 25,
     azim: float = -60,
     save_path: str | None = None,
-):
+) -> None:
     """
     Plot a single scaling-law's predicted surface as a 3-D mesh ("blanket")
-    with actual train + holdout points scattered on top.
+    with actual train + holdout points scattered on top. An epoch law is
+    handed to plot_epoch_law_surface.
 
-    Parameters
-    ----------
-    result_dict  : one result dict from the pipeline (must contain 'law',
-                   'params', 'design', 'mode')
-    train_data   : list of run dicts used for fitting
-    holdout_data : holdout scatter overlay - accepts either:
-                     • a plain list of run dicts  (labelled "Holdout")
-                     • a dict {label: list_of_run_dicts} for multiple sets,
-                       e.g. {"Colinear Holdout": [...], "Unified Holdout": [...]}
-    mode         : 'final', 'first', or 'all' - how D is computed
-    elev, azim   : camera angles
+    Args:
+        result_dict: one result dict from the pipeline (must contain 'law',
+            'params', 'design', 'mode').
+        train_data: list of run dicts used for fitting.
+        holdout_data: holdout scatter overlay, either a plain list of run dicts
+            (labelled "Holdout") or a dict {label: list_of_run_dicts} for
+            multiple sets, e.g. {"Colinear Holdout": [...], "Unified Holdout": [...]}.
+        mode: 'final', 'first', or 'all' - how D is computed.
+        elev: camera elevation.
+        azim: camera azimuth.
+        save_path: if set, save the PNG here.
     """
     from scaling_laws.data import prepare_arrays
     from scaling_laws.laws import LAWS
@@ -353,7 +356,7 @@ def plot_scaling_law_surface(
 
     # Normalise holdout_data to a dict
     if holdout_data is None:
-        holdouts: Dict[str, List[Dict]] = {}
+        holdouts: dict[str, list[dict[str, object]]] = {}
     elif isinstance(holdout_data, list):
         holdouts = {"Holdout": holdout_data}
     else:
@@ -367,7 +370,7 @@ def plot_scaling_law_surface(
 
     # Collect all N/D/L values (train + every holdout) for grid extent & clipping
     all_N, all_D, all_L = N_tr.copy(), D_tr.copy(), L_tr.copy()
-    prepped_holdouts: Dict[str, tuple] = {}
+    prepped_holdouts: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
     for h_label, h_list in holdouts.items():
         if not h_list:
             continue
@@ -455,14 +458,14 @@ def plot_scaling_law_surface(
 
 
 def plot_epoch_law_surface(
-    result_dict: Dict,
-    train_data: List[Dict],
-    holdout_data: List[Dict] | Dict[str, List[Dict]] | None = None,
+    result_dict: dict[str, object],
+    train_data: list[dict[str, object]],
+    holdout_data: list[dict[str, object]] | dict[str, list[dict[str, object]]] | None = None,
     fixed_epoch: int = 1,
     elev: float = 25,
     azim: float = -60,
     save_path: str | None = None,
-):
+) -> None:
     """
     3-D surface for the Parametric-Epoch law at a **fixed epoch** number.
 
@@ -478,7 +481,7 @@ def plot_epoch_law_surface(
 
     # Normalise holdout_data to a dict
     if holdout_data is None:
-        holdouts: Dict[str, List[Dict]] = {}
+        holdouts: dict[str, list[dict[str, object]]] = {}
     elif isinstance(holdout_data, list):
         holdouts = {"Holdout": holdout_data}
     else:
@@ -492,7 +495,7 @@ def plot_epoch_law_surface(
 
     # Collect all N/U_D/L for grid extent & clipping
     all_N, all_D, all_L = N_tr.copy(), U_D_tr.copy(), L_tr.copy()
-    prepped_holdouts: Dict[str, tuple] = {}
+    prepped_holdouts: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
     for h_label, h_list in holdouts.items():
         if not h_list:
             continue
@@ -587,28 +590,28 @@ def plot_epoch_law_surface(
 
 
 def plot_all_surfaces(
-    all_results: List[Dict],
+    all_results: list[dict[str, object]],
     prepared_data,
     mode: str | None = None,
     dataset_filter: str | None = None,
     elev: float = 25,
     azim: float = -60,
     save_dir: str | None = None,
-    epoch_law_epochs: List[int] | None = None,
-):
+    epoch_law_epochs: list[int] | None = None,
+) -> None:
     """
     Iterate over every fitted result and produce one surface plot each.
 
-    Parameters
-    ----------
-    all_results     : list of result dicts from the pipeline
-    prepared_data   : PreparedData or dict {name: PreparedData}
-    mode            : filter to a specific epoch mode (None = plot all)
-    dataset_filter  : filter to a specific dataset name
-    elev, azim      : camera angles for 3-D view
-    save_dir        : directory to save PNGs (None = just show)
-    epoch_law_epochs: which epoch numbers to render for the Parametric-Epoch
-                      law surface (default [1])
+    Args:
+        all_results: list of result dicts from the pipeline.
+        prepared_data: PreparedData or dict {name: PreparedData}.
+        mode: filter to a specific epoch mode (None = plot all).
+        dataset_filter: filter to a specific dataset name.
+        elev: camera elevation for the 3-D view.
+        azim: camera azimuth for the 3-D view.
+        save_dir: directory to save PNGs (None = just show).
+        epoch_law_epochs: which epoch numbers to render for the Parametric-Epoch
+            law surface (default [1]).
     """
     from scaling_laws.data import PreparedData
 
@@ -633,7 +636,7 @@ def plot_all_surfaces(
         design = r["design"]
 
         # Pick train slice + build holdout dict with design-specific AND unified
-        holdouts: Dict[str, List[Dict]] = {}
+        holdouts: dict[str, list[dict[str, object]]] = {}
         if design == "Colinear":
             train_data = pdata.colinear_train
             if pdata.colinear_holdout:
@@ -683,12 +686,16 @@ def plot_all_surfaces(
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-def _chinchilla_isoflop(N_range, C, E, A, alpha, B, beta):
+def _chinchilla_isoflop(
+    N_range: np.ndarray, C: float, E: float, A: float, alpha: float, B: float, beta: float
+) -> np.ndarray:
     D = C / (6.0 * N_range)
     return E + A / np.power(N_range, alpha) + B / np.power(D, beta)
 
 
-def _chinchilla_optimal_N(C, A, alpha, B, beta):
+def _chinchilla_optimal_N(
+    C: np.ndarray, A: float, alpha: float, B: float, beta: float
+) -> np.ndarray:
     return np.power(
         alpha * A / (beta * B * np.power(6.0, beta)),
         1.0 / (alpha + beta),
@@ -706,7 +713,7 @@ def plot_isoflop_single(
     y_lim=None,
     show_optimal=True,
     save_dir=None,
-):
+) -> None:
     """
     One **separate figure** per (dataset, mode) for a given holdout type.
     """
@@ -783,7 +790,7 @@ def plot_isoflops(
     y_lim=None,
     show_optimal=True,
     save_dir=None,
-):
+) -> None:
     """
     One figure per (dataset, mode, holdout_type) - fully separated.
     """
@@ -865,7 +872,7 @@ _HOLDOUT_SCATTER_STYLES = {
 }
 
 
-def _holdout_style(label: str) -> dict:
+def _holdout_style(label: str) -> dict[str, str | int]:
     """Pick scatter style based on holdout label (case-insensitive substring match)."""
     low = label.lower()
     # Check longest keys first to avoid "colinear" matching "non-colinear"
@@ -876,9 +883,9 @@ def _holdout_style(label: str) -> dict:
 
 
 def plot_dual_blanket(
-    co_result: Dict,
-    nc_result: Dict,
-    holdouts: Dict[str, List[Dict]],
+    co_result: dict[str, object],
+    nc_result: dict[str, object],
+    holdouts: dict[str, list[dict[str, object]]],
     mode: str = "final",
     dataset_name: str = "",
     # ── 3-D perspective view ──
@@ -897,39 +904,38 @@ def plot_dual_blanket(
     co_alpha: float = 0.35,
     nc_alpha: float = 0.35,
     title: str | None = None,
-    figsize: tuple = (13, 9),
+    figsize: tuple[float, float] = (13, 9),
     # ── Output ──
     save_dir: str | None = None,
-):
+) -> None:
     """
-    Overlay CO and NC fitted surfaces on the same 3-D plot with holdout
-    scatter (no training data), then produce a **side view** showing the
-    gap between surfaces.
+    Overlay CO and NC fitted surfaces with holdout scatter (no training data).
 
-    Produces two separate figures (right-click saveable):
-      1. Perspective view - both blankets + holdout scatter
-      2. Side view - both blankets + vertical gap bars at holdout points
+    Produces two separate figures (right-click saveable): a perspective view
+    (both blankets + holdout scatter) and a side view (both blankets +
+    vertical gap bars at holdout points).
 
-    Parameters
-    ----------
-    co_result, nc_result : result dicts from the pipeline for the *same* law
-                           and mode, but different designs
-    holdouts      : dict {label: run_list}, e.g.
-                    {"Unified": unified_holdout,
-                     "NC Holdout": nc_holdout,
-                     "CO Holdout": co_holdout}
-    mode          : 'final', 'first', 'all', or 'second'
-    dataset_name  : name of the dataset (shown in title and filenames)
-    elev, azim    : camera for the perspective figure
-    side_elev, side_azim : camera for the side figure (0, 0 = looking along D)
-    show_gap_bars : draw vertical bars between surfaces at holdout points
-    gap_bar_holdout : which holdout key to draw bars for (None = first key)
-    gap_bar_every : draw a bar every N-th holdout point (1 = all)
-    co_cmap, nc_cmap : colormaps for the two surfaces
-    co_alpha, nc_alpha : surface transparency
-    title         : override the auto-generated title
-    figsize       : figure size
-    save_dir      : directory to save PNGs
+    Args:
+        co_result: CO result dict from the pipeline (same law and mode as nc_result).
+        nc_result: NC result dict from the pipeline.
+        holdouts: dict {label: run_list}, e.g. {"Unified": unified_holdout,
+            "NC Holdout": nc_holdout, "CO Holdout": co_holdout}.
+        mode: 'final', 'first', 'all', or 'second'.
+        dataset_name: name of the dataset (shown in title and filenames).
+        elev: camera elevation for the perspective figure.
+        azim: camera azimuth for the perspective figure.
+        side_elev: camera elevation for the side figure.
+        side_azim: camera azimuth for the side figure (0, 0 = looking along D).
+        show_gap_bars: draw vertical bars between surfaces at holdout points.
+        gap_bar_holdout: which holdout key to draw bars for (None = first key).
+        gap_bar_every: draw a bar every N-th holdout point (1 = all).
+        co_cmap: colormap for the CO surface.
+        nc_cmap: colormap for the NC surface.
+        co_alpha: CO surface transparency.
+        nc_alpha: NC surface transparency.
+        title: override the auto-generated title.
+        figsize: figure size.
+        save_dir: directory to save PNGs.
     """
     from scaling_laws.data import prepare_arrays
     from scaling_laws.laws import LAWS
@@ -954,7 +960,7 @@ def plot_dual_blanket(
 
     # ── Collect all points for mesh extent ──
     all_N, all_D = np.array([]), np.array([])
-    prepped: Dict[str, tuple] = {}
+    prepped: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
     for h_label, h_list in holdouts.items():
         if not h_list:
             continue
@@ -1152,29 +1158,27 @@ def plot_dual_blanket(
 
 
 def plot_dual_blanket_from_results(
-    all_results: List[Dict],
+    all_results: list[dict[str, object]],
     prepared_data,
     law_name: str = "Chinchilla",
     mode_filter: str = "Final",
     dataset_filter: str | None = None,
-    holdout_keys: List[str] | None = None,
+    holdout_keys: list[str] | None = None,
     **kwargs,
-):
+) -> None:
     """
     Convenience wrapper: find the CO and NC results for a given law + mode
     and call plot_dual_blanket with the right holdout data.
 
-    Parameters
-    ----------
-    all_results    : full pipeline results list
-    prepared_data  : PreparedData or dict {name: PreparedData}
-    law_name       : which law to compare ("Kaplan", "Chinchilla", "Droppo-Elibol")
-    mode_filter    : which epoch mode ("Final", "First", "All", "Second")
-    dataset_filter : which dataset (None = first available)
-    holdout_keys   : which holdouts to include, from
-                     ["Unified", "CO Holdout", "NC Holdout"]
-                     (default: all three)
-    **kwargs       : passed to plot_dual_blanket (elev, azim, side_elev, etc.)
+    Args:
+        all_results: full pipeline results list.
+        prepared_data: PreparedData or dict {name: PreparedData}.
+        law_name: which law to compare ("Kaplan", "Chinchilla", "Droppo-Elibol").
+        mode_filter: which epoch mode ("Final", "First", "All", "Second").
+        dataset_filter: which dataset (None = first available).
+        holdout_keys: which holdouts to include, from
+            ["Unified", "CO Holdout", "NC Holdout"] (default: all three).
+        **kwargs: passed to plot_dual_blanket (elev, azim, side_elev, etc.).
     """
     from scaling_laws.data import PreparedData
 
@@ -1234,8 +1238,15 @@ def plot_dual_blanket_from_results(
 
 
 def _draw_isoflop(
-    ax, fits, holdout_data, holdout_label, flop_budgets, N_range, y_lim, show_optimal=True
-):
+    ax: plt.Axes,
+    fits: list[dict[str, object]],
+    holdout_data: list[dict[str, object]] | None,
+    holdout_label: str,
+    flop_budgets: np.ndarray,
+    N_range: np.ndarray,
+    y_lim: tuple[float, float] | None,
+    show_optimal: bool = True,
+) -> None:
     """Core isoFLOP drawing on a single Axes - shared by public functions."""
     design_cfg = {
         "Non-Colinear": {"ls": "-", "opt_color": "red"},

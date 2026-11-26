@@ -7,8 +7,7 @@ Reads <seed-dir>/seed_*/subset_bbox_*.csv produced by
 subset_analysis_bbox_seeded.py (typically launched via dispatch_seeds.sh)
 and computes per-law mean ± 95% bootstrap CI for the κ-averaged winrate.
 
-Usage
-─────
+Examples:
   # Default - reads from ./subset_bbox_seeds/ (matches dispatch_seeds.sh default)
   python per_law_winrate_ci.py --out-dir subset_bbox_seeds/aggregated
 
@@ -17,6 +16,8 @@ Usage
     --seed-dir subset_bbox_seeds \\
     --out-dir  subset_bbox_seeds/aggregated
 """
+
+from __future__ import annotations
 
 import argparse
 import re
@@ -94,7 +95,7 @@ def per_seed_log_avg_winrate(g: pd.DataFrame, law: str, kappa_targets):
     return float(np.mean(winrates[alive])) if len(alive) else np.nan
 
 
-def load_all_seeds(seed_dir: Path):
+def load_all_seeds(seed_dir: Path) -> pd.DataFrame:
     frames = []
     for sd in sorted(seed_dir.glob("seed_*")):
         m = re.match(r"seed_(\d+)$", sd.name)
@@ -139,7 +140,7 @@ def worker(args):
     return (law, dataset, mode, out)
 
 
-def main():
+def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--seed-dir",

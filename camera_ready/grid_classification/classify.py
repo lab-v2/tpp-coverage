@@ -1,19 +1,17 @@
 """Proposition-2 classification of published LLM scaling-law experimental designs.
 
-Applies the paper's a-priori design diagnostic (V_K >= tau_K, Prop. 2 / Eq. 5 of
-"Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation")
-to every included published design, under the conventions pre-registered in CRITERIA.md.
+Applies the paper's a-priori design diagnostic (V_K >= tau_K, Prop. 2 / Eq. 5) to every
+included published design, under the conventions pre-registered in CRITERIA.md.
 
-Primary convention since 2026-07-31 (CRITERIA.md convention 9): each design is
-evaluated at ITS OWN paper's fitted data-side exponent (designs.BetaEff), because
-tau_K depends on beta_eff and every paper fits its own law with its own exponent.
-The former corpus-wide beta_eff = 0.28 is retained as a comparison column, and the
-pre-registered beta_eff grid remains the sensitivity check.
+Since 2026-07-31 (CRITERIA.md convention 9) each design is evaluated at ITS OWN paper's
+fitted data-side exponent (designs.BetaEff), because tau_K depends on beta_eff. The old
+corpus-wide beta_eff = 0.28 stays as a comparison column; the pre-registered beta_eff grid
+is the sensitivity check. compute_VK, compute_tauK and classify_regime are imported from
+src/tpp_analysis/subset_analysis/subset_analysis_bbox_seeded.py.
 
-The diagnostic functions (compute_VK, compute_tauK, classify_regime) are imported from
-the paper's own code, src/tpp_analysis/subset_analysis/subset_analysis_bbox_seeded.py.
+Examples:
+    From the repository root:
 
-Usage (from the repository root):
     uv run python camera_ready/grid_classification/classify.py            # rewrites results.csv
     uv run python camera_ready/grid_classification/classify.py --out x.csv
 """

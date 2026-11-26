@@ -7,13 +7,11 @@ dataset × holdout split, with seed-averaged R²/RMSE and 95% CI
 annotations. Also produces the fitted parameter tables (Appendix F)
 from a single reference seed.
 
-Two modes:
-  --main (default): reads full_coverage_all_seeds.parquet
-                    (output of run_analysis.py - 5 datasets)
-  --special:        reads full_coverage_bf16.parquet
-                    (output of run_special_analysis.py - Wikipedia BF16)
+Two modes: main (the default, no flag) reads full_coverage_all_seeds.parquet (output
+of run_analysis.py - 5 datasets); --special reads full_coverage_bf16.parquet
+(output of run_special_analysis.py - Wikipedia BF16).
 
-Usage:
+Examples:
     # Main (5 datasets)
     python generate_appendix_tables.py full_coverage_results/
 
@@ -23,6 +21,8 @@ Usage:
     # Pin a different reference seed for fitted params
     python generate_appendix_tables.py full_coverage_results/ --param-seed 0
 """
+
+from __future__ import annotations
 
 import os
 import sys
@@ -147,11 +147,12 @@ def build_metric_table(df, dataset, split_key, split_header, split_caption, n_se
     Includes σ and 95% CI as tiny annotations.
     \\win{} marks best R² per (Mode, Law) group.
 
-    split_header  : compact math notation used in column headers
-                    (e.g., r"$\\mathcal{H}$")
-    split_caption : descriptive form used in the table caption
-                    (e.g., r"Holdout ($\\mathcal{H}$)")
-    n_seeds_label : number to print in caption (e.g., "Mean across N seeds")
+    Args:
+        split_header: compact math notation used in column headers
+            (e.g., r"$\\mathcal{H}$")
+        split_caption: descriptive form used in the table caption
+            (e.g., r"Holdout ($\\mathcal{H}$)")
+        n_seeds_label: number to print in caption (e.g., "Mean across N seeds")
     """
     r2_col = f"r2_{split_key}"
     rmse_col = f"rmse_{split_key}"
@@ -346,15 +347,13 @@ LAW_TABLE_CONFIG = {
 def build_param_table_per_law(df, law_name, dataset_order, label_suffix="", seed=0):
     """
     Build a fitted-parameters table for one law across all datasets.
-    Matches the paper's Appendix F format (Tables 41-44).
+    Matches the paper's Appendix F format (Tables 41-44). Per-split holdout R² columns
+    use the standardized notation: $R^2_{\\mathcal{H}}$,
+    $R^2_{\\mathcal{H}_{\\mathrm{col}}}$, $R^2_{\\mathcal{H}_{\\mathrm{nc}}}$.
 
-    Per-split holdout R² columns now use the standardized notation:
-    $R^2_{\\mathcal{H}}$, $R^2_{\\mathcal{H}_{\\mathrm{col}}}$,
-    $R^2_{\\mathcal{H}_{\\mathrm{nc}}}$.
-
-    label_suffix: appended to LaTeX label so main and special tables don't
-                  collide (e.g., "tab:chinchilla-params" vs
-                  "tab:chinchilla-params-bf16").
+    Args:
+        label_suffix: appended to LaTeX label so main and special tables don't
+            collide (e.g., "tab:chinchilla-params" vs "tab:chinchilla-params-bf16").
     """
     cfg = LAW_TABLE_CONFIG.get(law_name)
     if cfg is None:

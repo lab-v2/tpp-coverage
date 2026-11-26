@@ -26,7 +26,9 @@ import estimate as EST
 
 N_BOOT = 200_000
 CHUNK = 2_000
-_JOBS: list = []  # (tag, vals, groups, key), set before the pool forks
+_JOBS: list[
+    tuple[tuple[object, ...], np.ndarray, list[list[np.ndarray]], str]
+] = []  # (tag, vals, groups, key), set before the pool forks
 
 
 def _chunk(task: tuple[int, int, int]) -> tuple[int, int, np.ndarray]:
@@ -36,7 +38,11 @@ def _chunk(task: tuple[int, int, int]) -> tuple[int, int, np.ndarray]:
     return j, c, EST.cluster_medians(vals, groups, rng, CHUNK)
 
 
-def intervals(jobs: list, replicates: range, workers: int) -> list[dict]:
+def intervals(
+    jobs: list[tuple[tuple[object, ...], np.ndarray, list[list[np.ndarray]], str]],
+    replicates: range,
+    workers: int,
+) -> list[dict[str, object]]:
     """One row per (job, replicate): the job's statistics and its 200,000-draw interval.
 
     A job is `estimate.median_task`'s tuple (tag, gaps, window groups, seed key).
@@ -73,7 +79,9 @@ def intervals(jobs: list, replicates: range, workers: int) -> list[dict]:
     return rows
 
 
-def check_released(jobs: list) -> None:
+def check_released(
+    jobs: list[tuple[tuple[object, ...], np.ndarray, list[list[np.ndarray]], str]],
+) -> None:
     """Assert that `cluster_medians`, after the released pair draws, gives `_median_job`'s interval."""
     for job in jobs:
         _, vals, groups, key = job

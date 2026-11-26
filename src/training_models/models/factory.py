@@ -3,6 +3,8 @@ Model factory for creating different architectures.
 Supports Llama (default, as used in Cosmo-1B) and SimpleTransformer (custom).
 """
 
+from __future__ import annotations
+
 import sys
 import os
 
@@ -78,17 +80,10 @@ def model_config_to_llama_config(model_config: ModelConfig) -> LlamaConfig:
 class PaddedFP8Linear(nn.Module):
     """Wrapper around te.Linear that auto-pads inputs for FP8 dimension constraints.
 
-    FP8 Tensor Core GEMMs require:
-      - 2D input with height (batch*seq) divisible by 8
-      - 2D input with width (in_features) divisible by 16
-
-    The width constraint is checked at construction time (and we skip layers that
-    don't meet it). The height constraint depends on runtime batch/seq sizes, so
-    this wrapper transparently pads the batch dimension to the next multiple of 8,
-    runs the FP8 GEMM, then strips the padding from the output.
-
-    This ensures FP8 works with arbitrary batch sizes and sequence lengths, which
-    is critical for scaling law experiments where model dimensions vary widely.
+    FP8 Tensor Core GEMMs need a 2D input of height (batch*seq) divisible by 8 and width
+    (in_features) by 16. Width is checked at construction (failing layers are skipped); height
+    depends on runtime batch/seq, so the batch dimension is padded to the next multiple of 8 and
+    stripped after the GEMM: FP8 then runs at any batch or sequence length a scaling grid needs.
     """
 
     def __init__(self, in_features: int, out_features: int, bias: bool = True):

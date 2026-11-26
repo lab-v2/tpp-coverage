@@ -12,7 +12,6 @@ must be able to pickle them.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -95,7 +94,7 @@ class ConditioningOutcome:
     kappa_scale_block: float
 
 
-def run_comparison(trial: ComparisonTrial) -> Optional[ComparisonOutcome]:
+def run_comparison(trial: ComparisonTrial) -> ComparisonOutcome | None:
     """Fit both designs and score them on the shared holdout.
 
     Returns ``None`` when either fit fails to converge or produces a non-finite
@@ -136,7 +135,7 @@ def run_comparison(trial: ComparisonTrial) -> Optional[ComparisonOutcome]:
     )
 
 
-def run_conditioning(trial: ConditioningTrial) -> Optional[ConditioningOutcome]:
+def run_conditioning(trial: ConditioningTrial) -> ConditioningOutcome | None:
     """Fit one design and return its (A, B) block condition number."""
     arrays = trial.design.to_arrays()
     fit = LawFitter(restarts=trial.restarts, global_search=False).fit(

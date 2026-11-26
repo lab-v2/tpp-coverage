@@ -1,27 +1,15 @@
 """Deterministic parallel execution of independent fitting trials.
 
-The determinism contract
-------------------------
-Parallelism here can never change a result, because randomness and computation
-are separated in time:
+Parallelism cannot change a result, because randomness and computation are separated:
+1. **Plan sequentially.** One pass draws every random choice from the driver RNG in a
+   fixed order into work items, each with its own seed; nothing else touches that RNG.
+2. **Execute in parallel.** Each item goes through a pure function of that item alone,
+   with no shared state or global RNG.
+3. **Reduce in plan order.** Results are sorted back into plan order before any
+   order-sensitive statistic (median, win count, bootstrap) sees them.
 
-1. **Plan sequentially.** A single-threaded pass draws every random choice from
-   the driver RNG in a fixed order and freezes it into a list of work items.
-   Each item carries its own explicit seed. This is the only place the driver
-   RNG is touched, so the draw sequence is identical no matter how many workers
-   run later.
-2. **Execute in parallel.** Each work item is mapped through a pure function of
-   that item alone. Workers share no mutable state and never consult a global
-   RNG, so the result for item *i* depends only on item *i*.
-3. **Reduce in plan order.** Results come back indexed and are sorted back into
-   plan order before aggregation, so no order-sensitive statistic (median, win
-   count, bootstrap) can see a different sequence.
-
-Each worker also runs with the BLAS pinned to one thread (see the package
-docstring), so a worker's arithmetic is bit-identical to the serial path.
-
-The practical consequence: ``workers=1`` and ``workers=256`` produce identical
-output, and the test suite asserts exactly that.
+With one BLAS thread per worker (package docstring), ``workers=1`` and ``workers=256``
+give identical output; the test suite asserts it.
 """
 
 from __future__ import annotations
@@ -29,7 +17,7 @@ from __future__ import annotations
 import os
 from collections.abc import Callable, Iterable, Sequence
 from concurrent.futures import ProcessPoolExecutor
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 Work = TypeVar("Work")
 Outcome = TypeVar("Outcome")
@@ -54,7 +42,7 @@ def default_worker_count() -> int:
     return max(1, available - _RESERVED_CORES)
 
 
-def resolve_worker_count(requested: Optional[int], item_count: int) -> int:
+def resolve_worker_count(requested: int | None, item_count: int) -> int:
     """Clamp a requested worker count to something sensible for this workload."""
     if requested is not None and requested < 1:
         raise ValueError(f"workers must be >= 1, got {requested}")
@@ -87,7 +75,7 @@ class DeterministicExecutor:
     and must be a pure function of its argument.
     """
 
-    def __init__(self, workers: Optional[int] = None) -> None:
+    def __init__(self, workers: int | None = None) -> None:
         self._requested = workers
 
     def map(
@@ -111,6 +99,6 @@ class DeterministicExecutor:
         return f"{item_count} items on {workers} worker(s)"
 
 
-def drop_failures(outcomes: Iterable[Optional[Outcome]]) -> list[Outcome]:
+def drop_failures(outcomes: Iterable[Outcome | None]) -> list[Outcome]:
     """Filter out trials that could not be evaluated, preserving order."""
     return [o for o in outcomes if o is not None]

@@ -30,7 +30,7 @@ import estimate as EST
 from regime_by_band_ci import GAP, regime_cli
 
 
-def co_jobs(df: pd.DataFrame, corpus: str) -> list[tuple]:
+def co_jobs(df: pd.DataFrame, corpus: str) -> list[tuple[object, ...]]:
     """One job per (kappa_target, regime of the CO design) that holds any pair."""
     jobs = []
     for kappa in C.KAPPA_GRID:

@@ -3,19 +3,16 @@
 Reproducibility verification: compare a freshly trained run against the
 authoritative reference on HuggingFace.
 
-The script can locate and download the matching reference file automatically
-from `leibnitz-lab/colinear_scaling_models`, so there is no need to
-download the entire repo (~100s of GB) just to verify one run. Pass
-`--from-hf` and the script:
+With `--from-hf` it reads the (dataset, design, N, token-count, run-type) identity from the
+reproduced .pt / .npz filename, finds the file sharing those tokens in the matching directory
+of `leibnitz-lab/colinear_scaling_models` (whatever the surrounding-name boilerplate),
+downloads ONLY that file (cached under ~/.cache/tpp_verify) and compares: there is no need to
+download the entire repo (~100s of GB) just to verify one run.
 
-  1. Inspects the reproduced .pt / .npz to read its (dataset, design, N,
-     token-count, run-type) identity from the filename.
-  2. Lists the matching HF directory and finds the file that shares those
-     four identifying tokens, regardless of surrounding-name boilerplate.
-  3. Downloads ONLY that single file (cached under ~/.cache/tpp_verify).
-  4. Runs the comparison.
+The reference (https://huggingface.co/datasets/leibnitz-lab/colinear_scaling_models) was
+produced on NVIDIA GH200 GPUs with CUDA 12.4 in early 2026.
 
-Usage:
+Examples:
     # Auto-fetch reference (recommended - nothing to pre-download):
     python verify_reproducibility.py compare --from-hf \\
         --reproduced saved_checkpoints/REPRO_*_metrics.npz
@@ -28,11 +25,9 @@ Usage:
     python verify_reproducibility.py compare \\
         --original colinear_scaling_models/.../ref_metrics.npz \\
         --reproduced training_metrics/REPRO_..._metrics.npz
-
-The authoritative reference is hosted at
-https://huggingface.co/datasets/leibnitz-lab/colinear_scaling_models
-and was produced on NVIDIA GH200 GPUs with CUDA 12.4 in early 2026.
 """
+
+from __future__ import annotations
 
 import os
 import re
@@ -515,7 +510,7 @@ def _expand_glob(path: str, label: str) -> str:
 # ============================================================
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Verify reproducibility by comparing training outputs",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -532,7 +527,7 @@ Manually pair two local files:
 
     subparsers = parser.add_subparsers(dest="mode", required=True)
 
-    def _add_common(p):
+    def _add_common(p: argparse.ArgumentParser) -> None:
         p.add_argument(
             "--reproduced", required=True, help="Path to reproduced .pt or .npz (glob OK)"
         )

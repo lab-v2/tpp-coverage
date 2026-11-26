@@ -384,11 +384,9 @@ class SummaryFigure:
 class DesignScatter:
     """Flat N vs D scatter of the design points, train vs holdout marked.
 
-    Mirrors the paper's appendix geometry (Appendix D.2): the holdout is the
-    extrapolation frontier, held out *beyond* the training range, not an
-    interior subset. Here the training region is the four smaller model sizes
-    and the holdout is the largest model (354M non-embedding), so the fit is
-    asked to extrapolate to a scale it never saw.
+    As in Appendix D.2 the holdout is the frontier *beyond* the training range: training
+    is the four smaller model sizes, the holdout the largest (354M non-embedding), a
+    scale the fit never saw.
     """
 
     TRAIN = "#2a78d6"

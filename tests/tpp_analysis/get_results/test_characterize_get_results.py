@@ -35,7 +35,7 @@ def _blocks(text: str) -> list[str]:
     return [b.strip() for b in text.split("\n\n") if b.strip()]
 
 
-def test_from_hf(metrics, tmp_path):
+def test_from_hf(metrics: Path, tmp_path: Path) -> None:
     run(["python", SCRIPT, "from_hf", metrics / "training_metrics", "-o", tmp_path, *TIERS])
     tables = _tables(tmp_path)
     assert len(tables) == 7
@@ -48,7 +48,7 @@ def test_from_hf(metrics, tmp_path):
 @pytest.mark.parametrize(
     "flags", [[], TIERS, [*TIERS, "--no-final-loss"]], ids=["main", "tiers", "epoch-avg"]
 )
-def test_from_local(metrics, tmp_path, flags):
+def test_from_local(metrics: Path, tmp_path: Path, flags: list[str]) -> None:
     flat = tmp_path / "flat"
     flat.mkdir()
     for f in (metrics / "training_metrics").rglob("*_metrics.npz"):

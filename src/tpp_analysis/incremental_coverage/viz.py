@@ -8,7 +8,6 @@ one epoch mode at a time (e.g. "Final", "First", "Second", "Epoch-Expanded").
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -41,7 +40,7 @@ DESIGN_COLORS = {
 }
 
 
-def _style_ax(ax, xlabel: str, ylabel: str, title: str = ""):
+def _style_ax(ax: plt.Axes, xlabel: str, ylabel: str, title: str = "") -> None:
     ax.set_xlabel(xlabel, fontsize=12)
     ax.set_ylabel(ylabel, fontsize=12)
     if title:
@@ -50,7 +49,9 @@ def _style_ax(ax, xlabel: str, ylabel: str, title: str = ""):
     ax.tick_params(labelsize=10)
 
 
-def _law_legend(ax, laws_present=None, loc="lower right"):
+def _law_legend(
+    ax: plt.Axes, laws_present: list[str] | None = None, loc: str = "lower right"
+) -> None:
     keys = laws_present if laws_present else list(LAW_COLORS.keys())
     handles = [
         Line2D(
@@ -69,7 +70,7 @@ def _law_legend(ax, laws_present=None, loc="lower right"):
         ax.legend(handles=handles, loc=loc, fontsize=9, framealpha=0.9)
 
 
-def _apply_ylim(ax, y_min: Optional[float], y_max: Optional[float]):
+def _apply_ylim(ax: plt.Axes, y_min: float | None, y_max: float | None) -> None:
     if y_min is not None or y_max is not None:
         current_min, current_max = ax.get_ylim()
         new_min = y_min if y_min is not None else current_min
@@ -88,14 +89,14 @@ def _coverage_xlim(ax: plt.Axes) -> None:
     ax.set_xlim(min(-0.02, lo - 0.02), max(1.05, hi + 0.02))
 
 
-def _filter_mode(df: pd.DataFrame, mode_filter: Optional[str]) -> pd.DataFrame:
+def _filter_mode(df: pd.DataFrame, mode_filter: str | None) -> pd.DataFrame:
     """Filter dataframe to a single mode if specified."""
     if mode_filter is None:
         return df
     return df[df["mode"] == mode_filter]
 
 
-def _mode_label(mode_filter: Optional[str]) -> str:
+def _mode_label(mode_filter: str | None) -> str:
     """Return a label string for the mode."""
     if mode_filter is None:
         return "All Modes"
@@ -111,12 +112,12 @@ def plot_r2_convergence(
     df: pd.DataFrame,
     holdout_col: str = "r2_unified",
     x_col: str = "coverage_frac",
-    mode_filter: Optional[str] = None,
-    min_coverage: Optional[float] = None,
-    figsize: Tuple[float, float] = (14, 5),
+    mode_filter: str | None = None,
+    min_coverage: float | None = None,
+    figsize: tuple[float, float] = (14, 5),
     suptitle: str = "",
-    y_min: Optional[float] = -0.5,
-    y_max: Optional[float] = 1.05,
+    y_min: float | None = -0.5,
+    y_max: float | None = 1.05,
 ) -> plt.Figure:
     """
     R² vs. coverage fraction, one line per law.
@@ -168,12 +169,12 @@ def plot_delta_convergence(
     df: pd.DataFrame,
     holdout_col: str = "r2_unified",
     x_col: str = "coverage_frac",
-    mode_filter: Optional[str] = None,
-    min_coverage: Optional[float] = None,
-    figsize: Tuple[float, float] = (14, 5),
+    mode_filter: str | None = None,
+    min_coverage: float | None = None,
+    figsize: tuple[float, float] = (14, 5),
     suptitle: str = "",
-    y_min: Optional[float] = -1.0,
-    y_max: Optional[float] = 0.5,
+    y_min: float | None = -1.0,
+    y_max: float | None = 0.5,
 ) -> plt.Figure:
     """
     ΔR² (difference from full-coverage R²) vs. coverage.
@@ -232,12 +233,12 @@ def plot_co_vs_nc_overlay(
     df: pd.DataFrame,
     holdout_col: str = "r2_unified",
     x_col: str = "coverage_frac",
-    mode_filter: Optional[str] = None,
-    min_coverage: Optional[float] = None,
-    figsize: Tuple[float, float] = (14, 8),
+    mode_filter: str | None = None,
+    min_coverage: float | None = None,
+    figsize: tuple[float, float] = (14, 8),
     suptitle: str = "",
-    y_min: Optional[float] = -0.5,
-    y_max: Optional[float] = 1.05,
+    y_min: float | None = -0.5,
+    y_max: float | None = 1.05,
 ) -> plt.Figure:
     """
     One subplot per law. Each overlays CO vs NC R² curves.
@@ -315,9 +316,9 @@ def _extract_param_series(df: pd.DataFrame, law_name: str, design: str) -> pd.Da
 def plot_parameter_trajectories(
     df: pd.DataFrame,
     law_name: str,
-    param_names: Optional[List[str]] = None,
-    mode_filter: Optional[str] = None,
-    figsize: Tuple[float, float] = (14, 8),
+    param_names: list[str] | None = None,
+    mode_filter: str | None = None,
+    figsize: tuple[float, float] = (14, 8),
 ) -> plt.Figure:
     """
     Show how fitted parameters drift as coverage increases.
@@ -387,8 +388,8 @@ def plot_r2_heatmap(
     df: pd.DataFrame,
     design: str,
     holdout_col: str = "r2_unified",
-    mode_filter: Optional[str] = None,
-    figsize: Tuple[float, float] = (12, 4),
+    mode_filter: str | None = None,
+    figsize: tuple[float, float] = (12, 4),
 ) -> plt.Figure:
     """
     Heatmap: rows = laws, columns = coverage steps.
@@ -433,14 +434,14 @@ def plot_r2_heatmap(
 def plot_summary_dashboard(
     df: pd.DataFrame,
     holdout_col: str = "r2_unified",
-    mode_filter: Optional[str] = None,
-    min_coverage: Optional[float] = None,
-    figsize: Tuple[float, float] = (16, 12),
+    mode_filter: str | None = None,
+    min_coverage: float | None = None,
+    figsize: tuple[float, float] = (16, 12),
     suptitle: str = "",
-    y_min_r2: Optional[float] = -0.5,
-    y_max_r2: Optional[float] = 1.05,
-    y_min_delta: Optional[float] = -1.0,
-    y_max_delta: Optional[float] = 0.5,
+    y_min_r2: float | None = -0.5,
+    y_max_r2: float | None = 1.05,
+    y_min_delta: float | None = -1.0,
+    y_max_delta: float | None = 0.5,
 ) -> plt.Figure:
     """
     4-panel summary:
@@ -522,12 +523,12 @@ def plot_summary_dashboard(
 def plot_r2_rate_of_change(
     df: pd.DataFrame,
     holdout_col: str = "r2_unified",
-    mode_filter: Optional[str] = None,
-    min_coverage: Optional[float] = None,
-    figsize: Tuple[float, float] = (14, 5),
+    mode_filter: str | None = None,
+    min_coverage: float | None = None,
+    figsize: tuple[float, float] = (14, 5),
     suptitle: str = "",
-    y_min: Optional[float] = None,
-    y_max: Optional[float] = None,
+    y_min: float | None = None,
+    y_max: float | None = None,
 ) -> plt.Figure:
     """
     Discrete derivative: Δ(R²) / Δ(coverage) at each step.
@@ -603,11 +604,11 @@ def plot_mode_comparison(
     law_name: str,
     holdout_col: str = "r2_unified",
     x_col: str = "coverage_frac",
-    min_coverage: Optional[float] = None,
-    figsize: Tuple[float, float] = (14, 5),
+    min_coverage: float | None = None,
+    figsize: tuple[float, float] = (14, 5),
     suptitle: str = "",
-    y_min: Optional[float] = -0.5,
-    y_max: Optional[float] = 1.05,
+    y_min: float | None = -0.5,
+    y_max: float | None = 1.05,
 ) -> plt.Figure:
     """
     For a single law, overlay all modes (Final/First/Second/Epoch-Expanded)
@@ -673,10 +674,10 @@ def plot_single_comparison(
     mode_filter: str,
     holdout_col: str = "r2_unified",
     x_col: str = "coverage_frac",
-    min_coverage: Optional[float] = None,
-    figsize: Tuple[float, float] = (7, 7),
-    y_min: Optional[float] = -0.5,
-    y_max: Optional[float] = 1.05,
+    min_coverage: float | None = None,
+    figsize: tuple[float, float] = (7, 7),
+    y_min: float | None = -0.5,
+    y_max: float | None = 1.05,
     suptitle: str = "",
     legend_fontsize: float = 12,
     legend_loc: str = "lower right",
@@ -689,21 +690,20 @@ def plot_single_comparison(
     """
     Single square plot: CO and NC R² on the same axes for one (law, mode).
 
-    Parameters
-    ----------
-    df             : full results DataFrame (all datasets combined or single)
-    law_name       : e.g. "Chinchilla", "Kaplan", "Droppo-Elibol", "Parametric-Epoch"
-    mode_filter    : e.g. "Final", "First", "Second", "Epoch-Expanded"
-    holdout_col    : which R² to plot
-    min_coverage   : skip early degenerate steps (e.g. 0.15)
-    figsize        : square by default (7, 7)
-    legend_fontsize: control legend text size
-    legend_loc     : legend placement
-    title_fontsize : title text size
-    label_fontsize : axis label text size
-    tick_fontsize  : tick label text size
-    marker_size    : data point size
-    line_width     : line thickness
+    Args:
+        df: full results DataFrame (all datasets combined or single)
+        law_name: e.g. "Chinchilla", "Kaplan", "Droppo-Elibol", "Parametric-Epoch"
+        mode_filter: e.g. "Final", "First", "Second", "Epoch-Expanded"
+        holdout_col: which R² to plot
+        min_coverage: skip early degenerate steps (e.g. 0.15)
+        figsize: square by default (7, 7)
+        legend_fontsize: control legend text size
+        legend_loc: legend placement
+        title_fontsize: title text size
+        label_fontsize: axis label text size
+        tick_fontsize: tick label text size
+        marker_size: data point size
+        line_width: line thickness
     """
     sub = df[(df["law"] == law_name) & (df["mode"] == mode_filter) & df["success"]].copy()
 

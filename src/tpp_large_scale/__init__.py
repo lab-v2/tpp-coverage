@@ -4,18 +4,12 @@ Reruns the companion paper's estimation-conditioning pipeline on an independent,
 larger training grid, reusing the paper's own law definitions, fitters and
 diversity criterion via :mod:`tpp_large_scale.upstream`.
 
-Determinism note
-----------------
-The BLAS thread caps below are set before anything imports numpy, and that
-ordering is load-bearing. A multi-threaded BLAS splits reductions across threads
-and sums the partial results in completion order, so the same dot product can
-differ in its last bits between runs. On a near-singular Gauss-Newton system
-those last bits are amplified into visibly different condition numbers, and
-fitted exponents on a degenerate design can land in a different local optimum
-entirely. Pinning the BLAS to one thread per process makes every fit
-bit-reproducible; parallelism is recovered across processes instead, where each
-worker is an independent deterministic unit. This mirrors what the paper's own
-``subset_analysis`` module does.
+Determinism: the BLAS thread caps below are set before anything imports numpy, and that
+order is load-bearing. A multi-threaded BLAS sums partial reductions in completion order,
+so last bits differ between runs; a near-singular Gauss-Newton system amplifies them into
+different condition numbers or even a different local optimum. One BLAS thread per
+process makes every fit bit-reproducible, with parallelism across processes instead, as
+the paper's own ``subset_analysis`` module does.
 """
 
 from __future__ import annotations

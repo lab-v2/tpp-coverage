@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
 import sys
 import os
+from collections.abc import Callable, Iterable
 
 # ============================================================================
 # DETERMINISM: Set environment variables BEFORE importing torch
@@ -144,11 +146,17 @@ class Lion(optim.Optimizer):
     """Lion (Chen et al. 2023, "Symbolic Discovery of Optimization Algorithms"): the sign of an
     interpolated momentum, decoupled weight decay. Not in torch 2.5, so written here."""
 
-    def __init__(self, params, lr=1e-4, betas=(0.9, 0.99), weight_decay=0.0):
+    def __init__(
+        self,
+        params: Iterable[torch.Tensor],
+        lr: float = 1e-4,
+        betas: tuple[float, float] = (0.9, 0.99),
+        weight_decay: float = 0.0,
+    ) -> None:
         super().__init__(params, dict(lr=lr, betas=betas, weight_decay=weight_decay))
 
     @torch.no_grad()
-    def step(self, closure=None):
+    def step(self, closure: Callable[[], float] | None = None) -> float | None:
         loss = closure() if closure is not None else None
         for group in self.param_groups:
             b1, b2 = group["betas"]
@@ -167,7 +175,7 @@ class Lion(optim.Optimizer):
 
 def shift_for_next_token(
     input_ids: torch.Tensor, attention_mask: torch.Tensor, mask_padding: bool = True
-):
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Inputs, labels and mask for next-token prediction, with padding masked out of the loss.
 
     Labels at padded positions are set to -100, which ``nn.CrossEntropyLoss`` ignores, so the
@@ -187,12 +195,10 @@ def accumulation_group(
 ) -> tuple[int, int]:
     """(micro-batches, examples) in the optimizer step that micro-batch ``micro_idx`` belongs to.
 
-    ``batch_size`` is the per-step batch and ``n_examples`` the length of the epoch's sampler.
-    The last step of an epoch may hold fewer micro-batches and a short last micro-batch
-    (``drop_last=False``); weighting each micro-batch loss by ``n_micro / n_group`` then gives
-    the same gradient as one batch of ``n_group`` examples, exactly when every example has the
-    same number of scored tokens (no padding); with padding the per-example weights are an
-    approximation of the token mean.
+    ``batch_size`` is the per-step batch, ``n_examples`` the epoch sampler's length. An epoch's
+    last step may hold fewer micro-batches and a short last one (``drop_last=False``); weighting
+    each micro-batch loss by ``n_micro / n_group`` gives the gradient of one ``n_group`` batch,
+    exactly without padding (equal scored tokens per example), approximately with it.
     """
     group_idx = micro_idx // grad_accum_steps
     group_size = min(grad_accum_steps, num_micro_batches - group_idx * grad_accum_steps)
@@ -204,7 +210,9 @@ OPTIMIZERS = ("adamw", "adam", "sgd", "lion", "adafactor")
 SCHEDULES = ("cosine", "wsd", "constant")
 
 
-def make_optimizer(name: str, params, lr: float, weight_decay: float) -> optim.Optimizer:
+def make_optimizer(
+    name: str, params: Iterable[torch.Tensor], lr: float, weight_decay: float
+) -> optim.Optimizer:
     """Optimizer by name: adamw is the protocol default (every released run); adam is AdamW
     without decay; sgd is Nesterov momentum 0.9; lion; adafactor (torch >= 2.5)."""
     if name == "adamw":
@@ -234,7 +242,7 @@ def schedule_factor(schedule: str, step: int, decay_steps: int) -> float:
 class DistributedTrainer(BaseTrainer):
     """Distributed training implementation using PyTorch DDP with full features."""
 
-    def __init__(self, seed: int = DEFAULT_SEED):
+    def __init__(self, seed: int = DEFAULT_SEED) -> None:
         """
         Initialize the DistributedTrainer.
 

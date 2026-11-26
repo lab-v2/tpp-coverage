@@ -16,7 +16,6 @@ from __future__ import annotations
 import os
 import sys
 import time
-from typing import Dict, List
 
 import numpy as np
 import pandas as pd
@@ -38,14 +37,14 @@ from scaling_laws.laws import (
 # ════════════════════════════════════════════════════════════════
 
 # Canonical parameter names for each law (order matches fit_fn output)
-PARAM_NAMES: Dict[str, List[str]] = {
+PARAM_NAMES: dict[str, list[str]] = {
     "Kaplan": ["N_c", "D_c", "alpha_N", "alpha_D"],
     "Chinchilla": ["E", "A", "alpha", "B", "beta"],
     "Droppo-Elibol": ["L_inf", "N_c", "D_c", "alpha_N", "alpha_D", "alpha"],
 }
 
 # LaTeX-friendly names for tables
-PARAM_NAMES_LATEX: Dict[str, List[str]] = {
+PARAM_NAMES_LATEX: dict[str, list[str]] = {
     "Kaplan": [r"$N_c$", r"$D_c$", r"$\alpha_N$", r"$\alpha_D$"],
     "Chinchilla": [r"$E$", r"$A$", r"$\alpha$", r"$B$", r"$\beta$"],
     "Droppo-Elibol": [r"$L_\infty$", r"$N_c$", r"$D_c$", r"$\alpha_N$", r"$\alpha_D$", r"$\alpha$"],
@@ -60,10 +59,12 @@ MAX_PARAMS = max(len(v) for v in PARAM_NAMES.values())
 # ════════════════════════════════════════════════════════════════
 
 
-def _fit_kaplan_seed(N, D, L, n_restarts=300, seed=42):
+def _fit_kaplan_seed(
+    N: np.ndarray, D: np.ndarray, L: np.ndarray, n_restarts: int = 300, seed: int = 42
+) -> tuple[np.ndarray | None, float, bool]:
     bounds = [(1e3, 1e14), (1e3, 1e14), (0.01, 2.0), (0.01, 2.0)]
 
-    def sampler(rng, L):
+    def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
         return [
             10 ** rng.uniform(5, 12),
             10 ** rng.uniform(5, 12),
@@ -74,10 +75,12 @@ def _fit_kaplan_seed(N, D, L, n_restarts=300, seed=42):
     return _fit_generic(kaplan_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
 
-def _fit_chinchilla_seed(N, D, L, n_restarts=300, seed=42):
+def _fit_chinchilla_seed(
+    N: np.ndarray, D: np.ndarray, L: np.ndarray, n_restarts: int = 300, seed: int = 42
+) -> tuple[np.ndarray | None, float, bool]:
     bounds = [(0.0, 10.0), (1e-2, 1e10), (0.01, 2.0), (1e-2, 1e10), (0.01, 2.0)]
 
-    def sampler(rng, L):
+    def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
         return [
             rng.uniform(0.0, min(L) * 0.9),
             10 ** rng.uniform(0, 8),
@@ -89,7 +92,9 @@ def _fit_chinchilla_seed(N, D, L, n_restarts=300, seed=42):
     return _fit_generic(chinchilla_loss, N, D, L, bounds, sampler, n_restarts, seed=seed)
 
 
-def _fit_droppo_elibol_seed(N, D, L, n_restarts=300, seed=42):
+def _fit_droppo_elibol_seed(
+    N: np.ndarray, D: np.ndarray, L: np.ndarray, n_restarts: int = 300, seed: int = 42
+) -> tuple[np.ndarray | None, float, bool]:
     bounds = [
         (1e-6, 10.0),
         (1e3, 1e14),
@@ -99,7 +104,7 @@ def _fit_droppo_elibol_seed(N, D, L, n_restarts=300, seed=42):
         (0.01, 2.0),
     ]
 
-    def sampler(rng, L):
+    def sampler(rng: np.random.RandomState, L: np.ndarray) -> list[float]:
         return [
             rng.uniform(0.01, min(L) * 0.8),
             10 ** rng.uniform(5, 12),
@@ -126,14 +131,14 @@ _SEED_FITTERS = {
 
 
 def run_full_coverage_seeds(
-    train_list,
-    holdouts,
-    law_name,
-    mode,
-    n_seeds=30,
-    n_restarts=100,
-    base_seed=0,
-):
+    train_list: list[dict[str, object]],
+    holdouts: dict[str, list[dict[str, object]]],
+    law_name: str,
+    mode: str,
+    n_seeds: int = 30,
+    n_restarts: int = 100,
+    base_seed: int = 0,
+) -> list[dict[str, object]]:
     """
     Fit the same training data n_seeds times with different optimizer seeds.
 
@@ -311,7 +316,7 @@ def run_all_full_coverage(
 # ════════════════════════════════════════════════════════════════
 
 
-def build_summary_table(df):
+def build_summary_table(df: pd.DataFrame) -> pd.DataFrame:
     """
     Build summary table aggregated across all datasets × laws × modes.
 
@@ -375,7 +380,7 @@ def build_summary_table(df):
 # ════════════════════════════════════════════════════════════════
 
 
-def build_per_combo_table(df):
+def build_per_combo_table(df: pd.DataFrame) -> pd.DataFrame:
     """
     One row per (dataset, law, mode, design) with R² and RMSE
     mean, std, p5, p95 for each split.
@@ -421,7 +426,7 @@ def build_per_combo_table(df):
 # ════════════════════════════════════════════════════════════════
 
 
-def build_winrate_table(df):
+def build_winrate_table(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Seed-paired win rates: at each seed, compare CO vs NC R².
 
@@ -496,7 +501,7 @@ def build_winrate_table(df):
     agg_rows = []
     z = 1.96
 
-    def _wilson(k, n):
+    def _wilson(k: int, n: int) -> tuple[float, float, float]:
         if n == 0:
             return 0, 0, 0
         p_hat = k / n
@@ -552,7 +557,7 @@ def build_winrate_table(df):
 # ════════════════════════════════════════════════════════════════
 
 
-def build_param_ci_table(df):
+def build_param_ci_table(df: pd.DataFrame) -> pd.DataFrame:
     """
     Build a table of fitted-parameter confidence intervals across seeds.
 
@@ -605,7 +610,7 @@ def build_param_ci_table(df):
     return pd.DataFrame(rows)
 
 
-def build_param_ci_summary(df):
+def build_param_ci_summary(df: pd.DataFrame) -> pd.DataFrame:
     """
     Condensed parameter CI table: one row per (law, design, param),
     averaging across datasets and modes.
@@ -644,7 +649,7 @@ def build_param_ci_summary(df):
 # ════════════════════════════════════════════════════════════════
 
 
-def summary_to_latex(summary_df):
+def summary_to_latex(summary_df: pd.DataFrame) -> str:
     """Generate LaTeX for the summary table (Table 3 replacement)."""
     lines = [
         r"\begin{table*}[t]",
@@ -702,7 +707,7 @@ def summary_to_latex(summary_df):
     return "\n".join(lines)
 
 
-def winrate_to_latex(agg_df):
+def winrate_to_latex(agg_df: pd.DataFrame) -> str:
     """Generate LaTeX for the win rate table (Table 4 replacement)."""
     overall = agg_df[agg_df["Slice"] == "Overall"]
     if not overall.empty:
@@ -763,15 +768,13 @@ def winrate_to_latex(agg_df):
     return "\n".join(lines)
 
 
-def param_ci_to_latex(df, per_combo=False):
+def param_ci_to_latex(df: pd.DataFrame, per_combo: bool = False) -> str:
     """
     Generate LaTeX for the parameter CI appendix table.
 
-    If per_combo=False (default), produces a condensed table:
-      one row per (Law, Design, Param) averaged across datasets/modes.
-
-    If per_combo=True, produces the full table:
-      one row per (Dataset, Law, Mode, Design, Param).
+    per_combo=False (default): condensed, one row per (Law, Design, Param)
+    averaged across datasets/modes. per_combo=True: full, one row per
+    (Dataset, Law, Mode, Design, Param).
     """
     if per_combo:
         param_df = build_param_ci_table(df)
@@ -781,7 +784,7 @@ def param_ci_to_latex(df, per_combo=False):
         return _param_ci_latex_condensed(summary)
 
 
-def _param_ci_latex_condensed(summary_df):
+def _param_ci_latex_condensed(summary_df: pd.DataFrame) -> str:
     """Condensed: Law × Design × Param, averaged across combos."""
     lines = [
         r"\begin{table*}[t]",
@@ -814,7 +817,7 @@ def _param_ci_latex_condensed(summary_df):
             last_law = law
 
         # Format large values in scientific notation
-        def _fmt(v):
+        def _fmt(v: float) -> str:
             if abs(v) >= 1e4:
                 exp = int(np.floor(np.log10(abs(v))))
                 mantissa = v / 10**exp
@@ -839,7 +842,7 @@ def _param_ci_latex_condensed(summary_df):
     return "\n".join(lines)
 
 
-def _param_ci_latex_full(param_df):
+def _param_ci_latex_full(param_df: pd.DataFrame) -> str:
     """Full: one row per (Dataset, Law, Mode, Design, Param)."""
     lines = [
         r"\begin{table*}[t]",
@@ -867,7 +870,7 @@ def _param_ci_latex_full(param_df):
                 lines.append(r"\addlinespace")
             last_key = key
 
-        def _fmt(v):
+        def _fmt(v: float) -> str:
             if abs(v) >= 1e4:
                 exp = int(np.floor(np.log10(abs(v))))
                 mantissa = v / 10**exp

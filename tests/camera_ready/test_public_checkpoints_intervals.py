@@ -1,18 +1,15 @@
 """The intervals of the public-checkpoint appendix: printed values, code paths, full reruns.
 
-Three layers, all offline:
-
-1. The committed outputs in camera_ready/public_checkpoints/results/ carry the values the
-   paper's appendix prints. Every expected value is a literal copied from the appendix text;
-   where two scripts compute the same quantity, their outputs agree.
-2. Each script, run on the committed seeds 0-7 slice of the E-corpus enumeration, agrees with
-   a direct computation from that slice written here from the definitions (band edges 100M
-   and 1B on the window's geometric-mean size, Regime B iff m + log10(kappa/100) >= 0).
-3. With the full 512-seed tables in the work directory (TPP_PC_WORK, default
-   camera_ready/public_checkpoints/work), each script reproduces its committed output. The
-   repository does not ship those tables: enumerate_seeds.py writes them from the
-   HuggingFace run tables (about 16 min for E and 2 h for X on 480 cores). Without them
-   these tests skip and name the file they need.
+Three layers, all offline. 1. The committed outputs in camera_ready/public_checkpoints/results/
+carry the values the appendix prints (each expected value is a literal copied from its text);
+where two scripts compute the same quantity, their outputs agree. 2. Each script, run on the
+committed seeds 0-7 slice of the E-corpus enumeration, agrees with a direct computation from
+that slice written here from the definitions (band edges 100M and 1B on the window's
+geometric-mean size, Regime B iff m + log10(kappa/100) >= 0). 3. With the full 512-seed tables
+in the work directory (TPP_PC_WORK, default camera_ready/public_checkpoints/work), each script
+reproduces its committed output. The repository does not ship those tables: enumerate_seeds.py
+writes them from the HuggingFace run tables (about 16 min for E and 2 h for X on 480 cores).
+Without them these tests skip and name the file they need.
 """
 
 from __future__ import annotations
@@ -51,7 +48,7 @@ def pct(x: pd.Series) -> list[int]:
 # ── 1. the committed outputs carry the printed values ──────────────────────────────────────
 
 
-def test_median_ratio_intervals_as_printed():
+def test_median_ratio_intervals_as_printed() -> None:
     """5.8 [5.4, 6.9] below 1B, 3.7 [2.1, 5.6] at 1B and above, 0.64 [0.2, 1.3], 300,000 draws."""
     seeds = pd.read_csv(RESULTS / "vk_ratio_seeds.csv")
     pooled = seeds[seeds["stream"] == "pooled"].set_index("statistic")
@@ -66,7 +63,7 @@ def test_median_ratio_intervals_as_printed():
     assert round(ref.loc[">=1B", "N_max"] / 1e9, 1) == 12.6  # "whose largest model is 12.6B"
 
 
-def test_single_stream_intervals_are_the_released_scripts():
+def test_single_stream_intervals_are_the_released_scripts() -> None:
     """The released streams of vk_ratio_seeds.py are the 10,000-draw outputs of the two scripts.
 
     The same draws: vk_ratio_boot.py takes the percentiles of the median log ratio and
@@ -100,7 +97,7 @@ def test_single_stream_intervals_are_the_released_scripts():
     )
 
 
-def test_windows_at_1b_and_above_as_printed():
+def test_windows_at_1b_and_above_as_printed() -> None:
     win = pd.read_csv(RESULTS / "vk_ratio_boot_ge1B_windows.csv")
     assert len(win) == 13 and int((win["median_vk_ratio"] < 1).sum()) == 3
     assert not win["cell"].str.startswith("olmo_ladder").any()  # its CO designs have V_K = 0
@@ -119,12 +116,12 @@ def _family(cells: pd.DataFrame, family: str) -> pd.DataFrame:
     return cells[cells["family"] == family].set_index(["corpus", "kappa", "cell", "band"])
 
 
-def test_regime_cell_verdicts_do_not_depend_on_the_seed(cells):
+def test_regime_cell_verdicts_do_not_depend_on_the_seed(cells: pd.DataFrame) -> None:
     assert (cells["replicates"] == 10).all()
     assert cells["share_excl0"].isin([0.0, 1.0]).all()
 
 
-def test_joint_regime_test_as_printed(cells):
+def test_joint_regime_test_as_printed(cells: pd.DataFrame) -> None:
     j = _family(cells, "joint").xs("all", level="band")
     sep = [j.loc[(c, k, "CO=A,NC=B")] for c in ("E", "X") for k in KAPPAS[1:]]
     assert pct(pd.Series([r["win"] for r in sep])) == [59, 61, 76, 59, 56, 76]
@@ -159,7 +156,7 @@ def test_joint_regime_test_as_printed(cells):
     assert pct(pd.Series([r["win"] for r in rev])) == [26, 19]
 
 
-def test_collinear_only_regime_as_printed(cells):
+def test_collinear_only_regime_as_printed(cells: pd.DataFrame) -> None:
     a = _family(cells, "coonly").xs(("CO=A", "all"), level=("cell", "band"))
     # every pair is in Regime A at the main-text kappa_target = 100
     est = pd.read_csv(RESULTS / "estimates_seeds512.csv")
@@ -172,7 +169,7 @@ def test_collinear_only_regime_as_printed(cells):
     assert a.loc["X"].loc[list(KAPPAS), "excludes0"].tolist() == [False, True, True, True]
 
 
-def test_each_laws_own_exponent_as_printed(cells):
+def test_each_laws_own_exponent_as_printed(cells: pd.DataFrame) -> None:
     """Kaplan pairs classified at beta_eff = 0.10: 54, 62, 67% (five) and 57, 54, 67% (ten)."""
     a = _family(cells, "table7").xs(("CO=A", "all"), level=("cell", "band"))
     big = list(KAPPAS[1:])
@@ -189,7 +186,7 @@ def _band(rows: pd.DataFrame, corpus: str, stratum: str, shared: bool) -> pd.Dat
     return sub[(sub["corpus"] == corpus) & (sub["band"] == stratum)]
 
 
-def test_regime_arms_by_band_as_printed(cells):
+def test_regime_arms_by_band_as_printed(cells: pd.DataFrame) -> None:
     rows = cells[cells["family"] == "band"]
 
     # below 100M: the five give 2 windows in one cell
@@ -234,7 +231,9 @@ def test_regime_arms_by_band_as_printed(cells):
         ("co_only_regime.csv", ["corpus", "kappa", "co_regime"], "coonly", "co_regime"),
     ],
 )
-def test_2000_draw_tables_hold_the_same_pairs(cells, name, keys, family, cell_col):
+def test_2000_draw_tables_hold_the_same_pairs(
+    cells: pd.DataFrame, name: str, keys: list[str], family: str, cell_col: str
+) -> None:
     """The released 2,000-draw tables and regime_cells.csv describe the same pairs."""
     old = pd.read_csv(RESULTS / name)
     new = cells[(cells["family"] == family) & (cells["n_pairs"] > 0)].copy()
@@ -251,7 +250,7 @@ def test_2000_draw_tables_hold_the_same_pairs(cells, name, keys, family, cell_co
     assert cell_col in m
 
 
-def test_slice_facts_the_appendix_prints():
+def test_slice_facts_the_appendix_prints() -> None:
     d = pd.read_csv(SLICE)
     olmo = d[d["cell"].str.startswith("olmo_ladder")]
     assert np.isneginf(olmo["CO_m_beta0.28"]).all()  # every collinear subset has V_K = 0
@@ -278,7 +277,7 @@ def _run(script: str, tmp_path, *args: str) -> None:
     )
 
 
-def test_vk_ratio_boot_on_slice(tmp_path, slice_frame):
+def test_vk_ratio_boot_on_slice(tmp_path, slice_frame) -> None:
     _run(
         "vk_ratio_boot.py",
         tmp_path,
@@ -329,7 +328,7 @@ def test_vk_ratio_boot_on_slice(tmp_path, slice_frame):
     assert (tmp_path / "a.csv").read_bytes() == (tmp_path / "b.csv").read_bytes()
 
 
-def test_ratio_of_medians_on_slice(tmp_path, slice_frame):
+def test_ratio_of_medians_on_slice(tmp_path, slice_frame) -> None:
     _run("ratio_of_medians_boot.py", tmp_path, "--n-boot", "200", "--out", tmp_path / "r.csv")
     row = pd.read_csv(tmp_path / "r.csv").iloc[0]
     fin = slice_frame[np.isfinite(slice_frame["delta"])]
@@ -343,7 +342,7 @@ def _regime_letters(m: pd.Series, kappa: int) -> np.ndarray:
     return np.where(m.fillna(-np.inf) + np.log10(kappa / 100) >= 0, "B", "A")
 
 
-def test_co_only_regime_on_slice(tmp_path, slice_frame):
+def test_co_only_regime_on_slice(tmp_path, slice_frame) -> None:
     _run(
         "co_only_regime.py",
         tmp_path,
@@ -372,7 +371,7 @@ def test_co_only_regime_on_slice(tmp_path, slice_frame):
     assert a_counts == sorted(a_counts, reverse=True) and a_counts[0] > a_counts[-1]
 
 
-def test_regime_by_band_on_slice(tmp_path, slice_frame):
+def test_regime_by_band_on_slice(tmp_path, slice_frame) -> None:
     _run(
         "regime_by_band_ci.py",
         tmp_path,
@@ -418,7 +417,7 @@ def test_regime_by_band_on_slice(tmp_path, slice_frame):
         assert a["n_pairs"].sum() == ref
 
 
-def test_vk_ratio_seeds_on_slice(tmp_path):
+def test_vk_ratio_seeds_on_slice(tmp_path) -> None:
     """The released streams give back the two scripts' intervals; the pooled row pools seeds."""
     _run(
         "vk_ratio_seeds.py",
@@ -469,7 +468,7 @@ def test_vk_ratio_seeds_on_slice(tmp_path):
     assert (pooled["hi95"] <= one["hi95"].max() + 1e-12).all()
 
 
-def test_cluster_medians_resample_whole_windows():
+def test_cluster_medians_resample_whole_windows() -> None:
     """A hand-built cell: every draw is the median of a resample of whole windows."""
     import estimate as EST
 
@@ -484,7 +483,7 @@ def test_cluster_medians_resample_whole_windows():
     assert (one_window == np.median(vals)).all()  # one window per cell: no spread
 
 
-def test_regime_cells_on_slice(tmp_path, slice_frame):
+def test_regime_cells_on_slice(tmp_path, slice_frame) -> None:
     _run(
         "regime_cells.py",
         tmp_path,
@@ -539,7 +538,7 @@ def test_regime_cells_on_slice(tmp_path, slice_frame):
 # ── 3. with the full 512-seed tables, each script gives back its committed output ──────────
 
 
-def _needs(*paths):
+def _needs(*paths) -> pytest.MarkDecorator:
     missing = [str(p) for p in paths if not p.exists()]
     return pytest.mark.skipif(
         bool(missing),
@@ -548,7 +547,7 @@ def _needs(*paths):
 
 
 @_needs(FULL_E)
-def test_full_vk_ratio_boot_reproduces(tmp_path):
+def test_full_vk_ratio_boot_reproduces(tmp_path) -> None:
     run(
         [
             "python",
@@ -577,7 +576,7 @@ def test_full_vk_ratio_boot_reproduces(tmp_path):
 
 
 @_needs(FULL_E)
-def test_full_ratio_of_medians_reproduces(tmp_path):
+def test_full_ratio_of_medians_reproduces(tmp_path) -> None:
     run(
         [
             "python",
@@ -604,7 +603,7 @@ def test_full_ratio_of_medians_reproduces(tmp_path):
     ],
 )
 @_needs(FULL_E, FULL_X)
-def test_full_regime_tables_reproduce(tmp_path, script, keys):
+def test_full_regime_tables_reproduce(tmp_path, script, keys) -> None:
     run(
         [
             "python",
@@ -625,7 +624,7 @@ def test_full_regime_tables_reproduce(tmp_path, script, keys):
 
 
 @_needs(FULL_E)
-def test_full_vk_ratio_seeds_reproduces(tmp_path):
+def test_full_vk_ratio_seeds_reproduces(tmp_path) -> None:
     run(
         [
             "python",
@@ -647,7 +646,7 @@ def test_full_vk_ratio_seeds_reproduces(tmp_path):
 
 
 @_needs(FULL_E, FULL_X)
-def test_full_regime_cells_reproduce(tmp_path):
+def test_full_regime_cells_reproduce(tmp_path) -> None:
     """Replicate 0 of every cell; the other nine replicates only test verdict stability."""
     run(
         [
