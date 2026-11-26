@@ -19,7 +19,7 @@ component of the same name; `conftest.py` holds the shared paths and helpers.
 The suite checks law recovery on synthetic data, every entry point's `--help`, that the
 released tables are reproduced, the camera-ready analyses, and that the analysis modules still
 return, write and draw what the base commit did. It also checks the README's
-links, images, diagram and citation, and that no private host, path, or path to a tool only the owner's machines hold, is in the tree.
+links, images, diagram (a PNG rendered from `images/pipeline/pipeline.mmd`, stamped with its hash) and citation, and that no private host, path, or path to a tool only the owner's machines hold, is in the tree.
 
 CI runs the hooks of `.pre-commit-config.yaml`, `ruff check .` and the privacy scan on every
 pull request and every push to `main`. A push to `main` runs the whole suite and the paper gate; a
