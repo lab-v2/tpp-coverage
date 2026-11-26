@@ -103,7 +103,7 @@ Every folder below has one job; a linked folder has its own README.
 | [`website/`](website/README.md) | The project page at [lab-v2.github.io/tpp-coverage](https://lab-v2.github.io/tpp-coverage/) |
 | [`tests/`](tests/README.md) | The pytest suite, one folder per component |
 | `.github/` | CI on the project's own runners: tests, pre-commit hooks, `ruff check .`, the privacy scan and the merge rule |
-| `images/` | The logos shown in this README |
+| `images/` | The three logos every asset carries (NeurIPS, the Syracuse AI Institute, the Leibniz Lab), with light copies for dark mode, and the pipeline diagram |
 
 # Full pipeline
 
@@ -156,12 +156,17 @@ ACI-1341006). The code is released under the GNU
 General Public License v2 ([`LICENSE`](LICENSE)).
 
 <p align="center">
-  <a href="https://instituteai.syracuse.edu/"><img alt="Syracuse University Institute for Artificial Intelligence" src="images/syracuse_ai_institute.svg" height="60"></a>
-  &nbsp;&nbsp;&nbsp;
-  <a href="https://ecs.syracuse.edu/academics/electrical-engineering-and-computer-science/">
+  <a href="https://neurips.cc/">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="images/syracuse_ecs_dark.svg">
-      <img alt="Syracuse University College of Engineering and Computer Science" src="images/syracuse_ecs.svg" height="60">
+      <source media="(prefers-color-scheme: dark)" srcset="images/neurips_dark.svg">
+      <img alt="NeurIPS 2026" src="images/neurips.svg" height="60">
+    </picture>
+  </a>
+  &nbsp;&nbsp;&nbsp;
+  <a href="https://instituteai.syracuse.edu/">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="images/syracuse_ai_institute_dark.svg">
+      <img alt="Syracuse University Institute for Artificial Intelligence" src="images/syracuse_ai_institute.svg" height="60">
     </picture>
   </a>
   &nbsp;&nbsp;&nbsp;
