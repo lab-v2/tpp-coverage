@@ -48,7 +48,9 @@ wheel is CPU-only) and `DATA_DIR` holding `wikipedia/{train,val}_{tokens,lengths
 alone: `DATA_DIR=<corpora> .venv/bin/python -m pytest -n 0 -m gpu` (about 30 s on a GH200; their
 frozen values were taken on a GH200 with torch 2.5.1+cu124).
 The `paper` test refits the paper's main analysis on every thread, so the default run leaves it out
-and it runs alone: `uv run pytest -n 0 -m paper` (CI runs both).
+and it runs alone: `uv run pytest -n 0 -m paper` (CI runs both). Its table step alone,
+`run_analysis.build_paper_tables` on the released per-seed fits, is checked byte for byte against
+the released tables in the default run (`tpp_analysis/scripts/test_characterize_run_analysis_tables.py`).
 
 `uv run python tests/measure_coverage.py <out-dir>` measures line and branch coverage of the
 suite and the paper gate together, following pool workers and subprocesses, and writes
