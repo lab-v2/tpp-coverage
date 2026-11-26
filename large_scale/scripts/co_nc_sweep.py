@@ -171,7 +171,9 @@ if __name__ == "__main__":
         xs, t2, "-o", color="#2a78d6", lw=1.8, ms=3, mec="none", label="rank by V_K ratio (NC / CO)"
     )
     ax.axhline(0.5, color="#898781", ls="--", lw=1, label="chance (0.5)")
-    ax.set_ylim(0, 1.02)
+    # A win rate lies in [0, 1]: the (0, 1.02) frame, widened to any point outside it.
+    y_lo, y_hi = ax.dataLim.intervaly
+    ax.set_ylim(min(0.0, y_lo), max(1.02, y_hi + 0.02))
     ax.set_yticks(np.arange(0, 1.01, 0.1))
     ax.set_xlabel("number of top pairs taken (n)")
     ax.set_ylabel("win rate  (NC beats CO)")

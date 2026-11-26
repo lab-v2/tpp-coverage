@@ -225,6 +225,7 @@ ax.set_zlim(zlo, zhi)
 ax.view_init(elev=SIDE_ELEV, azim=SIDE_AZIM)
 ax.legend(fontsize=int(LEGEND_FS * 0.6), loc="upper left", framealpha=LEGEND_ALPHA)
 style_ticks_3d(ax)
+ax.grid(True)  # the pane grid a 3D axes draws by default, stated (Axes3D.grid takes no alpha)
 plt.tight_layout()
 out = REPO / "figures" / "surface_co_vs_nc.png"
 out.parent.mkdir(exist_ok=True)

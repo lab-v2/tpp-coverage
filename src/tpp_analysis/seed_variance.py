@@ -400,7 +400,9 @@ def plot_convergence_with_errorbars(
     ylabel = f"R² {holdout_split.title()}"
     ax.set_xlabel("Coverage Fraction", fontsize=axis_label_fs)
     ax.set_ylabel(ylabel, fontsize=axis_label_fs)
-    ax.set_xlim(-0.02, 1.05)
+    # Coverage fractions lie in [0, 1]: the (-0.02, 1.05) frame, widened to any point outside it.
+    x_lo, x_hi = ax.dataLim.intervalx
+    ax.set_xlim(min(-0.02, x_lo - 0.02), max(1.05, x_hi + 0.02))
     ax.set_ylim(y_min, y_max)
     ax.tick_params(labelsize=tick_label_fs)
     ax.legend(fontsize=legend_fs, loc="lower right", framealpha=0.9)
