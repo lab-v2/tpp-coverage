@@ -22,6 +22,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPO = Path(__file__).resolve().parents[2]
 DECK = (REPO / "slides" / "tpp_neurips2026_slides.tex").read_text()
@@ -131,6 +132,40 @@ def facts(text: str, word_numbers: bool = True) -> Counter:
     return found
 
 
+def words(text: str) -> list[str]:
+    """A block as the sequence the page must repeat: lowercase words, numbers, formulas, cites.
+
+    The markup mapping, the only difference allowed between a deck item and its page bullet:
+    LaTeX and HTML markup are dropped (emph and em, ``~``, a backslash space, a line break,
+    sizes, "(slide N)"), punctuation and case are ignored, a number word reads as its digits,
+    a formula compares as `norm_math` gives it (spacing and bold dropped), a number set in math
+    reads as the number, and a citation compares by its first author (the deck's ``[n]``, the
+    page's linked "(Surname et al., year)").
+    """
+    out: list[str] = []
+
+    def prose(chunk: str) -> None:
+        for c in re.split(r"(@@cite:[^@]+@@)", chunk):
+            if c.startswith("@@cite:"):
+                out.append(c[2:-2])
+                continue
+            for tok in re.sub(r"[^\w%'./,:-]", " ", c).split():
+                tok = tok.strip(".,:;'").lower()
+                if tok:
+                    out.append(NUMBER_WORDS.get(tok, tok))
+
+    last = 0
+    for m in MATH.finditer(text):
+        prose(text[last : m.start()])
+        last = m.end()
+        if m.group(1):  # an escaped dollar sign
+            continue
+        for piece in norm_math(next(g for g in m.groups()[1:] if g is not None)):
+            out.append(piece if re.fullmatch(r"[\d,.]+%?", piece) else f"${piece}$")
+    prose(text[last:])
+    return out
+
+
 # --- the deck ------------------------------------------------------------------------------------
 
 
@@ -140,6 +175,7 @@ class Reference:
     title: str
     year: str
     arxiv: set[str] = field(default_factory=set)
+    et_al: bool = False
 
 
 def parse_reference(text: str) -> Reference:
@@ -150,7 +186,8 @@ def parse_reference(text: str) -> Reference:
     surnames = re.findall(r"(?:[A-Z]\.\s?)+([A-Z][\w-]+)", m[1])
     years = YEAR.findall(ARXIV_ID.sub(" ", text[m.end() :]))
     assert surnames and years, f"no author or year in reference: {text!r}"
-    return Reference(surnames, m[2].rstrip(".?").strip(), years[0], set(ARXIV_ID.findall(text)))
+    title, arxiv = m[2].rstrip(".?").strip(), set(ARXIV_ID.findall(text))
+    return Reference(surnames, title, years[0], arxiv, "et al." in m[1])
 
 
 @dataclass
@@ -166,7 +203,10 @@ def tex_prose(s: str) -> str:
     s = re.sub(r"\\\\(\[[^]]*\])?", " ", s)
     for cmd in ("includegraphics", "setlength", "end"):
         s = drop_command(s, cmd)
-    s = re.sub(r"\\begin\{(columns|column|tabular)\}(\[[^]]*\])?(\{[^}]*\})?", " ", s)
+    s = re.sub(r"\\begin\{(columns|column)\}(\[[^]]*\])?(\{[^}]*\})?", " ", s)
+    while (i := s.find(r"\begin{tabular}")) >= 0:  # its column spec holds nested braces
+        j = i + len(r"\begin{tabular}")
+        s = s[:i] + " " + s[_group(s, j) :]
     s = re.sub(r"\\begin\{\w+\}", " ", s)
     s = drop_command(s, "href", keep_arg=1)
     for cmd in ("texttt", "emph", "textbf", "textit"):
@@ -251,6 +291,7 @@ class PageParser(HTMLParser):
         self.authors: list[str] = []
         self.cites: list[tuple[str, str]] = []  # (target id, link text)
         self.imgs: list[str] = []
+        self.alts: list[tuple[str, str, str]] = []  # (section, src, alt)
         self.links: list[str] = []
         self._heading: list[str] | None = None
         self._block: tuple[str, list[str]] | None = None
@@ -266,6 +307,8 @@ class PageParser(HTMLParser):
             self._heading = []
         elif tag == "img":
             self.imgs.append(a.get("src", ""))
+            sec = self.sections[-1].title if self.sections else ""
+            self.alts.append((sec, a.get("src", ""), a.get("alt", "")))
         elif tag == "a" and href.startswith("#ref-"):
             self._cite = (href[5:], [])
         elif tag == "a":
@@ -329,6 +372,20 @@ def parse_page(page: str) -> PageParser:
     return p
 
 
+# The summary bullets, the one part of the page no other file in the repo states. Citations are
+# written as the first author's surname.
+SUMMARY = [
+    "Many scaling-law studies train at one or a few fixed tokens-per-parameter ratios"
+    r" $k = \dfrac{D}{N}$ (a collinear design), following Chinchilla (@@cite:Hoffmann@@).",
+    "On such rays the model and data terms move together, so the fit cannot tell them apart: the"
+    ' scale pair is ill-conditioned (a "sloppy" model; @@cite:Transtrum@@), and extrapolation off'
+    " the ray fails.",
+    "A closed-form threshold on the spread of the ratios, checked before training, says when a"
+    " design is well conditioned.",
+    "Designs that spread runs over TPP (non-collinear) win 97.3% of extrapolation comparisons.",
+]
+
+
 # --- the checks ----------------------------------------------------------------------------------
 
 
@@ -336,6 +393,29 @@ def _diff(where: str, deck: Counter, page: Counter) -> list[str]:
     if deck == page:
         return []
     return [f"{where}: deck only {dict(deck - page)}, page only {dict(page - deck)}"]
+
+
+def _word_diff(where: str, deck: list[str], page: list[str]) -> list[str]:
+    if deck == page:
+        return []
+    i = next((k for k, (a, b) in enumerate(zip(deck, page)) if a != b), min(len(deck), len(page)))
+    return [f"{where}: words differ at {i}: deck {deck[i : i + 6]} page {page[i : i + 6]}"]
+
+
+def alt_words(alt: str) -> list[str]:
+    """Alt text read as `words` reads prose, keeping ``^`` (``R^2``)."""
+    toks = (t.strip(".,:;'").lower() for t in re.sub(r"[^\w%'./,:^-]", " ", alt).split())
+    return [NUMBER_WORDS.get(t, t) for t in toks if t]
+
+
+def cite_text(ref: Reference) -> str:
+    """The one form a page citation's link text takes."""
+    s = ref.surnames
+    if ref.et_al or len(s) > 2:
+        who = f"{s[0]} et al."
+    else:
+        who = " and ".join(s)
+    return f"{who}, {ref.year}"
 
 
 def _site_files(repo: Path) -> set[str]:
@@ -364,6 +444,23 @@ def problems(deck: str, page: str, repo: Path = REPO) -> list[str]:
     bib_authors = [" ".join(reversed(a.split(", "))) for a in bib[1].split(" and ")] if bib else []
     if bib_authors != authors:
         out.append(f"BibTeX authors {bib_authors} != deck authors {authors}")
+
+    # The BibTeX's title, year and authors, and the Code and Data buttons, are CITATION.cff's.
+    cite = yaml.safe_load((repo / "CITATION.cff").read_text())
+    pref = cite["preferred-citation"]
+    cff_authors = [f"{a['given-names']} {a['family-names']}" for a in pref["authors"]]
+    if bib_authors != cff_authors:
+        out.append(f"BibTeX authors {bib_authors} != CITATION.cff {cff_authors}")
+    for key, want in (("title", pref["title"]), ("year", str(pref["year"]))):
+        got = re.search(rf"\b{key}\s*=\s*\{{(.*?)\}},?\n", page)
+        if got is None or re.sub(r"[{}]", "", got[1]) != want:
+            out.append(f"BibTeX {key} {got and got[1]!r} != CITATION.cff {want!r}")
+    readme = (repo / "README.md").read_text()
+    data = re.search(r'<a href="([^"]+)"><img alt="Data on HuggingFace"', readme)
+    for label, want in (("Code", cite["repository-code"]), ("Data", data and data[1])):
+        got = re.findall(rf'<a class="button[^"]*" href="([^"]+)">{label}</a>', page)
+        if got != [want]:
+            out.append(f"{label} button {got} != {want!r} (CITATION.cff / README.md)")
 
     # The paper's arXiv id is CITATION.cff's, and every arXiv link reads the id it opens.
     cff = set(ARXIV_ID.findall((repo / "CITATION.cff").read_text()))
@@ -394,8 +491,15 @@ def problems(deck: str, page: str, repo: Path = REPO) -> list[str]:
         ref = page_refs.get(target)
         if ref is None:
             out.append(f"citation #ref-{target} has no reference")
-        elif ref.surnames[0] not in text or ref.year not in text:
-            out.append(f"citation {text!r} links to #ref-{target} ({ref.surnames[0]}, {ref.year})")
+        elif text != cite_text(ref):
+            out.append(f"citation {text!r} links to #ref-{target}: write {cite_text(ref)!r}")
+
+    def page_words(text: str) -> list[str]:
+        def first(m: re.Match) -> str:
+            ref = page_refs.get(m[1])
+            return f"@@cite:{ref.surnames[0] if ref else '#' + m[1]}@@"
+
+        return words(CITE.sub(first, text))
 
     def page_facts(text: str, word_numbers: bool = True) -> Counter:
         def first(m: re.Match) -> str:
@@ -416,8 +520,25 @@ def problems(deck: str, page: str, repo: Path = REPO) -> list[str]:
             out.append(f"{f.title}: {len(s.items)} bullets on the page, {len(f.items)} in the deck")
         for n, (di, pi) in enumerate(zip(f.items, s.items), 1):
             out += _diff(f"{f.title}, bullet {n}", facts(di), page_facts(pi))
+            out += _word_diff(f"{f.title}, bullet {n}", words(di), page_words(pi))
         page_rest = sum(map(page_facts, s.texts), Counter())
         out += _diff(f"{f.title}, text", facts(f.rest), page_rest)
+        rest_words = [w for t in s.texts for w in page_words(t)]
+        out += _word_diff(f"{f.title}, text", words(f.rest), rest_words)
+        # A figure's alt text is the slide's caption without its citations.
+        for sec, src, alt in p.alts:
+            if sec == f.title and src.startswith("static/images/"):
+                caption = [w.strip("$").lower() for w in words(f.rest) if not w.startswith("cite:")]
+                out += _word_diff(f"{f.title}, alt text of {src}", caption, alt_words(alt))
+
+    # The abstract is CITATION.cff's (the arXiv abstract); the summary, which nothing else in the
+    # repo states, is pinned word for word in SUMMARY, so an edit changes both on purpose.
+    abstract = " ".join(sections.get("Abstract", Section("")).texts)
+    if " ".join(abstract.split()) != " ".join(str(cite.get("abstract", "")).split()):
+        out.append("Abstract differs from CITATION.cff's abstract")
+    summary = [page_words(i) for i in sections.get("Summary", Section("")).items]
+    if summary != [words(CITE.sub(lambda m: f"@@cite:{m[1]}@@", t)) for t in SUMMARY]:
+        out.append("Summary differs from SUMMARY in tests/website/test_site_matches_slides.py")
 
     # The page-only sections state only digits and formulas the deck states.
     for title in ("Summary", "Abstract"):
@@ -491,7 +612,7 @@ PLANTED = [
         "J. Hestness et al. Deep learning scaling is predictable, empirically.",
         "J. Nobody et al. A fake paper on scaling.",
     ),
-    ("deleted bullet", "<li>NC bars are tight.</li>", ""),
+    ("deleted bullet", "<li>NC bars tight.</li>", ""),
     ("truncated author", "Joshua Shay Kricheli<sup>", "Joshua Kricheli<sup>"),
     ("truncated author, Unix name", "Joshua Shay Kricheli<sup>", "Joshua Krichel<sup>"),
     ("truncated BibTeX author", "Kricheli, Joshua Shay and", "Kricheli, Joshua and"),
@@ -501,7 +622,7 @@ PLANTED = [
     ("reference arXiv id", "2405.21015", "2405.21051"),
     ("reference arXiv link text", "arXiv:2411.04330</a>", "arXiv:2411.04303</a>"),
     ("em dash", "Gauss-Newton drops", "Gauss-Newton \u2014 drops"),
-    ("em dash entity", "NC bars are tight.", "NC bars &mdash; are tight."),
+    ("em dash entity", "NC bars tight.", "NC bars &mdash; tight."),
     ("missing image", "01_convergence_Red_Pajama_Kaplan_First.png", "01_convergence_x.png"),
     (
         "extra h3 heading",
@@ -510,6 +631,47 @@ PLANTED = [
     ),
     ("number word", "four laws, five corpora", "four laws, six corpora"),
     ("formula in a bullet", r"$k \approx 20$", r"$k \approx 25$"),
+    # Round 2: each passed the facts-only version of this file.
+    ("prose flip: win to lose, summary", "(non-collinear) win 97.3%", "(non-collinear) lose 97.3%"),
+    ("prose flip: wins to loses, table", ">NC wins</th>", ">NC loses</th>"),
+    ("prose flip: tight to wide", "<li>NC bars tight.</li>", "<li>NC bars wide.</li>"),
+    (
+        "prose flip: before to after training",
+        "before training.</li>\n      <li>Train",
+        "after training.</li>\n      <li>Train",
+    ),
+    (
+        "prose flip in the abstract",
+        "designs outperform collinear",
+        "designs underperform collinear",
+    ),
+    (
+        "swapped fact-free bullets",
+        "<li>Same models, recipe and comparable run counts.</li>\n      <li>Both scored on the same held-out runs.</li>",
+        "<li>Both scored on the same held-out runs.</li>\n      <li>Same models, recipe and comparable run counts.</li>",
+    ),
+    ("BibTeX year", "year      = {2026}", "year      = {2025}"),
+    ("BibTeX title", "Robust {LLM} Scaling", "Robust {LLM} Neural Scaling"),
+    (
+        "Code URL",
+        'href="https://github.com/lab-v2/tpp-coverage">Code',
+        'href="https://github.com/lab-v2/other">Code',
+    ),
+    (
+        "Data URL",
+        'colinear_scaling_models">Data',
+        'colinear_scaling_models_v2">Data',
+    ),
+    (
+        "alt text replaced",
+        'alt="Holdout R^2 vs. share of TPP levels used, Kaplan on RedPajama"',
+        'alt="A figure"',
+    ),
+    (
+        "extra text in a citation link",
+        "Kaplan et al., 2020</a>) on",
+        "Kaplan et al., 2020, Fig. 1</a>) on",
+    ),
 ]
 
 

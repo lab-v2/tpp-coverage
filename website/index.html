@@ -83,29 +83,29 @@
 
     <h2 class="title is-3">Scaling laws</h2>
     <ul>
-      <li>Laws: Chinchilla (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>), Kaplan (<a href="#ref-kaplan">Kaplan et al., 2020</a>), Droppo-Elibol (<a href="#ref-droppo">Droppo and Elibol, 2021</a>) and repeated-data (<a href="#ref-muennighoff">Muennighoff et al., 2025</a>).</li>
-      <li>Also: <a href="#ref-hestness">Hestness et al. (2017)</a>, <a href="#ref-henighan">Henighan et al. (2020)</a> and broken laws (<a href="#ref-caballero">Caballero et al., 2023</a>).</li>
-      <li>The Chinchilla law (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>): loss floor $E$, scale coefficients $A, B$, exponents $\alpha, \beta$:</li>
+      <li>Laws: Chinchilla (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>), Kaplan (<a href="#ref-kaplan">Kaplan et al., 2020</a>), Droppo-Elibol (<a href="#ref-droppo">Droppo and Elibol, 2021</a>), repeated-data (<a href="#ref-muennighoff">Muennighoff et al., 2025</a>).</li>
+      <li>Also: Hestness (<a href="#ref-hestness">Hestness et al., 2017</a>), Henighan (<a href="#ref-henighan">Henighan et al., 2020</a>), broken laws (<a href="#ref-caballero">Caballero et al., 2023</a>).</li>
+      <li>Chinchilla law (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>): loss floor $E$, scale coefficients $A, B$, exponents $\alpha, \beta$.</li>
     </ul>
-    <p>$$\hat{L}(N, D) = E + \underbrace{\dfrac{A}{N^{\alpha}}}_{\text{model}} + \underbrace{\dfrac{B}{D^{\beta}}}_{\text{data}}.$$</p>
+    <p>$$\hat{L}(N, D) = E + \underbrace{\dfrac{A}{N^{\alpha}}}_{\text{model}} + \underbrace{\dfrac{B}{D^{\beta}}}_{\text{data}}$$</p>
 
     <h2 class="title is-3">Fixed tokens-per-parameter ratio</h2>
     <ul>
-      <li>Common practice fixes the tokens per parameter $k = \dfrac{D}{N}$.</li>
+      <li>Common practice: fixed tokens per parameter $k = \dfrac{D}{N}$.</li>
       <li>Each fixed $k$ is a ray $D = kN$ in the $(N, D)$ plane.</li>
-      <li>The Chinchilla rule is $k \approx 20$ (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>).</li>
-      <li>Plugging in $D = kN$, for $\alpha \approx \beta$ the two scale terms merge:</li>
+      <li>Chinchilla rule: $k \approx 20$ (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>).</li>
+      <li>Plug in $D = kN$; for $\alpha \approx \beta$ the two scale terms merge.</li>
     </ul>
-    <p>$$\hat{L}(N, kN) = E + \dfrac{A}{N^{\alpha}} + \dfrac{B}{k^{\beta} N^{\beta}} \;\overset{\alpha \approx \beta}{\approx}\; E + \underbrace{\Bigl(A + \dfrac{B}{k^{\alpha}}\Bigr)}_{\psi} \dfrac{1}{N^{\alpha}},$$</p>
-    <p>so the fit pins down $\psi$, not $A$ and $B$ separately.</p>
+    <p>$$\hat{L}(N, kN) = E + \dfrac{A}{N^{\alpha}} + \dfrac{B}{k^{\beta} N^{\beta}} \;\overset{\alpha \approx \beta}{\approx}\; E + \underbrace{\Bigl(A + \dfrac{B}{k^{\alpha}}\Bigr)}_{\psi} \dfrac{1}{N^{\alpha}}$$</p>
+    <p>The fit pins down $\psi$, not $A$ and $B$ separately.</p>
 
     <h2 class="title is-3">Least-squares fit and its Jacobian</h2>
     <ul>
       <li>Measured loss of run $i = 1, \dots, m$: $L_i$.</li>
-      <li>Predicted loss: $\hat{L}(N, D; \boldsymbol{\theta})$, $\boldsymbol{\theta} \in \mathbb{R}^{p}$; for Chinchilla $\boldsymbol{\theta} = (E, A, B, \alpha, \beta)$ and $p = 5$.</li>
+      <li>Predicted loss: $\hat{L}(N, D; \boldsymbol{\theta})$, $\boldsymbol{\theta} \in \mathbb{R}^{p}$; Chinchilla: $\boldsymbol{\theta} = (E, A, B, \alpha, \beta)$, $p = 5$.</li>
       <li>Residuals: $r_i(\boldsymbol{\theta}) = L_i - \hat{L}(N_i, D_i; \boldsymbol{\theta})$, stacked in $\mathbf{r}(\boldsymbol{\theta})$.</li>
-      <li>Cost: $S(\boldsymbol{\theta}) = \dfrac{1}{2}\sum_{i=1}^{m} r_i(\boldsymbol{\theta})^2$; the fitted law minimizes it: $$\hat{L}(\cdot\,;\hat{\boldsymbol{\theta}}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\boldsymbol{\theta})} S(\boldsymbol{\theta}).$$</li>
-      <li>Jacobian $J(\boldsymbol{\theta}) \in \mathbb{R}^{m \times p}$, $J_{ij}(\boldsymbol{\theta}) = \dfrac{\partial r_i(\boldsymbol{\theta})}{\partial \theta_j}$: a row per run, a column per parameter.</li>
+      <li>Cost: $S(\boldsymbol{\theta}) = \dfrac{1}{2}\sum_{i=1}^{m} r_i(\boldsymbol{\theta})^2$; the fitted law minimizes it: $$\hat{L}(\cdot\,;\hat{\boldsymbol{\theta}}) \in \operatorname*{arg\,min}_{\hat{L}(\cdot\,;\,\boldsymbol{\theta})} S(\boldsymbol{\theta})$$</li>
+      <li>Jacobian $J(\boldsymbol{\theta}) \in \mathbb{R}^{m \times p}$: $J_{ij}(\boldsymbol{\theta}) = \dfrac{\partial r_i(\boldsymbol{\theta})}{\partial \theta_j}$, a row per run, a column per parameter.</li>
     </ul>
 
     <h2 class="title is-3">Gauss-Newton</h2>
@@ -114,15 +114,15 @@
       <li>Hessian of the cost $S$: $H(\boldsymbol{\theta}) = G(\boldsymbol{\theta}) + \sum_{i=1}^{m} r_i(\boldsymbol{\theta}) \nabla^2 r_i(\boldsymbol{\theta})$.</li>
       <li>Gauss-Newton drops the second term: $H(\boldsymbol{\theta}) \approx G(\boldsymbol{\theta})$.</li>
       <li>Gauss-Newton step (<a href="#ref-nocedal">Nocedal and Wright, 2006</a>): solve $G(\boldsymbol{\theta})\,\Delta\boldsymbol{\theta} = -J(\boldsymbol{\theta})^\top \mathbf{r}(\boldsymbol{\theta})$.</li>
-      <li>An ill-conditioned $G(\boldsymbol{\theta})$ means small noise in $L_i$ moves $\hat{\boldsymbol{\theta}}$ far.</li>
+      <li>Ill-conditioned $G(\boldsymbol{\theta})$: small noise in $L_i$ moves $\hat{\boldsymbol{\theta}}$ far.</li>
     </ul>
 
     <h2 class="title is-3">Conditioning of the scale pair</h2>
     <ul>
       <li>Gram block $G_{A,B}(\boldsymbol{\theta})$: the $A$, $B$ rows and columns of $G(\boldsymbol{\theta})$.</li>
-      <li>Its condition number: $$\kappa_{A,B} = \dfrac{\lambda_{\max}(G_{A,B}(\boldsymbol{\theta}))}{\lambda_{\min}(G_{A,B}(\boldsymbol{\theta}))}.$$</li>
+      <li>$\kappa_{A,B} = \dfrac{\lambda_{\max}(G_{A,B}(\boldsymbol{\theta}))}{\lambda_{\min}(G_{A,B}(\boldsymbol{\theta}))}$, its condition number.</li>
       <li>$\kappa_{A,B}$ measures how much noise in $L_i$ is amplified in $\hat{A}$, $\hat{B}$.</li>
-      <li>A large $\kappa_{A,B}$ means wide confidence intervals on $A$ and $B$.</li>
+      <li>Large $\kappa_{A,B}$: wide confidence intervals on $A$ and $B$.</li>
       <li>A <em>sloppy</em> model (<a href="#ref-transtrum2010">Transtrum et al., 2010</a>): $A$ and $B$ can trade off with little change in the fit.</li>
     </ul>
 
@@ -130,20 +130,22 @@
     <ul>
       <li>Jacobian columns of $A$, $B$ (up to sign): $\dfrac{\partial \hat{L}}{\partial A} = \dfrac{1}{N_i^{\alpha}}$, $\dfrac{\partial \hat{L}}{\partial B} = \dfrac{1}{k^{\beta} N_i^{\beta}}$.</li>
       <li>Fitted exponents are often close: Chinchilla $\alpha \approx 0.34$, $\beta \approx 0.28$ (<a href="#ref-hoffmann">Hoffmann et al., 2022</a>); Kaplan $\alpha_N \approx 0.076$, $\alpha_D \approx 0.095$ (<a href="#ref-kaplan">Kaplan et al., 2020</a>).</li>
-      <li>With a small gap $\varepsilon = |\alpha - \beta|$ the two columns are nearly parallel.</li>
+      <li>Small gap $\varepsilon = |\alpha - \beta|$: the two columns are nearly parallel.</li>
     </ul>
 
     <h2 class="title is-3">Main result</h2>
-    <p>Exponent gap $\varepsilon = |\alpha - \beta|$, all four laws. The condition number of the scale pair:</p>
-    <p>$$\boldsymbol{\kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right)},$$</p>
-    <p>and the CI on $A$ against the CI on the identified combination $\psi = A + \dfrac{B}{k^{\alpha}}$:</p>
-    <p>$$\boldsymbol{\dfrac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega\!\left(\dfrac{1}{\varepsilon}\right)}.$$</p>
+    <p>Exponent gap $\varepsilon = |\alpha - \beta|$, all four laws:</p>
+    <p>Condition number of the scale pair:</p>
+    <p>$$\boldsymbol{\kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right)}$$</p>
+    <p>CI on $A$ against the CI on the identified combination $\psi = A + \dfrac{B}{k^{\alpha}}$:</p>
+    <p>$$\boldsymbol{\dfrac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega\!\left(\dfrac{1}{\varepsilon}\right)}$$</p>
 
     <h2 class="title is-3">TPP-diversity threshold</h2>
-    <p>For $K$ rays with ratios $k_1 &lt; \dots &lt; k_K$, a target condition number $\kappa_{\mathrm{target}}$ and effective exponent $\beta_{\mathrm{eff}}$ ($= \beta$ for Chinchilla), to leading order $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever</p>
-    <p>$$\boldsymbol{V_K \;\geq\; \tau_K},$$</p>
-    <p>where the spread of the ratios, and the threshold it must reach, are:</p>
-    <p>$$V_K = \dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}} - \Bigl(\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{\beta_{\mathrm{eff}}}}\Bigr)^{2}, \qquad \tau_K = \dfrac{\bigl(K + \sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}}.$$</p>
+    <p>$K$ rays with ratios $k_1 &lt; \dots &lt; k_K$, target condition number $\kappa_{\mathrm{target}}$, effective exponent $\beta_{\mathrm{eff}}$ ($= \beta$ for Chinchilla).</p>
+    <p>To leading order, $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever:</p>
+    <p>$$\boldsymbol{V_K \;\geq\; \tau_K}$$</p>
+    <p>Spread of the ratios, and the threshold it must reach:</p>
+    <p>$$V_K = \dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}} - \Bigl(\dfrac{1}{K}\sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{\beta_{\mathrm{eff}}}}\Bigr)^{2}, \qquad \tau_K = \dfrac{\bigl(K + \sum_{\ell=1}^{K} \dfrac{1}{k_\ell^{2\beta_{\mathrm{eff}}}}\bigr)^{2}}{K^{2}\,\kappa_{\mathrm{target}}}$$</p>
 
     <h2 class="title is-3">Designs compared: CO and NC</h2>
     <ul>
@@ -169,10 +171,10 @@
     <h2 class="title is-3">Results: confidence intervals</h2>
     <ul>
       <li>30 seeds: mean and 5th-95th percentile bars.</li>
-      <li>Wide CO bars: the sloppy $(A, B)$ pair (<a href="#ref-transtrum2010">Transtrum et al., 2010</a>), $\kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right)$.</li>
-      <li>NC bars are tight.</li>
+      <li>Wide CO bars: sloppy $(A, B)$ (<a href="#ref-transtrum2010">Transtrum et al., 2010</a>), $\kappa_{A,B} = \Theta\!\left(\dfrac{1}{\varepsilon^{2}}\right)$.</li>
+      <li>NC bars tight.</li>
     </ul>
-    <figure><img src="static/images/01_convergence_Red_Pajama_Kaplan_First.png" alt="Holdout R squared against the share of TPP levels used"><figcaption>Holdout $R^2$ against the share of TPP levels used, Kaplan (<a href="#ref-kaplan">Kaplan et al., 2020</a>) on RedPajama (<a href="#ref-redpajama">Weber et al., 2024</a>).</figcaption></figure>
+    <figure><img src="static/images/01_convergence_Red_Pajama_Kaplan_First.png" alt="Holdout R^2 vs. share of TPP levels used, Kaplan on RedPajama"><figcaption>Holdout $R^2$ vs. share of TPP levels used, Kaplan (<a href="#ref-kaplan">Kaplan et al., 2020</a>) on RedPajama (<a href="#ref-redpajama">Weber et al., 2024</a>).</figcaption></figure>
 
     <h2 class="title is-3">Design recipe</h2>
     <ul>
@@ -184,7 +186,8 @@
     </ul>
 
     <h2 class="title is-3">Project page</h2>
-    <p>Code, data and checkpoints are public: <a href="https://github.com/lab-v2/tpp-coverage">code</a>, <a href="https://huggingface.co/datasets/leibnitz-lab/colinear_scaling_models">data</a>, and this page at <a href="https://lab-v2.github.io/tpp-coverage/">lab-v2.github.io/tpp-coverage</a>.</p>
+    <p>Code, data and checkpoints are public</p>
+    <p><a href="https://lab-v2.github.io/tpp-coverage/">lab-v2.github.io/tpp-coverage</a></p>
 
     <h2 class="title is-3">References</h2>
     <ol class="is-size-6">
