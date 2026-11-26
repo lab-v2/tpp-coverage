@@ -454,9 +454,20 @@ def problems(deck: str, page: str, repo: Path = REPO) -> list[str]:
         out += [f"{label}: author name {bad!r}" for bad in WRONG_NAME.findall(text)]
     p = parse_page(page)
 
+    # Syracuse appears through its AI Institute logo only, never its plain one.
+    for label, text in (("deck", deck), ("page", page)):
+        if "syracuse_university" in text:
+            out.append(f"{label}: plain Syracuse University logo; use the AI Institute's")
+
     # The header places each logo above or below the title as the deck's title slide does.
     if page_logos(page) != title_logos(deck):
         out.append(f"header logos {page_logos(page)} != title slide logos {title_logos(deck)}")
+
+    # The venue logo is a banner: at least 300 px wide on a desktop, keeping its aspect ratio.
+    venue = re.search(r"\.venue-logo img \{([^}]*)\}", page)
+    width = re.search(r"(?<![-\w])width:\s*(\d+)px", venue[1]) if venue else None
+    if not (venue and width and int(width[1]) >= 300 and "height: auto" in venue[1]):
+        out.append("venue logo is not a banner of at least 300 px with height: auto")
 
     # The header's and the BibTeX's authors are the deck's.
     authors = deck_authors(deck)
@@ -691,9 +702,16 @@ PLANTED = [
     ),
     (
         "NeurIPS logo moved below the title",
-        '<div class="logos mb-3">\n        <a href="https://neurips.cc/"><img src="images/neurips.svg" alt="NeurIPS"></a>\n      </div>\n',
+        '<div class="venue-logo mb-4">\n        <a href="https://neurips.cc/"><img src="images/neurips.svg" alt="NeurIPS"></a>\n      </div>\n',
         "",
     ),
+    (
+        "plain Syracuse logo added",
+        '<a href="https://instituteai.syracuse.edu/">',
+        '<a href="https://www.syracuse.edu/"><img src="images/syracuse_university.svg" alt="Syracuse University"></a><a href="https://instituteai.syracuse.edu/">',
+    ),
+    ("venue logo shrunk", "width: 357px", "width: 120px"),
+    ("venue logo stretched", "max-width: 80vw; height: auto;", "max-width: 80vw;"),
     (
         "extra text in a citation link",
         "Kaplan et al., 2020</a>) on",

@@ -43,7 +43,7 @@ jobs:
         run: |
           mkdir -p _site/images _site/slides
           cp -r website/. _site/
-          cp images/neurips.svg images/syracuse_university.svg images/syracuse_ai_institute.svg images/leibniz_lab.png _site/images/
+          cp images/neurips.svg images/syracuse_ai_institute.svg images/leibniz_lab.png _site/images/
           cp slides/tpp_neurips2026_slides.pdf _site/slides/
           touch _site/.nojekyll
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0

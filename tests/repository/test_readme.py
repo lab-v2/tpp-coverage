@@ -45,8 +45,9 @@ def test_local_images_exist_and_are_images(src: str) -> None:
 
 
 def test_logos_of_the_three_institutions() -> None:
+    assert "syracuse_university.svg" not in README, "only the AI Institute's Syracuse logo"
     for alt in (
-        "Syracuse University",
+        "Institute for Artificial Intelligence",
         "College of Engineering and Computer Science",
         "Leibniz Lab",
     ):

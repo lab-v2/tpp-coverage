@@ -13,7 +13,7 @@ component of the same name; `conftest.py` holds the shared paths and helpers.
 | `camera_ready/` | `camera_ready/`: both analyses rerun against their committed outputs |
 | `cluster/` | `cluster/`: the task generator, the queue scripts and the audit |
 | `ci/` | `.github/`: the workflows and the merge rule |
-| `website/` | `website/`: one section per talk slide, each bullet the deck's item word for word (markup, punctuation, case, number words and citation form aside) with its numbers, formulas, citations and names; references, authors, BibTeX, arXiv id, abstract and the Code and Data links as the deck, `CITATION.cff` and the README give them; the summary pinned in the test; the header logos above and below the title as on the title slide; every image present |
+| `website/` | `website/`: one section per talk slide, each bullet the deck's item word for word (markup, punctuation, case, number words and citation form aside) with its numbers, formulas, citations and names; references, authors, BibTeX, arXiv id, abstract and the Code and Data links as the deck, `CITATION.cff` and the README give them; the summary pinned in the test; the header logos above and below the title as on the title slide, the NeurIPS one a banner at least 300 px wide, Syracuse only through its AI Institute logo; every image present |
 | `repository/` | The whole tree: README, links, entry points, vocabulary, privacy |
 
 The suite checks law recovery on synthetic data, every entry point's `--help`, that the
