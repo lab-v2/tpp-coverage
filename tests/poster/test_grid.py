@@ -598,3 +598,102 @@ def test_planted_m3_gates() -> None:
         (116.17, 18, 127, 21, 109.6, "LMRoman10-Bold", "98.7%"),
     ]
     assert hero_problems(big + hero([94.47, 104.9, 115.33, 125.77]))  # 98.7% 0.84 off the half line
+
+
+# --- review M4: vertical rhythm inside cards ------------------------------------------------------
+
+SEG_GAP_CM = 0.12  # ink runs closer than this belong to one segment (one line, one display)
+DISPLAY_GAP, DISPLAY_TOL = 0.5, 0.15
+
+
+def _segments(args: tuple) -> list[tuple[float, float]]:
+    """Ink runs (top, bottom, cm) of one card's text area, top to bottom, from a raster."""
+    import numpy as np
+
+    img, card, dpi = args
+    per_cm = dpi / 2.54
+    a, b = int((card[0] + PAD) * per_cm), int((card[2] - PAD) * per_cm)
+    top, bottom = int((card[1] + 0.3) * per_cm), int((card[3] - 0.3) * per_cm)
+    sub = img[top:bottom, a:b].astype(int)
+    bg = np.median(sub.reshape(-1, 3), axis=0)
+    rows = np.nonzero((np.abs(sub - bg).sum(axis=2) > 40).any(axis=1))[0]
+    out, start = [], rows[0]
+    for i in range(1, len(rows)):
+        if rows[i] - rows[i - 1] > SEG_GAP_CM * per_cm:
+            out.append(((top + start) / per_cm, (top + rows[i - 1]) / per_cm))
+            start = rows[i]
+    out.append(((top + start) / per_cm, (top + rows[-1]) / per_cm))
+    return out
+
+
+def card_segments(img, cs: list[Rect], dpi: float) -> list[list[tuple[float, float]]]:
+    import os
+    from concurrent.futures import ProcessPoolExecutor
+
+    with ProcessPoolExecutor(min(len(cs), len(os.sched_getaffinity(0)))) as pool:
+        return list(pool.map(_segments, [(img, c, dpi) for c in cs]))
+
+
+def table_spans(pdf: Path = PDF) -> list[Rect]:
+    """Booktabs tables: (x0, top rule y, x1, bottom rule y) from the thin rules inside cards."""
+    page = fitz.open(pdf)[0]
+    bars = sorted(
+        tuple(round(v * CM, 2) for v in (d["rect"].x0, d["rect"].y0, d["rect"].x1, d["rect"].y1))
+        for d in page.get_drawings()
+        if d["rect"].height * CM < 0.1
+        and 5 < d["rect"].width * CM < 40
+        and d["rect"].y0 * CM > BODY_TOP
+    )
+    out: list[Rect] = []
+    for b in bars:
+        if out and abs(out[-1][0] - b[0]) < 0.05 and b[1] - out[-1][3] < 4.0:
+            out[-1] = (out[-1][0], out[-1][1], out[-1][2], b[1])
+        else:
+            out.append(b)
+    return [t for t in out if t[3] > t[1]]
+
+
+def display_rows(card: Rect, lines: list[Line], tables: list[Rect] = ()) -> list[float]:
+    """Centre y of each display: a row of lines centred on the card, away from its text edge,
+    that is neither the title (the first row) nor a table row (a table holds 3 or more rows of
+    several lines in one x-range)."""
+    mine = sorted((ln for ln in lines if inside(ln, card)), key=lambda ln: ln[1])
+    rows: list[list[Line]] = []
+    for ln in mine:
+        if rows and ln[1] < max(r[3] for r in rows[-1]) - 0.3:
+            rows[-1].append(ln)
+        else:
+            rows.append([ln])
+    centre = (card[0] + card[2]) / 2
+    out = []
+    for row in rows[1:]:
+        x0, x1 = min(r[0] for r in row), max(r[2] for r in row)
+        y = (min(r[1] for r in row) + max(r[3] for r in row)) / 2
+        if any(t[0] - 0.1 <= x0 and t[1] - 0.5 <= y <= t[3] + 0.5 for t in tables):
+            continue
+        if x0 > card[0] + PAD + 1.0 and abs((x0 + x1) / 2 - centre) < 1.0 and len(row) <= 6:
+            if (
+                not any(r[5].startswith("Cm") for r in row)
+                and len(row) < 4
+                or any("Math" in r[5] for r in row)
+            ):
+                out.append((min(r[1] for r in row) + max(r[3] for r in row)) / 2)
+    return out
+
+
+def display_gap_problems(
+    cs: list[Rect], lines: list[Line], segs: list, tables: list[Rect] = ()
+) -> list[str]:
+    out = []
+    for c, seg in zip(cs, segs):
+        for y in display_rows(c, lines, tables):
+            k = next((i for i, s in enumerate(seg) if s[0] - 0.2 <= y <= s[1] + 0.2), None)
+            if k is None:
+                continue
+            for gap, side in (  # segment 0 is the title: its gap is the title-to-body gate's
+                (seg[k][0] - seg[k - 1][1] if k > 1 else None, "above"),
+                (seg[k + 1][0] - seg[k][1] if k + 1 < len(seg) else None, "below"),
+            ):
+                if gap is not None and abs(gap - DISPLAY_GAP) > DISPLAY_TOL and gap < 3.0:
+                    out.append(f"card {c[:2]}: display at {y:.2f}: {gap:.2f} cm {side}")
+    return out
