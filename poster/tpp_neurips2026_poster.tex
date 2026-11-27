@@ -1,16 +1,26 @@
 % NeurIPS 2026 poster: Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation.
 % Build: make (from this folder), with xelatex. 140 x 90 cm landscape, the NeurIPS maximum.
-% Theme: gemini (theme/, MIT). Logos come from ../images (SVG, converted by the Makefile);
-% figures from figures/ (the paper's Figure 1 (a) and (c), copied byte for byte). Every number and formula is the paper's.
+% Theme: gemini (theme/, MIT) for its colours; the layout is placed on an exact grid with textpos.
+% Logos come from ../images (SVG, converted by the Makefile); figures from figures/ (poster renders
+% of the paper's Figure 1 (a) and (c) from its own code and data). Every number and formula is the paper's.
+%
+% Grid (cm, origin top-left): 3.00 margins; 4 columns of 32.00 with 2.00 gutters,
+% c1 3-35 | c2 37-69 | c3 71-103 | c4 105-137, symmetric about x = 70. Header 3.00-12.80, its rule
+% 13.00-13.20; body 15.20-83.60; footer rule 85.60-85.80, footer text from 86.30. Every block is a
+% card whose fill spans its column(s) exactly, with 0.80 padding on all four sides; blocks in a column
+% are 1.00 apart, and the last card of each column stretches to the body bottom.
+% Type scale: 110 (hero numbers), 90 (title), 44 (block titles, authors, key numbers, displays),
+% 30 (body), 24 (caption, footer).
 \documentclass[final]{beamer}
-\usepackage[size=custom,width=140,height=90,scale=1.16]{beamerposter}
+\usepackage[size=custom,width=140,height=90,scale=1.2083]{beamerposter}
 \usetheme{gemini}
 \usecolortheme{gemini}
-\usepackage{amsmath,booktabs,graphicx,tikz}
+\usepackage{amsmath,booktabs,graphicx}
+\usepackage[absolute,overlay]{textpos}
+\usepackage[most]{tcolorbox}
 % Images are found through TEXINPUTS, set by the Makefile (figures/, build/assets/, ../images/).
 
-% The owner asked for a poster that looks like LaTeX: every text in Latin Modern Roman (the theme's
-% Lato and Raleway are replaced, title and headings included) and math in Latin Modern Math.
+% Every text in Latin Modern Roman (the theme's Lato and Raleway are replaced) and math in Latin Modern Math.
 \usefonttheme{serif}
 \setmainfont{lmroman10}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold, ItalicFont=*-italic,
   BoldItalicFont=*-bolditalic]
@@ -24,167 +34,169 @@
 \definecolor{co}{RGB}{31, 119, 180}
 \definecolor{nc}{RGB}{214, 39, 40}
 \definecolor{accent}{RGB}{212, 69, 0}
+\definecolor{cardplain}{RGB}{243, 245, 249}
 \newcommand{\CO}{\textcolor{co}{\textbf{CO}}}
 \newcommand{\NC}{\textcolor{nc}{\textbf{NC}}}
-\setbeamercolor{headline}{fg=darkblue,bg=white}
-\setbeamercolor{headline title}{fg=darkblue}
-\setbeamercolor{headline rule}{bg=darkblue}
-\setbeamercolor{block title alerted}{fg=darkblue,bg=lightblue}
-\setbeamercolor{block title}{fg=darkblue,bg=white}
-% Ragged-right body (each block opens with \RaggedRight), no hyphenation: a poster is read at a distance.
+\colorlet{cardalert}{lightblue}
+% Ragged-right body, no hyphenation: a poster is read at a distance.
 \hyphenpenalty=10000 \exhyphenpenalty=10000
 % Fixed math spacing, so a ragged line never stretches the space around = or +.
 \thickmuskip=5mu \medmuskip=4mu
-\setbeamerfont{headline title}{size=\fontsize{91}{93}\selectfont,series=\bfseries}
-\setbeamerfont{headline author}{size=\fontsize{40}{44}\selectfont}
-\setbeamerfont{headline institute}{size=\fontsize{34}{40}\selectfont}
 \setbeamertemplate{itemize items}[circle]
 \setlength{\leftmargini}{1.2em}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{footline}{}
 
-% Top zone: 4 x sep + (0.67 + 1.36 + 0.98) x col = paper width (the evidence row spans 3 cols + 2 seps).
-\newlength{\sepwidth}
-\newlength{\colwidth}
-\setlength{\sepwidth}{0.02425\paperwidth}
-\setlength{\colwidth}{0.3\paperwidth}
-\newcommand{\separatorcolumn}{\begin{column}{\sepwidth}\end{column}}
-\newcommand{\statement}[1]{{\usebeamercolor[fg]{block title}\bfseries #1.}\ }
+% The five sizes of the type scale.
+\newcommand{\Sone}{\fontsize{110}{116}\selectfont}
+\newcommand{\Stwo}{\fontsize{90}{96}\selectfont}
+\newcommand{\Sthree}{\fontsize{44}{52}\selectfont}
+\newcommand{\Sfour}{\fontsize{30}{37}\selectfont}
+\newcommand{\Sfive}{\fontsize{24}{28}\selectfont}
+\newcommand{\statement}[1]{{\color{darkblue}\bfseries #1.}\ }
+
+% A card: fill across the column(s), 0.80 padding, title centred, body ragged right.
+\tcbset{cardbase/.style={enhanced, colframe=white, boxrule=0pt, arc=0pt, boxsep=0pt, left=0.8cm, right=0.8cm,
+  top=0.8cm, bottom=0.8cm, before skip=0pt, after skip=0pt}}
+\newcommand{\cardhead}[1]{\Sfour\parskip=0.35em{\centering\Sthree\bfseries\color{darkblue}#1\par}\vskip0.4em\RaggedRight}
+\newtcolorbox{card}[2][]{cardbase, colback=cardplain, before upper={\cardhead{#2}}, #1}
+\newtcolorbox{alertcard}[2][]{cardbase, colback=cardalert, before upper={\cardhead{#2}}, #1}
+% The 1.00 cm between stacked cards.
+\newcommand{\cardgap}{\par\vskip1cm}
+\newlength{\bodyheight}\setlength{\bodyheight}{68.4cm}
+% A column: its stacked cards, then a last card that takes the rest of the body height.
+\newsavebox{\colstack}
+\newlength{\restheight}
+\newcommand{\measurestack}[1]{\setlength{\restheight}{\dimexpr\bodyheight-\ht#1-\dp#1-1cm\relax}}
 
 \title{Tokens-per-Parameter Coverage Is Critical for\\Robust LLM Scaling Law Extrapolation}
 \author{Joshua Shay Kricheli\textsuperscript{1,$\|$} \quad Alexander Lawrence Reid\textsuperscript{1,$\|$} \quad
   Soumajyoti Sarkar\textsuperscript{2,$*$} \quad Venkata Gandikota\textsuperscript{1} \quad Paulo Shakarian\textsuperscript{1}}
 \institute{\textsuperscript{1}Syracuse University \qquad \textsuperscript{2}Amazon AGI Foundations}
 
-\footercontent{\parbox{\dimexpr\paperwidth-2\sepwidth\relax}{%
-  \href{https://lab-v2.github.io/tpp-coverage/}{lab-v2.github.io/tpp-coverage} \hfill
-  \textsuperscript{$\|$}Equal contribution. \quad \textsuperscript{$*$}This work does not relate to the author's position at Amazon. \hfill
-  NeurIPS 2026, Sydney \hfill \href{https://arxiv.org/abs/2605.08541}{arXiv:2605.08541}\par\smallskip
-  % Funding: the paper's own acknowledgement sentence (src/ack.tex); references: the works the poster names.
-  {\fontsize{27}{32}\selectfont This research was funded by ARO grant W911NF-24-1-0007. \hfill
-  References: Kaplan et al.\ (2020), arXiv:2001.08361; Droppo and Elibol (2021), Interspeech; Hoffmann et al.\ (2022), NeurIPS;
-  Muennighoff et al.\ (2025), JMLR; Bhagia et al.\ (2025), COLM; Magnusson et al.\ (2025), ICML.}\par
-  \vspace*{0.3cm}}}% keeps the footer text at least 1 cm above the trim edge
-
-% Header corners: the labelled QR code of the project page beside the NeurIPS logo (4.0 cm, left); the
-% Syracuse AI Institute (3.0 cm) over the Leibniz Lab (2.9 cm: its 1024 x 348 px PNG at 300 ppi; no
-% vector copy exists) on the right.
-\logoleft{\raisebox{-1.5cm}{\raisebox{-0.5\height}{\begin{tabular}{@{}c@{}}\includegraphics[height=6.0cm]{qr_project_page.pdf}\\[-0.4ex]{\small Project page}\end{tabular}}\hspace{1cm}\raisebox{-0.5\height}{\includegraphics[height=4.0cm]{neurips.pdf}}}}
-\logoright{\raisebox{-0.5\height}{\begin{tabular}{@{}c@{}}\includegraphics[height=3.0cm]{syracuse_ai_institute.pdf}\\[1.5ex]\includegraphics[height=2.9cm]{leibniz_lab.png}\end{tabular}}}
-
 \begin{document}
 \begin{frame}[t]
-\begin{columns}[t]
-\separatorcolumn
 
-% ==== column 1
-\begin{column}{0.67\colwidth}
+% ==== header: QR + NeurIPS outer edge at 3.00, SU AI Institute over Leibniz Lab outer edge at 137.00,
+% each group 16.0 wide and 6.0 tall, all centred on the title block's vertical centre.
+\begin{textblock*}{134cm}(3cm,3cm)
+\makebox[134cm][s]{%
+  \parbox[c][9.8cm][c]{16cm}{\includegraphics[height=6cm,trim=7.75 7.75 7.75 7.75,clip]{qr_project_page.pdf}\hfill
+    \raisebox{\dimexpr3cm-0.5\height\relax}{\includegraphics[width=9cm]{neurips.pdf}}}%
+  \hfill
+  \parbox[c][9.8cm][c]{100cm}{\centering\color{darkblue}%
+    {\Stwo\bfseries\inserttitle\par}\vskip0.5cm
+    {\Sthree\insertauthor\par}\vskip0.3cm
+    {\Sfour\insertinstitute\par}}%
+  \hfill
+  \parbox[c][9.8cm][c]{16cm}{\raggedleft\makebox[16cm][r]{\includegraphics[width=15.86cm]{syracuse_ai_institute.pdf}}\\[0.3cm]
+    \makebox[16cm][c]{\includegraphics[height=2.7cm]{leibniz_lab.png}}}}
+\end{textblock*}
+\begin{textblock*}{134cm}(3cm,13.0cm)\noindent{\color{darkblue}\rule{134cm}{0.2cm}}\end{textblock*}
 
-\begin{alertblock}{TL;DR}
-  \RaggedRight
+% ==== column 1 (3-35): the setting and the conditioning theory
+\begin{textblock*}{32cm}(3cm,15.2cm)
+\begin{minipage}[t][\bodyheight][t]{32cm}
+\setbox\colstack=\vbox{\hsize=32cm\linewidth=32cm
+\begin{alertcard}{TL;DR}
   Fixed tokens-per-parameter (TPP) ratios $D = kN$ make scaling-law fits ill-conditioned when the
   $N$- and $D$-exponents are close. Covering the $(N, D)$ plane fixes it: \NC{} beats \CO{} on held-out
   runs in \textcolor{accent}{\textbf{97.3\%}}.
-\end{alertblock}
-
-\begin{block}{\CO{} (collinear) and \NC{} (non-collinear) designs}
-  \RaggedRight
+\end{alertcard}\cardgap
+\begin{card}{\CO{} (collinear) and \NC{} (non-collinear) designs}
   \begin{itemize}
     \item \textbf{\CO{}:} every run at $D = kN$, 12 ratios from $k = 1$ to $5$: a fan of rays.
     \item \textbf{\NC{}:} the 10 smallest sizes crossed with 12 dataset sizes, so $k = D/N$ varies freely; both are scored on the same held-out runs.
   \end{itemize}
-\end{block}
-
-\begin{block}{The law and one ray}
-  \RaggedRight
+\end{card}\cardgap
+\begin{card}{The law and one ray}
   \[ L(N, D) = A N^{-\alpha} + B D^{-\beta} + E \]
   On a ray $D = kN$ with $\beta = \alpha$, the reduced model is
   \[ L(N; \psi, \alpha, E) = \psi N^{-\alpha} + E, \qquad \psi := A + B k^{-\alpha}. \]
   One ray pins down $\psi$, not $A$ and $B$: a ``sloppy'' model. Gap $\varepsilon := |\alpha - \beta|$.
-\end{block}
-
-
-
-\end{column}
-\separatorcolumn
-
-% ==== column 2
-\begin{column}{1.36\colwidth}
-
-
-\begin{block}{Gauss-Newton conditioning}
-  \RaggedRight
+\end{card}\cardgap
+\begin{card}{Gauss-Newton conditioning}
   \[ S(\symbf{\theta}) = \tfrac{1}{2} \lVert \symbfup{r}(\symbf{\theta}) \rVert^2, \quad
      J_{ij} = \frac{\partial r_i}{\partial \theta_j}, \quad (J^\top J)\, \Delta\symbf{\theta} = -J^\top \symbfup{r} \]
   Scale pair: $\kappa_{A,B} := \kappa\bigl((J^\top J)_{A,B}\bigr)$. On a ray, up to sign, $j_A = N^{-\alpha}$ and
   $j_B = k^{-\beta} N^{-\beta}$: nearly parallel for small $\varepsilon$.
-\end{block}
-
-\begin{block}{One ray is ill-conditioned}
-  \RaggedRight
-  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, as $\varepsilon \to 0$ (Corollary 2: Gaussian noise, at least 5 sizes):\par\smallskip
-  \begin{columns}[c,onlytextwidth]
-    \begin{column}{0.56\linewidth}
-      \centering
-      \colorbox{lightblue}{\begin{minipage}{0.95\linewidth}\centering\large
-    \[ \kappa_{A,B} = \Theta(\varepsilon^{-2}), \qquad
-       \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}) \]
-  \end{minipage}}
-    \end{column}
-    \begin{column}{0.42\linewidth}
-      \centering
-      \begin{tabular}{@{}l@{\hspace{1.2em}}r@{\hspace{1.2em}}r@{\hspace{1.2em}}r@{}}
+\end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
+\begin{card}[height=\restheight]{One ray is ill-conditioned}
+  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, as $\varepsilon \to 0$ (Corollary 2: Gaussian noise, at least 5 sizes):
+  {\Sthree\[ \kappa_{A,B} = \Theta(\varepsilon^{-2}), \qquad
+       \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}) \]}
+  \par{\centering\begin{tabular}{@{}l@{\hspace{1.5em}}r@{\hspace{1.5em}}r@{\hspace{1.5em}}r@{}}
     \toprule
     Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
     \midrule
     Chinchilla & 0.06 & 17 & 278 \\
     Kaplan & 0.20 & 5\textsuperscript{$\dagger$} & 25 \\
     \bottomrule
-  \end{tabular}\quad {\small \textsuperscript{$\dagger$}Schur floor.}
-    \end{column}
-  \end{columns}
-\end{block}
+  \end{tabular}\par}
+  {\Sfive\textsuperscript{$\dagger$}Schur floor.\par}
+\end{card}
+\end{minipage}
+\end{textblock*}
 
-\begin{alertblock}{TPP-diversity threshold}
-  \RaggedRight
+% ==== centre (37-103): the two main results side by side, then Figure 1 (a) and (c)
+\begin{textblock*}{66cm}(37cm,15.2cm)
+\begin{minipage}[t][\bodyheight][t]{66cm}
+\setbox\colstack=\vbox{\hsize=66cm\linewidth=66cm
+\begin{alertcard}[width=32cm, nobeforeafter, equal height group=centretop]{TPP-diversity threshold}
   \statement{Proposition 1} Chinchilla and unsaturated repeated-data (Kaplan, Droppo-Elibol: a heuristic).
   To leading order, $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever
-  \[ \scalebox{1.0}{$\displaystyle \underbrace{\frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
+  \[ \underbrace{\frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
      - \Bigl( \frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-\beta_{\mathrm{eff}}} \Bigr)^{2}}_{V_K}
      \;\geq\;
-     \underbrace{\frac{\bigl( K + \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} \bigr)^{2}}{K^{2}\, \kappa_{\mathrm{target}}}}_{\tau_K}.$} \]
-  One ray never passes: $V_1 = 0 < \tau_1$.\par\smallskip
-\end{alertblock}
-
-
-\end{column}
-\separatorcolumn
-
-% ==== column 3
-\begin{column}{0.98\colwidth}
-
-\begin{block}{Holdout prediction}
-  \RaggedRight
+     \underbrace{\frac{\bigl( K + \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} \bigr)^{2}}{K^{2}\, \kappa_{\mathrm{target}}}}_{\tau_K}. \]
+  One ray never passes: $V_1 = 0 < \tau_1$.
+\end{alertcard}\hspace{2cm}%
+\begin{alertcard}[width=32cm, nobeforeafter, equal height group=centretop]{Holdout prediction}
   \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), i.i.d.\ Gaussian residuals of
   variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
   (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, as $\varepsilon \to 0$:
-  \[ \scalebox{1.7}{$\mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr].$} \]
+  {\Sthree\[ \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr]. \]}
   For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient margin.
-\end{block}
+\end{alertcard}}\measurestack{\colstack}\usebox{\colstack}\cardgap
+\begin{card}[height=\restheight]{Kaplan law on RedPajama, first epoch (paper Fig. 1a, 1c)}
+  \includegraphics[width=30.4cm]{01_surface_Red_Pajama_Kaplan_First.pdf}\hspace{3.6cm}%
+  \includegraphics[width=30.4cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}\par
+  {\Sfive Left: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Right: induced isoFLOP curves, coloured by compute $C$ (CO dashed, NC solid). Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.\par}
+\end{card}
+\end{minipage}
+\end{textblock*}
 
-\begin{block}{Design recipe}
-  \RaggedRight
-  \begin{enumerate}
-    \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
-    \item Train on the two end ratios, runs split evenly, log-uniform in $N$.
-    \item Check the exact $\kappa_{A,B}$ before training.
-  \end{enumerate}\vspace{-0.4em}
-  $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
-\end{block}
-
-
-\begin{block}{The threshold on published designs}
-  \RaggedRight
-  \centering
-  \begin{tabular}{@{}lrrr@{}}
+% ==== column 4 (105-137): the evidence and what to do
+\begin{textblock*}{32cm}(105cm,15.2cm)
+\begin{minipage}[t][\bodyheight][t]{32cm}
+\setbox\colstack=\vbox{\hsize=32cm\linewidth=32cm
+\begin{alertcard}{\NC{} beats \CO{} on held-out runs}
+  \begin{columns}[t,onlytextwidth]
+    \begin{column}{0.48\linewidth}
+      \raggedright
+      {\Sone\bfseries\textcolor{accent}{97.3\%}}\par
+      FP32: 1,460/1,500
+    \end{column}
+    \begin{column}{0.48\linewidth}
+      \raggedright
+      {\Sone\bfseries\textcolor{accent}{98.7\%}}\par
+      BF16, Wikipedia: 296/300
+    \end{column}
+  \end{columns}\par\medskip
+  \begin{columns}[t,onlytextwidth]% key numbers, 2 x 2
+    \begin{column}{0.48\linewidth}\raggedright
+      {\Sthree\bfseries $\sim$1,900}\par LLaMA-style models\par\medskip
+      {\Sthree\bfseries 4 $\times$ 5}\par laws $\times$ corpora
+    \end{column}
+    \begin{column}{0.48\linewidth}\raggedright
+      {\Sthree\bfseries 5.04-76.5M}\par parameters\par\medskip
+      {\Sthree\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{} / \NC{}
+    \end{column}
+  \end{columns}\par\medskip
+  Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
+\end{alertcard}\cardgap
+\begin{card}{The threshold on published designs}
+  {\centering\begin{tabular}{@{}lrrr@{}}
     \toprule
     Design & $K$ & $R = k_K / k_1$ & $V_K / \tau_K$ \\
     \midrule
@@ -192,82 +204,42 @@
     Bhagia et al.\ (2025) & 4 & 10 & 0.47 \\
     Magnusson et al.\ (2025) & 1 & 1 & 0.00 \\
     \bottomrule
-  \end{tabular}\par
-  \raggedright
+  \end{tabular}\par}
   At $\kappa_{\mathrm{target}} = 100$: 11 of 24 pass ($\geq 1$), 13 fail (all 6 collinear); our \CO{} fan: 0.40.
-\end{block}
-
-\end{column}
-\separatorcolumn
-\end{columns}%
-% ==== the evidence row: the banner, Fig. 1a and Fig. 1c across the full width
-\begin{columns}[t]
-\separatorcolumn
-\begin{column}{\dimexpr3\colwidth+2\sepwidth\relax}
-\begin{columns}[t,onlytextwidth]
-\begin{column}{0.27\linewidth}
-
-\begin{block}{\NC{} beats \CO{} on held-out runs}
-  \RaggedRight
-  \vspace*{1.15cm}% at least 1 cm between the title rule and the numbers
-  \begin{columns}[t,onlytextwidth]% the numbers share the block's left edge
-    \begin{column}{0.46\linewidth}
-      \raggedright
-      {\fontsize{114}{118}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
-      FP32: 1,460/1,500
-    \end{column}
-    \begin{column}{0.46\linewidth}
-      \raggedright
-      {\fontsize{114}{118}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
-      BF16, Wikipedia: 296/300
-    \end{column}
-  \end{columns}
-  \bigskip
-  \begin{columns}[t,onlytextwidth]% key numbers, 2 x 2
-    \begin{column}{0.46\linewidth}\raggedright
-      {\Large\bfseries $\sim$1,900}\par LLaMA-style models\par\medskip
-      {\Large\bfseries 4 $\times$ 5}\par laws $\times$ corpora
-    \end{column}
-    \begin{column}{0.46\linewidth}\raggedright
-      {\Large\bfseries 5.04-76.5M}\par parameters\par\medskip
-      {\Large\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{} / \NC{}
-    \end{column}
-  \end{columns}\medskip
-  Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
-\end{block}
-
-\begin{alertblock}{Takeaways}
-  \RaggedRight
+\end{card}\cardgap
+\begin{card}{Design recipe}
+  \begin{enumerate}
+    \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
+    \item Train on the two end ratios, runs split evenly, log-uniform in $N$.
+    \item Check the exact $\kappa_{A,B}$ before training.
+  \end{enumerate}
+  $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
+\end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
+\begin{alertcard}[height=\restheight]{Takeaways}
   \begin{itemize}
     \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
     \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
   \end{itemize}
   \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
-\end{alertblock}
+\end{alertcard}
+\end{minipage}
+\end{textblock*}
 
-\end{column}
-\begin{column}{0.71\linewidth}
-
-\begin{block}{Kaplan law on RedPajama, first epoch (paper Fig. 1a, 1c)}
-  \RaggedRight
-  \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.49\linewidth}
-      \centering
-      \includegraphics[width=44.0cm]{01_surface_Red_Pajama_Kaplan_First.pdf}
-    \end{column}
-    \begin{column}{0.49\linewidth}
-      \centering
-      \includegraphics[width=45.0cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}
-    \end{column}
-  \end{columns}
-  % The caption starts at the block's left edge, like every other text in the evidence row.
-  {\fontsize{27}{32}\selectfont Left: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Right: induced isoFLOP curves, coloured by compute $C$ (CO dashed, NC solid). Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.\par}
-\end{block}
-
-\end{column}
-\end{columns}
-\end{column}
-\separatorcolumn
-\end{columns}
+% ==== footer, on the grid: c1 left at 3.00, c2-c3 centred on x = 70, c4 right at 137.00
+\begin{textblock*}{134cm}(3cm,85.6cm)\noindent{\color{darkblue}\rule{134cm}{0.2cm}}\end{textblock*}
+% Funding: the paper's own acknowledgement sentence (src/ack.tex); references: the works the poster names.
+\begin{textblock*}{32cm}(3cm,86.3cm)\Sfive\raggedright\color{darkblue}
+  \href{https://lab-v2.github.io/tpp-coverage/}{lab-v2.github.io/tpp-coverage}\par
+  This research was funded by ARO grant W911NF-24-1-0007.\par
+\end{textblock*}
+\begin{textblock*}{66cm}(37cm,86.3cm)\Sfive\centering\color{darkblue}
+  \textsuperscript{$\|$}Equal contribution. \quad \textsuperscript{$*$}This work does not relate to the author's position at Amazon.\par
+  References: Kaplan et al.\ (2020), arXiv:2001.08361; Droppo and Elibol (2021), Interspeech; Hoffmann et al.\ (2022), NeurIPS;
+  Muennighoff et al.\ (2025), JMLR; Bhagia et al.\ (2025), COLM; Magnusson et al.\ (2025), ICML.\par
+\end{textblock*}
+\begin{textblock*}{32cm}(105cm,86.3cm)\Sfive\raggedleft\color{darkblue}
+  NeurIPS 2026, Sydney\par
+  \href{https://arxiv.org/abs/2605.08541}{arXiv:2605.08541}\par
+\end{textblock*}
 \end{frame}
 \end{document}
