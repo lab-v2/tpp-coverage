@@ -146,12 +146,14 @@ def draw_isoflop_panel(
     holdout_mode: str = "final",
     style_legends_fn: Callable | None = None,
     debug: bool = False,
+    legends_outside: bool = False,
 ) -> None:
     """Draw isoFLOP curves; with ``holdout_data``, the curve set is the n_H induced budgets
     C_i = 6 N_i D_i (one per kept holdout point, after the highest-D-per-unique-N filter),
     so each residual lands exactly on its own induced curve.
     ``style_legends_fn`` is an optional callback ``(ax) -> None`` that callers use to
-    harmonize legend frames across panels.
+    harmonize legend frames across panels. ``legends_outside`` places both legends below the
+    axes, so neither covers the curves (Figure 1c of the paper).
     """
     _DESIGN_ABBREV = {"Non-Colinear": "NC", "Colinear": "CO"}
     design_cfg = {
@@ -358,12 +360,33 @@ def draw_isoflop_panel(
     ax.legend(
         budget_proxies,
         budget_labels,
-        loc="upper right",
+        loc="upper center" if legends_outside else "upper right",
+        bbox_to_anchor=(0.5, -0.22) if legends_outside else None,
+        ncol=2 if legends_outside else 1,
         fontsize=budget_fontsize,
         framealpha=LEGEND_ALPHA,
     )
 
-    if main_leg:
+    if main_leg and legends_outside:
+        # The design legend as one row just below the axes, the budget legend under it.
+        from matplotlib.legend import Legend
+
+        handles = main_leg.legend_handles
+        labels = [t.get_text() for t in main_leg.get_texts()]
+        main_leg = Legend(
+            ax,
+            handles,
+            labels,
+            loc="upper center",
+            bbox_to_anchor=(0.5, -0.12),
+            ncol=len(labels),
+            fontsize=legend_fontsize,
+            framealpha=LEGEND_ALPHA,
+            columnspacing=1.0,
+            handlelength=1.5,
+        )
+        ax.add_artist(main_leg)
+    elif main_leg:
         ax.add_artist(main_leg)
 
     if style_legends_fn is not None:
