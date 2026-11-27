@@ -19,7 +19,9 @@ width; the 3-D panel is drawn on a canvas 1.33 times that and saved as the print
 around its ink, with the paper's 3-D view), with a transparent canvas, ticks at 23.9 pt, axis labels and legends at 29.9 pt, and the
 legends inside the axes and at least 0.2 cm inside the saved figure (Fig. 1a in one column in the empty bottom-right corner, right of the D label, clear of the 3-D box
 by at least 0.2 cm;
-Fig. 1c upper right, inside its axes frame). The poster sets them at scale 1.00.
+Fig. 1c upper right, inside its axes frame); each legend frame sits 0.30 +- 0.05 cm from the two edges
+of its corner (spines, or the window edges for the 3-D panel), and Fig. 1c's colour bar 1.0 +- 0.2 cm
+right of its axes (`isoflop_panel.py`: `POSTER_LEGEND_FRAME_CM`, `POSTER_CBAR_PAD`). The poster sets them at scale 1.00.
 The paper style is unchanged; `tests/tpp_analysis/visualizations/test_characterize_figure1_panels.py`
 proves both styles draw the same data. Regenerate with `TPP_DATA_ROOT=<released data root>
 FIG1_STYLE=poster FIG1_TEXT_SCALE=0.45 uv run python src/tpp_analysis/visualizations/figure1_panels.py`

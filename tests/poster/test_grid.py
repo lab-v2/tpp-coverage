@@ -965,8 +965,9 @@ def equal_gap_problems(cs: list[Rect], segs: list, tables: list[Rect]) -> list[s
 
 def test_figure_slot_void() -> None:
     fig = next(c for c in cards() if abs(c[0] - EDGES[2]) < 0.01)
-    img = render(PDF, 20)
-    assert slot_void_problems(img, fig, figure_inks(render(PDF, 50), fig, 50), 20) == []
+    # 50 dpi, so the plots' grid lines (thin, light) count as ink, as they do to the eye.
+    img = render(PDF, 50)
+    assert slot_void_problems(img, fig, figure_inks(img, fig, 50), 50) == []
 
 
 def test_line_pitch() -> None:

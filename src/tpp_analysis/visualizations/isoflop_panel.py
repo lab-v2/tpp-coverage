@@ -19,6 +19,9 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy.optimize import minimize_scalar
 
+POSTER_CBAR_PAD = 0.012  # poster render: colour bar to axes, axes fraction
+POSTER_LEGEND_FRAME_CM = 0.30  # poster render: legend frame to the spines
+
 from scaling_laws.data import prepare_arrays
 from scaling_laws.laws import (
     chinchilla_loss,
@@ -367,7 +370,12 @@ def draw_isoflop_panel(
 
         log_c = np.log10(np.asarray(flop_budgets, dtype=float))
         mappable = ScalarMappable(norm=Normalize(0, n_budgets), cmap=ListedColormap(list(colors)))
-        cbar = ax.figure.colorbar(mappable, ax=ax, pad=0.07, fraction=0.05)
+        # The poster render puts the colour bar POSTER_CBAR_PAD (axes fraction) right of the axes,
+        # about 1.0 cm at its width; the paper render keeps 0.07.
+        poster = _panel_style.TEXT_SCALE != 1
+        cbar = ax.figure.colorbar(
+            mappable, ax=ax, pad=POSTER_CBAR_PAD if poster else 0.07, fraction=0.05
+        )
         even = np.arange(np.ceil(log_c[0] * 2) / 2, log_c[-1] + 1e-9, 0.5)
         cbar.set_ticks(np.interp(even, log_c, np.arange(n_budgets) + 0.5))
         cbar.set_ticklabels([f"{v:.1f}" for v in even])
@@ -395,6 +403,13 @@ def draw_isoflop_panel(
                 framealpha=LEGEND_ALPHA,
                 columnspacing=0.8,
                 handlelength=1.4,
+                # Poster: the legend frame 0.30 cm inside both spines (the frame's square box style
+                # adds 0.4 em outside the legend box, so the pad is 0.30 cm plus that, in em).
+                **(
+                    {"borderaxespad": POSTER_LEGEND_FRAME_CM / (legend_fontsize / 72 * 2.54) + 0.4}
+                    if beside
+                    else {}
+                ),
             )
     else:
         ax.legend(
