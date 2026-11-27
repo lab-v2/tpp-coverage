@@ -3,7 +3,7 @@
 % 140 x 90 cm. Theme: gemini (theme/, MIT). Logos come from ../images (SVG, converted by the Makefile);
 % figures from figures/ (the paper's Figure 1 (a) and (c), copied byte for byte). Every number and formula is the paper's.
 \documentclass[final]{beamer}
-\usepackage[size=custom,width=118.9,height=84.1,scale=1.11]{beamerposter}
+\usepackage[size=custom,width=118.9,height=84.1,scale=1.16]{beamerposter}
 \usetheme{gemini}
 \usecolortheme{gemini}
 \usepackage{amsmath,booktabs,graphicx,tikz}
@@ -127,7 +127,6 @@
   \RaggedRight
   \begin{itemize}
     \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
-    \item \textbf{Below the threshold}, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
     \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
   \end{itemize}
   \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
@@ -172,11 +171,13 @@
   \RaggedRight
   \begin{enumerate}
     \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
-    \item Train on the two end ratios, runs split evenly.
+    \item Train on the two end ratios, runs split evenly, log-uniform in $N$.
     \item Check the exact $\kappa_{A,B}$ before training.
   \end{enumerate}\vspace{-0.4em}
   $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
 \end{block}
+
+
 
 
 
@@ -200,7 +201,7 @@
     \end{column}
   \end{columns}
   \medskip
-  $\sim$1,900 LLaMA-style models, 5.04-76.5M parameters, 4 laws $\times$ 5 corpora; holdout $R^2$: \CO{} 0.837, \NC{} 0.932.
+  $\sim$1,900 LLaMA-style models, 5.04-76.5M parameters, 4 laws $\times$ 5 corpora; holdout $R^2$: \CO{} 0.837, \NC{} 0.932. Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
 \end{block}
 
 \begin{block}{Holdout prediction}
@@ -214,6 +215,8 @@
 
 
 
+
+
 \end{column}
 \end{columns}
 
@@ -222,11 +225,11 @@
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.56\linewidth}
       \centering
-      \includegraphics[width=35.8cm]{01_surface_Red_Pajama_Kaplan_First.pdf}
+      \includegraphics[width=27.0cm]{01_surface_Red_Pajama_Kaplan_First.pdf}
     \end{column}
     \begin{column}{0.42\linewidth}
       \centering
-      \includegraphics[width=24.6cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}
+      \includegraphics[width=23.0cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}
     \end{column}
   \end{columns}
   {\fontsize{27}{32}\selectfont Left: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Right: induced isoFLOP curves. Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.}

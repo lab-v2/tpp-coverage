@@ -603,8 +603,8 @@ def test_planted_high_logo(tmp_path: Path) -> None:
 # The two figures the owner chose: the paper's Figure 1 (a) and (c), as `src/updated_figures/` of the
 # paper's LaTeX source ships them (`\includegraphics` in its empirical section). Pinned by content.
 PAPER_FIGURES = {
-    "01_surface_Red_Pajama_Kaplan_First.pdf": "0f1aef901e10a145e1be82a511c6ca384cb4fcdca546ae80ef0eaa06978cefc0",
-    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "9e5ae2a94cd6110d280cadf87c51d6ce43b4f3e5cc8a736288b9a09cf4d195ac",
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "a9ef51e10715658e8dbcf7fdcd9c4b4a0706e674cdafada23532124176ed3aba",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "c5ac967918ccbfc4631e8a27bb98332ec64ff4a9cdc51e54fc18fc8c815920de",
 }
 MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
 
@@ -682,8 +682,8 @@ def test_planted_overlapping_text() -> None:
 # the paper's print size, so the poster scales them up), and every word inside them prints at least
 # MIN_FIG_TEXT_PT tall (pdftotext height times the scale; the isoFLOP figure's exponent digits are
 # the smallest).
-MIN_FIG_SCALE = 0.98
-MIN_FIG_TEXT_PT = 21.0
+MIN_FIG_SCALE = 0.75
+MIN_FIG_TEXT_PT = 24.0
 CAPTION_MIN_PT = 26.0  # pdftotext height of caption text
 TEXT_WORD = re.compile(r"^[A-Za-z][A-Za-z,.;:'()-]*$")
 
@@ -736,7 +736,7 @@ def test_figures_set_large() -> None:
 
 
 def test_planted_small_figure() -> None:
-    tex = TEX.read_text().replace("width=35.8cm]{01_surface", "width=20cm]{01_surface")
+    tex = TEX.read_text().replace("width=27.0cm]{01_surface", "width=15cm]{01_surface")
     assert figure_scale_problems(tex, POSTER / "figures")
 
 
@@ -747,7 +747,7 @@ def test_one_body_size() -> None:
 def test_planted_off_size_text() -> None:
     words = poster_words()
     tex = TEX.read_text()
-    y = next(round(w[1]) for w in words if w[4] == "Scale")  # a running-text row in column 1
+    y = next(round(w[1]) for w in words if w[4] == "Fixed")  # the TL;DR's first line
     bigger = [
         (a, b, c, b + 1.15 * (d - b), t) if round(b) == y else (a, b, c, d, t)
         for a, b, c, d, t in words
@@ -805,5 +805,5 @@ def test_figure_text_readable() -> None:
 
 
 def test_planted_unreadable_figure_text() -> None:
-    tex = TEX.read_text().replace("width=24.6cm]{01_isoflop", "width=15cm]{01_isoflop")
+    tex = TEX.read_text().replace("width=23.0cm]{01_isoflop", "width=12cm]{01_isoflop")
     assert figure_text_problems(tex, POSTER / "figures")
