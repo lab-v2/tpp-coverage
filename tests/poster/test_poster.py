@@ -340,7 +340,16 @@ def test_at_most_800_words() -> None:
 
 
 def test_column_bottoms_within_1_cm() -> None:
-    assert column_spread_problems(bbox_words(PDF), *A0_LANDSCAPE_PT) == []
+    # Column 1 against the figure band that closes columns 2 and 3 (its caption is the lowest text).
+    words = poster_words()
+    width, height = A0_LANDSCAPE_PT
+    body = [w for w in words if 0.2 * height < w[3] < 0.955 * height]
+    left = max(w[3] for w in body if w[0] < width / 3)
+    right = max(w[3] for w in body if w[0] >= width / 3)
+    assert abs(left - right) / PT_PER_CM < MAX_COLUMN_SPREAD_CM, (
+        left / PT_PER_CM,
+        right / PT_PER_CM,
+    )
 
 
 def test_block_gaps_are_the_theme_gap() -> None:
@@ -594,8 +603,8 @@ def test_planted_high_logo(tmp_path: Path) -> None:
 # The two figures the owner chose: the paper's Figure 1 (a) and (c), as `src/updated_figures/` of the
 # paper's LaTeX source ships them (`\includegraphics` in its empirical section). Pinned by content.
 PAPER_FIGURES = {
-    "01_surface_Red_Pajama_Kaplan_First.pdf": "1d37617fa550549ded5c2a5cee0392489e873a00f777ebd9e028155da78542f5",
-    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "e6cb243c456e2ea5c7cbc2a5fc3ef74cf515583a615c04fb987e975e67f97ffd",
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "0f1aef901e10a145e1be82a511c6ca384cb4fcdca546ae80ef0eaa06978cefc0",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "9e5ae2a94cd6110d280cadf87c51d6ce43b4f3e5cc8a736288b9a09cf4d195ac",
 }
 MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
 
@@ -669,10 +678,12 @@ def test_planted_overlapping_text() -> None:
 
 # --- figure size and one body size (round 10) ------------------------------------------------------
 
-# Each paper figure is set at least this many times its natural width. The re-rendered figures
-# (legends outside the axes) are larger at natural size than the earlier ones; at 1.13x the surface
-# figure prints 35 cm wide and the isoFLOP figure fills the band's height.
-MIN_FIG_SCALE = 1.13
+# Each paper figure is set at least this many times its natural width (the figures are rendered at
+# the paper's print size, so the poster scales them up), and every word inside them prints at least
+# MIN_FIG_TEXT_PT tall (pdftotext height times the scale; the isoFLOP figure's exponent digits are
+# the smallest).
+MIN_FIG_SCALE = 0.98
+MIN_FIG_TEXT_PT = 21.0
 CAPTION_MIN_PT = 26.0  # pdftotext height of caption text
 TEXT_WORD = re.compile(r"^[A-Za-z][A-Za-z,.;:'()-]*$")
 
@@ -725,7 +736,7 @@ def test_figures_set_large() -> None:
 
 
 def test_planted_small_figure() -> None:
-    tex = TEX.read_text().replace("width=35.0cm]{01_surface", "width=24cm]{01_surface")
+    tex = TEX.read_text().replace("width=35.8cm]{01_surface", "width=20cm]{01_surface")
     assert figure_scale_problems(tex, POSTER / "figures")
 
 
@@ -734,10 +745,9 @@ def test_one_body_size() -> None:
 
 
 def test_planted_off_size_text() -> None:
-    words = bbox_words(PDF)
+    words = poster_words()
     tex = TEX.read_text()
-    ys = sorted({round(w[1]) for w in words if TEXT_WORD.match(w[4]) and w[3] - w[1] < 32})
-    y = ys[len(ys) // 2]  # one running-text row set at a third size (a stray \large)
+    y = next(round(w[1]) for w in words if w[4] == "Scale")  # a running-text row in column 1
     bigger = [
         (a, b, c, b + 1.15 * (d - b), t) if round(b) == y else (a, b, c, d, t)
         for a, b, c, d, t in words
@@ -772,3 +782,28 @@ def test_planted_paper_copy_mismatch(tmp_path: Path) -> None:
     assert not paper_copy_problems(POSTER / "figures", tmp_path)
     (tmp_path / "01_surface_Red_Pajama_Kaplan_First.pdf").write_bytes(b"%PDF old render")
     assert paper_copy_problems(POSTER / "figures", tmp_path)
+
+
+def figure_text_problems(tex: str, folder: Path) -> list[str]:
+    """Every word inside each paper figure, at the poster's scale, prints at least MIN_FIG_TEXT_PT."""
+    problems = []
+    for width_cm, name in re.findall(r"\\includegraphics\[width=([\d.]+)cm\]\{(01_[^}]+)\}", tex):
+        m = re.search(r"^Page size:\s+([\d.]+) x", _run("pdfinfo", str(folder / name)), re.M)
+        scale = float(width_cm) * PT_PER_CM / float(m[1])
+        words = bbox_words(folder / name)
+        if not words:
+            problems.append(f"{name}: no text found")
+            continue
+        h, word = min((w[3] - w[1], w[4]) for w in words)
+        if h * scale < MIN_FIG_TEXT_PT:
+            problems.append(f"{name}: {word!r} prints {h * scale:.1f} pt")
+    return problems
+
+
+def test_figure_text_readable() -> None:
+    assert figure_text_problems(TEX.read_text(), POSTER / "figures") == []
+
+
+def test_planted_unreadable_figure_text() -> None:
+    tex = TEX.read_text().replace("width=24.6cm]{01_isoflop", "width=15cm]{01_isoflop")
+    assert figure_text_problems(tex, POSTER / "figures")

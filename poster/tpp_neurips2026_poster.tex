@@ -3,7 +3,7 @@
 % 140 x 90 cm. Theme: gemini (theme/, MIT). Logos come from ../images (SVG, converted by the Makefile);
 % figures from figures/ (the paper's Figure 1 (a) and (c), copied byte for byte). Every number and formula is the paper's.
 \documentclass[final]{beamer}
-\usepackage[size=custom,width=118.9,height=84.1,scale=1.24]{beamerposter}
+\usepackage[size=custom,width=118.9,height=84.1,scale=1.11]{beamerposter}
 \usetheme{gemini}
 \usecolortheme{gemini}
 \usepackage{amsmath,booktabs,graphicx,tikz}
@@ -83,7 +83,7 @@
   \RaggedRight
   \begin{itemize}
     \item \textbf{\CO{}:} every run at $D = kN$, 12 ratios from $k = 1$ to $5$: a fan of rays.
-    \item \textbf{\NC{}:} 10 sizes $\times$ 12 dataset sizes, $k = D/N$ free; same held-out runs.
+    \item \textbf{\NC{}:} the 10 smallest sizes crossed with 12 dataset sizes, so $k = D/N$ varies freely; both are scored on the same held-out runs.
   \end{itemize}
 \end{block}
 
@@ -121,12 +121,16 @@
   \end{tabular}\quad {\small \textsuperscript{$\dagger$}Schur floor.}
 \end{block}
 
+
+
 \begin{alertblock}{Takeaways}
   \RaggedRight
   \begin{itemize}
     \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
-    \item \textbf{Before training}, check Proposition 1, then the exact $\kappa_{A,B}$.
+    \item \textbf{Below the threshold}, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
+    \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
   \end{itemize}
+  \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
 \end{alertblock}
 
 \end{column}
@@ -156,13 +160,25 @@
     Design & $K$ & $R = k_K / k_1$ & $V_K / \tau_K$ \\
     \midrule
     Hoffmann et al.\ (2022) & 151 & $9.5 \times 10^3$ & \textbf{5.55} \\
+    Bhagia et al.\ (2025) & 4 & 10 & 0.47 \\
     Magnusson et al.\ (2025) & 1 & 1 & 0.00 \\
     \bottomrule
-  \end{tabular}\par\smallskip
+  \end{tabular}\par
   \raggedright
-  At $\kappa_{\mathrm{target}} = 100$, 11 of 24 published designs pass ($\geq 1$) and 13 fail, all 6 collinear ones
-  included. Our \CO{} fan: 0.40.
+  At $\kappa_{\mathrm{target}} = 100$: 11 of 24 pass ($\geq 1$), 13 fail (all 6 collinear); our \CO{} fan: 0.40.
 \end{block}
+
+\begin{block}{Design recipe}
+  \RaggedRight
+  \begin{enumerate}
+    \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
+    \item Train on the two end ratios, runs split evenly.
+    \item Check the exact $\kappa_{A,B}$ before training.
+  \end{enumerate}\vspace{-0.4em}
+  $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
+\end{block}
+
+
 
 \end{column}
 \begin{column}{\sepwidth}\end{column}
@@ -174,17 +190,17 @@
   \begin{columns}[t]
     \begin{column}{0.46\linewidth}
       \centering
-      {\fontsize{100}{104}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
+      {\fontsize{88}{92}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
       FP32: 1,460/1,500
     \end{column}
     \begin{column}{0.46\linewidth}
       \centering
-      {\fontsize{100}{104}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
+      {\fontsize{88}{92}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
       BF16, Wikipedia: 296/300
     \end{column}
   \end{columns}
   \medskip
-  Budget-matched, below the threshold: 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol), 80.6\% (Kaplan).
+  $\sim$1,900 LLaMA-style models, 5.04-76.5M parameters, 4 laws $\times$ 5 corpora; holdout $R^2$: \CO{} 0.837, \NC{} 0.932.
 \end{block}
 
 \begin{block}{Holdout prediction}
@@ -196,6 +212,8 @@
   For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient margin.
 \end{block}
 
+
+
 \end{column}
 \end{columns}
 
@@ -204,11 +222,11 @@
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.56\linewidth}
       \centering
-      \includegraphics[width=35.0cm]{01_surface_Red_Pajama_Kaplan_First.pdf}
+      \includegraphics[width=35.8cm]{01_surface_Red_Pajama_Kaplan_First.pdf}
     \end{column}
     \begin{column}{0.42\linewidth}
       \centering
-      \includegraphics[width=24.2cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}
+      \includegraphics[width=24.6cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}
     \end{column}
   \end{columns}
   {\fontsize{27}{32}\selectfont Left: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Right: induced isoFLOP curves. Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.}

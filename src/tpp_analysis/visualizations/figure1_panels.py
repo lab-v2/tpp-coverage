@@ -87,9 +87,6 @@ from panel_style import (
     SURF_H,
     PANEL_W,
     PANEL_H,
-    AXIS_LABEL_FS,
-    TICK_LABEL_FS,
-    LEGEND_FS,
     LINE_WIDTH,
     MARKER_SIZE,
     LEGEND_ALPHA,
@@ -118,6 +115,14 @@ matplotlib.rcParams["axes.formatter.use_mathtext"] = True
 matplotlib.rcParams["axes.unicode_minus"] = False
 matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
+# Text sized for the printed paper: each panel prints about 1.65-2.0 in wide (0.30-0.37 of the
+# text width), so 9 in panels need about 34-40 pt to print at 7-8 pt. The poster scales the same
+# files up. style_ticks_2d / style_ticks_3d read the tick size from panel_style.
+import panel_style as _panel_style
+
+AXIS_LABEL_FS, TICK_LABEL_FS, LEGEND_FS = 40, 34, 32
+_panel_style.AXIS_LABEL_FS, _panel_style.TICK_LABEL_FS = AXIS_LABEL_FS, TICK_LABEL_FS
+_panel_style.LEGEND_FS = LEGEND_FS
 print("Imports OK")
 
 
@@ -582,8 +587,8 @@ for i in range(len(N_b)):
 # Plain 'N' / 'D' - the offset multiplier is rendered separately by the
 # formatter, the same way N's "1e7" auto-offset reads.  labelpad bumped
 # from 10 → 18 so the axis names sit clear of the tick numbers.
-ax_surf.set_xlabel("N", fontsize=AXIS_LABEL_FS, labelpad=18)
-ax_surf.set_ylabel("D", fontsize=AXIS_LABEL_FS, labelpad=18)
+ax_surf.set_xlabel(r"$N$", fontsize=AXIS_LABEL_FS, labelpad=24)
+ax_surf.set_ylabel(r"$D$", fontsize=AXIS_LABEL_FS, labelpad=24)
 # Smaller labelpad keeps the rotated "Loss" text inside the savefig bbox.
 # 'Loss' placed via text2D in axes-fraction coords - bypasses the 3-D
 # rotated-zlabel bbox quirk that was causing 'Loss' to get cropped by
@@ -611,15 +616,20 @@ ax_surf.xaxis.set_major_formatter(_sf_n)
 ax_surf.yaxis.set_major_locator(MultipleLocator(2e8))
 ax_surf.yaxis.set_major_formatter(FixedOrderFormatter(oom=8, fmt="%d"))
 
+# The "1e7" / "1e8" offset labels at the tick size, so they stay readable in print.
+for _axis in (ax_surf.xaxis, ax_surf.yaxis):
+    _axis.get_offset_text().set_fontsize(TICK_LABEL_FS * 0.8)
 ax_surf.invert_yaxis()
 ax_surf.set_zlim(z_lo, z_hi)
 ax_surf.view_init(elev=SIDE_ELEV, azim=SIDE_AZIM)
 # Legend above the axes, outside the data.
 ax_surf.legend(
     fontsize=LEGEND_FS,
-    loc="lower center",
-    bbox_to_anchor=(0.5, 0.97),
+    loc="upper center",
+    bbox_to_anchor=(0.5, 0.02),
     ncol=3,
+    columnspacing=0.8,
+    handlelength=1.4,
     framealpha=LEGEND_ALPHA,
 )
 style_ticks_3d(ax_surf)
@@ -785,7 +795,7 @@ _draw_isoflop_generic(
     x_lim=(None, 1e8),
     show_optimal=SHOW_OPTIMAL,
     fontsize=AXIS_LABEL_FS,
-    legend_fontsize=LEGEND_FS - 4,
+    legend_fontsize=LEGEND_FS,
     legend_loc="lower left",
     line_width=LINE_WIDTH,
     holdout_mode=MODE_NAME.lower(),
