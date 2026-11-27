@@ -11,16 +11,30 @@ source. Every `make` (and `make png`) re-renders the virtual poster (`build/tpp_
 2880 px) and the thumbnail (`build/tpp_neurips2026_poster_thumbnail.png`, 320 x 206 px) within the
 NeurIPS limits, and records the PDF's sha256 beside the PNG so `tests/poster/` fails on a PNG rendered from an older PDF. Needs `latexmk`, `xelatex`, poppler's `pdftoppm` and `uv` (for `cairosvg` and `segno`).
 
-The poster shows only the paper's own figures: `figures/` holds Figure 1 (a), the loss surface, and
-Figure 1 (c), the induced isoFLOP curves (Kaplan law on RedPajama, first epoch), copied byte for byte
-from the paper's `src/updated_figures/` (rendered by `src/tpp_analysis/visualizations/figure1_panels.py` in Computer Modern, legends outside the axes); their captions are the paper's. The page has two zones: a top zone of three text columns (column 1 the TL;DR, the designs and the law; column 2 Gauss-Newton conditioning, Proposition 2 with its formulas beside the epsilon table, and Proposition 1; column 3 Theorem 1, the Design recipe and the published designs), whose widths (0.67 / 1.36 / 0.98 of `\colwidth`, separators 0.02425 of the paper width) make them end on one line, and an evidence row across the full width: the headline numbers with the Takeaways and Limitations under them, then the two figures (41.2 and 33 cm wide, equal plot-box heights). The QR code of the project page
+The poster shows only the paper's own figures, Figure 1 (a), the loss surface, and Figure 1 (c), the
+induced isoFLOP curves (Kaplan law on RedPajama, first epoch). Owner's decision of 2026-11-27: the
+poster gets a poster-sized render of these panels from the paper's own code and the same released
+data, instead of byte copies of the paper's files (whose text, set for print, came out at 66-83 pt
+on the poster). `src/tpp_analysis/visualizations/figure1_panels.py` with `FIG1_STYLE=poster` multiplies
+every text size and point-sized gap by `FIG1_TEXT_SCALE` (legends by 1.45 times that); the paper style
+is unchanged (its PDFs' content streams are identical). `figures/` holds:
+
+| Figure | Rendered with | Set at | Its text on the poster (main / max) | Plot box |
+|---|---|---|---|---|
+| `01_surface_...pdf` | `FIG1_STYLE=poster FIG1_TEXT_SCALE=0.36` | 26.5 cm | ticks about 28 pt, at most 32.2 pt | 3-D box about 20.3 cm |
+| `01_isoflop_...pdf` | `FIG1_STYLE=poster FIG1_TEXT_SCALE=0.46` | 27 cm | 27.1-31.1 pt | axes 17.0 x 19.2 cm |
+
+Regenerate with `TPP_DATA_ROOT=<released data root> FIG1_STYLE=poster FIG1_TEXT_SCALE=<scale> uv run python
+src/tpp_analysis/visualizations/figure1_panels.py` and copy the panel from `full_coverage_results/figures/`.
+`tests/tpp_analysis/visualizations/test_characterize_figure1_panels.py::test_figure1_poster_style_draws_the_paper_data`
+proves the poster style draws exactly the paper render's data (lines, collections, limits, labels, legends). The QR code of the project page
 sits in the header, beside the NeurIPS logo. `tests/poster/` checks the page size, the fonts (Latin
 Modern or Computer Modern only), the three logos, the QR code, the title and authors against
 `CITATION.cff`, the absence of em dashes, at most 800 words, a header under 17% of the height, the
 top-zone column bottoms within 1 cm, block gaps within a 0.8 cm band, the gap between the zones at most 3.5 cm with no `\vspace`, no overfull `\vbox` (the committed `build_stamp.txt` holds the PDF sha256 and overfull count that `make` wrote), no math in bold heads, block title rules
-unbroken, logo groups centred on the title block within 0.5 cm, the figures being the paper's files (by
+unbroken, logo groups centred on the title block within 0.5 cm, the figures being the pinned poster renders (by
 SHA-256), set at least 0.75 times their natural width (rendered at paper print size), every figure word printing at least 24 pt, and no TikZ figure, one body text size (captions at
-least 26 pt), no overlapping text, and (with `TPP_PAPER_FIGURES=<paper src/updated_figures>`) the copies equal the paper's; the virtual PNG must be a render of the current PDF.
+least 26 pt), no overlapping text, figure text no larger than the block titles; the virtual PNG must be a render of the current PDF.
 
 ## Page size: A0 against 140 x 90 cm
 

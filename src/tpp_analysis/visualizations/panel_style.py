@@ -52,6 +52,9 @@ GRID_LINE_WIDTH: float = 1.6
 GRID_LINE_ALPHA: float = 1.0
 
 DPI: int = 300
+# Multiplies every point-sized gap the panels set (tick and label pads); 1 for the paper, below 1
+# for the poster render (figure1_panels.py, FIG1_STYLE=poster), which shrinks text and gaps alike.
+TEXT_SCALE: float = 1
 
 
 def _sv_tag(dataset: str, law: str, mode: str) -> str:
@@ -113,9 +116,9 @@ def style_ticks_2d(ax: Axes) -> None:
 
 def style_ticks_3d(ax: Axes3D) -> None:
     """Big visible ticks on a 3-D Axes, with bounding box."""
-    ax.tick_params(axis="x", labelsize=TICK_LABEL_FS, pad=5)
-    ax.tick_params(axis="y", labelsize=TICK_LABEL_FS, pad=5)
-    ax.tick_params(axis="z", labelsize=TICK_LABEL_FS, pad=8)
+    ax.tick_params(axis="x", labelsize=TICK_LABEL_FS, pad=5 * TEXT_SCALE)
+    ax.tick_params(axis="y", labelsize=TICK_LABEL_FS, pad=5 * TEXT_SCALE)
+    ax.tick_params(axis="z", labelsize=TICK_LABEL_FS, pad=8 * TEXT_SCALE)
     for axis in [ax.xaxis, ax.yaxis, ax.zaxis]:
         axis.pane.set_edgecolor("black")
         axis.pane.set_alpha(1.0)

@@ -119,7 +119,18 @@ matplotlib.rcParams["ps.fonttype"] = 42
 # files up. style_ticks_2d / style_ticks_3d read the tick size from panel_style.
 import panel_style as _panel_style
 
-AXIS_LABEL_FS, TICK_LABEL_FS, LEGEND_FS = 62, 54, 48
+# FIG1_STYLE=poster: the same panels from the same data, with every text size and point-sized gap
+# times TEXT_SCALE (FIG1_TEXT_SCALE), so the poster can set them large with text at body size.
+# The paper style (the default) is unchanged: TEXT_SCALE is 1.
+TEXT_SCALE = (
+    float(os.environ.get("FIG1_TEXT_SCALE", "0.36"))
+    if os.environ.get("FIG1_STYLE") == "poster"
+    else 1
+)
+_panel_style.TEXT_SCALE = TEXT_SCALE
+# The poster keeps legend text at its 24 pt floor: legends shrink less than the rest.
+AXIS_LABEL_FS, TICK_LABEL_FS = 62 * TEXT_SCALE, 54 * TEXT_SCALE
+LEGEND_FS = 48 * TEXT_SCALE * (1 if TEXT_SCALE == 1 else 1.45)
 _panel_style.AXIS_LABEL_FS, _panel_style.TICK_LABEL_FS = AXIS_LABEL_FS, TICK_LABEL_FS
 _panel_style.LEGEND_FS = LEGEND_FS
 from matplotlib.legend import Legend
@@ -592,15 +603,15 @@ for i in range(len(N_b)):
 # formatter, the same way N's "1e7" auto-offset reads.  labelpad bumped
 # from 10 → 18 so the axis names sit clear of the tick numbers.
 # Units in the labels (no "1e7" / "1e8" offset text, which collided with the ticks).
-ax_surf.set_xlabel(r"$N$ ($10^7$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=80)
-ax_surf.set_ylabel(r"$D$ ($10^8$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=80)
+ax_surf.set_xlabel(r"$N$ ($10^7$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=80 * TEXT_SCALE)
+ax_surf.set_ylabel(r"$D$ ($10^8$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=80 * TEXT_SCALE)
 # Smaller labelpad keeps the rotated "Loss" text inside the savefig bbox.
 # 'Loss' placed via text2D in axes-fraction coords - bypasses the 3-D
 # rotated-zlabel bbox quirk that was causing 'Loss' to get cropped by
 # bbox_inches='tight' even with generous pad_inches.
 ax_surf.set_zlabel("")
 ax_surf.text2D(
-    1.2,
+    1.2 if TEXT_SCALE == 1 else 1.08,  # the poster's smaller ticks sit nearer the box
     0.5,
     "Loss",
     transform=ax_surf.transAxes,
@@ -620,7 +631,7 @@ ax_surf.yaxis.set_major_locator(FixedLocator([6e8, 12e8]))
 ax_surf.yaxis.set_major_formatter(FuncFormatter(lambda v, _pos: f"{v / 1e8:g}"))
 
 ax_surf.zaxis.set_major_locator(MultipleLocator(3))
-ax_surf.tick_params(axis="both", pad=14)
+ax_surf.tick_params(axis="both", pad=14 * TEXT_SCALE)
 ax_surf.invert_yaxis()
 ax_surf.set_zlim(z_lo, z_hi)
 ax_surf.view_init(elev=SIDE_ELEV, azim=SIDE_AZIM)
@@ -633,7 +644,7 @@ ax_surf.legend(
     [_l[i] for i in _keep],
     fontsize=LEGEND_FS * 0.8,
     loc="upper center",
-    bbox_to_anchor=(0.5, -0.31),
+    bbox_to_anchor=(0.5, -0.31 if TEXT_SCALE == 1 else -0.16),
     ncol=2,
     columnspacing=0.8,
     handlelength=1.4,
@@ -774,7 +785,7 @@ if _leg is not None:
         loc="lower right",
         framealpha=1.0,
     )
-ax_conv.xaxis.labelpad = 8
+ax_conv.xaxis.labelpad = 8 * TEXT_SCALE
 _style_all_legends(ax_conv, alpha=1.0)  # opaque: the grid stays behind the legend
 
 for ext in ["pdf", "png"]:
@@ -830,7 +841,7 @@ _draw_isoflop_generic(
     legends_outside=True,
 )
 style_ticks_2d(ax_iso)
-ax_iso.tick_params(axis="both", which="major", pad=12)
+ax_iso.tick_params(axis="both", which="major", pad=12 * TEXT_SCALE)
 # _draw_isoflop_generic already calls _style_all_legends; this is a belt-and-
 # suspenders second pass in case anything got reattached.
 _style_all_legends(ax_iso)
