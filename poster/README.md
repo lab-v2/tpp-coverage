@@ -14,9 +14,11 @@ NeurIPS limits, and records the PDF's sha256 beside the PNG so `tests/poster/` f
 The poster shows only the paper's own figures, Figure 1 (a), the loss surface, and Figure 1 (c), the
 induced isoFLOP curves (Kaplan law on RedPajama, first epoch), as poster renders from the paper's own
 code and the same released data. `src/tpp_analysis/visualizations/figure1_panels.py` with
-`FIG1_STYLE=poster` draws each panel at its printed size, 41.733 x 29.80 cm (one column's text
-width), with a transparent canvas, ticks at 23.9 pt, axis labels and legends at 29.9 pt, and the
-legends inside the axes (Fig. 1a upper left, Fig. 1c upper right). The poster sets them at scale 1.00.
+`FIG1_STYLE=poster` draws each panel at its printed size, 41.733 x 30.18 cm (one column's text
+width; the 3-D panel is drawn on a canvas 1.25 times that and saved as the printed-size window
+around its ink, with the paper's 3-D view), with a transparent canvas, ticks at 23.9 pt, axis labels and legends at 29.9 pt, and the
+legends inside the axes and at least 0.2 cm inside the saved figure (Fig. 1a upper left, Fig. 1c
+upper right). The poster sets them at scale 1.00.
 The paper style is unchanged; `tests/tpp_analysis/visualizations/test_characterize_figure1_panels.py`
 proves both styles draw the same data. Regenerate with `TPP_DATA_ROOT=<released data root>
 FIG1_STYLE=poster FIG1_TEXT_SCALE=0.45 uv run python src/tpp_analysis/visualizations/figure1_panels.py`
@@ -50,4 +52,6 @@ an edge, no overfull `\vbox`, PNGs within the NeurIPS limits and rendered from t
 `tests/poster/test_grid.py` measures the layout on the PDF: card edges on the grid, the mirror about
 x = 70, column bottoms, 1.00 card gaps, rules, the type scale, card slack under 3 cm, no empty 3 x 3 cm
 area in a card, no orphan lines, the 0.80 text inset, header and footer margins, and one-line block
-titles. Every gate has a planted failure.
+titles, the 0.70 cm title-to-body gap, equal column ink bottoms, the footer on the grid with one
+first baseline, and the hero sub-grid; `tests/tpp_analysis/visualizations/` checks that the poster
+legends sit inside their axes. Every gate has a planted failure.

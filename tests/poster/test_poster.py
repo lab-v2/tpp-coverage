@@ -512,8 +512,8 @@ def test_planted_high_logo(tmp_path: Path) -> None:
 # The two figures the owner chose: the paper's Figure 1 (a) and (c), rendered poster-sized by
 # figure1_panels.py (FIG1_STYLE=poster; owner's decision of 2026-11-27). Pinned by content.
 PAPER_FIGURES = {
-    "01_surface_Red_Pajama_Kaplan_First.pdf": "959c713c55b2ea9214bede699f850b08fecd371393ff0facdc5e1f7dd3d86aa0",
-    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "fced6e74ed34332be843368792d9269cb35d1aa0128f03de8d1da821e8ecae53",
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "d8d81fd530f5ca1748e9d3d80c9a8bec1dd31a1c187ba5da3eb5e1cb49e44c61",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "4ed411f02630b0322b2b30c95ec54e2a40c9f24c7d8c5abf63ba0331eec5c75c",
 }
 MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
 
@@ -587,7 +587,7 @@ def test_planted_overlapping_text() -> None:
 
 # --- figure size and one body size (round 10; rule changed in makeover M2) ------------------------
 
-# The figures are rendered at their printed size (41.733 x 29.80 cm, figure1_panels.py
+# The figures are rendered at their printed size (41.733 x 30.18 cm, figure1_panels.py
 # FIG1_STYLE=poster) and set at scale 1.00 +- 1%, so their text prints at the size it was drawn:
 # every span on the poster's type scale (ticks 23.9 pt, labels and legends 29.9 pt), math scripts
 # at 0.7 or 0.5 of a scale size.

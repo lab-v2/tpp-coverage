@@ -143,11 +143,12 @@ POSTER_SURF_BOX = [float(v) for v in os.environ.get("FIG1_SURF_BOX", "0.0,0.0,0.
 # saves the printed-size window centred at POSTER_SURF_CENTRE (canvas fractions) around the ink. The
 # 3-D view itself (projection, zoom, aspect) is the paper's, so the drawn data are identical.
 POSTER_SURF_GROW = float(os.environ.get("FIG1_SURF_GROW", "1.25"))
-POSTER_SURF_LEGEND_Y = float(os.environ.get("FIG1_SURF_LEGEND_Y", "0.93"))
+POSTER_SURF_LEGEND_Y = float(os.environ.get("FIG1_SURF_LEGEND_Y", "0.89"))
 POSTER_SURF_CENTRE = [
-    float(v) for v in os.environ.get("FIG1_SURF_CENTRE", "0.4967,0.506").split(",")
+    float(v) for v in os.environ.get("FIG1_SURF_CENTRE", "0.4934,0.4962").split(",")
 ]
-POSTER_FIGSIZE = (41.733 / 2.54, 29.80 / 2.54)
+POSTER_FIG_H = 30.18  # cm: the C2 card's height shared by the two panels
+POSTER_FIGSIZE = (41.733 / 2.54, POSTER_FIG_H / 2.54)
 if POSTER:
     AXIS_LABEL_FS, TICK_LABEL_FS, LEGEND_FS = 29.9, 23.9, 29.9
 _panel_style.AXIS_LABEL_FS, _panel_style.TICK_LABEL_FS = AXIS_LABEL_FS, TICK_LABEL_FS
@@ -640,7 +641,7 @@ ax_surf.set_ylabel(
 # bbox_inches='tight' even with generous pad_inches.
 ax_surf.set_zlabel("")
 ax_surf.text2D(
-    1.2 if TEXT_SCALE == 1 else 1.08,  # the poster's smaller ticks sit nearer the box
+    1.2 if TEXT_SCALE == 1 else 1.07,  # the poster's smaller ticks sit nearer the box
     0.5,
     "Loss",
     transform=ax_surf.transAxes,
@@ -848,8 +849,8 @@ fig_iso = plt.figure(
     layout="constrained" if POSTER else None,
 )
 ax_iso = fig_iso.add_subplot(111)
-if POSTER:  # 0.30 cm free above the isoFLOP panel: the gap under the 3-D panel stacked above it
-    fig_iso.get_layout_engine().set(rect=(0, 0, 1, 1 - 0.30 / 29.80))
+if POSTER:  # 0.05 cm free above the isoFLOP panel: the gap under the 3-D panel stacked above it
+    fig_iso.get_layout_engine().set(rect=(0, 0, 1, 1 - 0.05 / POSTER_FIG_H))
 
 iso_fits = [
     r
