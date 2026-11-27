@@ -13,7 +13,7 @@ NeurIPS limits, and records the PDF's sha256 beside the PNG so `tests/poster/` f
 
 The poster shows only the paper's own figures: `figures/` holds Figure 1 (a), the loss surface, and
 Figure 1 (c), the induced isoFLOP curves (Kaplan law on RedPajama, first epoch), copied byte for byte
-from the paper's `src/updated_figures/` (rendered by `src/tpp_analysis/visualizations/figure1_panels.py` in Computer Modern, legends outside the axes); their captions are the paper's. The page has two zones: a top zone of three text columns (theory and method; the Design recipe in column 3 under Theorem 1), whose widths (0.80 / 1.50 / 0.70 of `\colwidth`) make them end on one line, and an evidence row across the full width holding the headline numbers and the two figures (33.5 and 26 cm wide). The QR code of the project page
+from the paper's `src/updated_figures/` (rendered by `src/tpp_analysis/visualizations/figure1_panels.py` in Computer Modern, legends outside the axes); their captions are the paper's. The page has two zones: a top zone of three text columns (column 1 the TL;DR, the designs and the law; column 2 Gauss-Newton conditioning, Proposition 2 with its formulas beside the epsilon table, and Proposition 1; column 3 Theorem 1, the Design recipe and the published designs), whose widths (0.67 / 1.36 / 0.98 of `\colwidth`, separators 0.02425 of the paper width) make them end on one line, and an evidence row across the full width: the headline numbers with the Takeaways and Limitations under them, then the two figures (42 and 32.5 cm wide). The QR code of the project page
 sits in the header, beside the NeurIPS logo. `tests/poster/` checks the page size, the fonts (Latin
 Modern or Computer Modern only), the three logos, the QR code, the title and authors against
 `CITATION.cff`, the absence of em dashes, at most 800 words, a header under 17% of the height, the
@@ -35,9 +35,10 @@ takes what is left. Measured with xelatex (body 28.8 pt, scale 1.16):
 | 140 x 90 cm | evidence row, equal columns | 36 / 29 cm | overfull by 98.6 pt |
 | 140 x 90 cm | evidence row, equal columns | 33 / 26 cm | overfull by 14.8 pt; columns end at 51.9 / 54.2 / 47.0 cm |
 | 140 x 90 cm | evidence row, columns 0.80 / 1.50 / 0.70 | 34 / 26.5 cm | overfull by 11.0 pt |
-| 140 x 90 cm | evidence row, columns 0.80 / 1.50 / 0.70 | **33.5 / 26 cm** | **fits; columns end at 52.3 / 52.7 / 53.0 cm** (used) |
+| 140 x 90 cm | evidence row, columns 0.80 / 1.50 / 0.70 | **33.5 / 26 cm** | **fits; columns end at 52.3 / 52.7 / 53.0 cm** (round 17) |
 | 140 x 90 cm | the same, body 30 pt (scale 1.21) | 33.5 / 26 cm | overfull by 67.2 pt (not used) |
+| 140 x 90 cm | Takeaways in the banner cell, columns 0.67 / 1.36 / 0.98 (round 18) | **42 / 32.5 cm** | **fits; columns end at 46.2 / 46.3 / 46.7 cm** (used) |
+| 140 x 90 cm | the same, body 30 pt (scale 1.21) | 42 / 32.5 cm | overfull by 85.9 pt (not used) |
 
-At 33.5 / 26 cm the surface's 3-D box prints about 15.3 cm wide and the isoFLOP axes about 13.1 cm
-(axes share of the natural canvas width: 399 / 873 and 442 / 874 pt); axes of 18 cm would need
-about 39 / 36 cm, which the page height does not leave.
+At 42 / 32.5 cm the surface's 3-D box prints about 19.2 cm wide and the isoFLOP axes about 16.4 cm
+(axes share of the natural canvas width: 399 / 873 and 442 / 874 pt).

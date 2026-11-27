@@ -142,7 +142,10 @@ def bbox_words(pdf: Path) -> list[tuple[float, float, float, float, str]]:
 # --- layout: a top zone of three text columns, then the evidence row across the full width -------
 # Cells 0-2 are the top-zone columns (widths read off the source, as multiples of \colwidth); cell
 # 3 is the evidence row's banner and cell 4 its figure block.
-SEP_FRACTION, COL_FRACTION = 0.025, 0.3  # \sepwidth and \colwidth, as fractions of the paper width
+SEP_FRACTION, COL_FRACTION = (
+    0.02425,
+    0.3,
+)  # \sepwidth and \colwidth, as fractions of the paper width
 ROW_MARK = "% ==== the evidence row"
 
 
@@ -747,6 +750,22 @@ def figure_scale_problems(tex: str, folder: Path) -> list[str]:
     return problems
 
 
+def header_rule_bottom(pdf: Path = PDF) -> float:
+    """Bottom (pt) of the header rule: the thin full-width filled bar in the theme's dark blue."""
+    import pymupdf
+
+    page = pymupdf.open(pdf)[0]
+    bars = [
+        d["rect"]
+        for d in page.get_drawings()
+        if d["rect"].width > 0.95 * page.rect.width
+        and d["rect"].height < 0.01 * page.rect.height
+        and d.get("fill") not in (None, (1.0, 1.0, 1.0))
+    ]
+    assert bars, "no header rule found"
+    return min(bars, key=lambda r: r.y0).y1
+
+
 def body_size_problems(words: list, tex: str) -> list[str]:
     """Rows of running text (at least 4 words, half of them plain words) are body size or caption size.
 
@@ -755,9 +774,10 @@ def body_size_problems(words: list, tex: str) -> list[str]:
     width, height = PAGE_PT
     titles = {round(y0) for _, y0, _ in block_title_tops(words, tex)}
     edges, top = cell_edges(tex), row_top(words)
+    header = header_rule_bottom() + 0.5 * PT_PER_CM  # running text starts below the header rule
     rows: dict[tuple[int, int], list] = {}
     for w in words:
-        if 0.2 * height < w[1] and w[3] < 0.955 * height:
+        if header < w[1] and w[3] < 0.955 * height:
             rows.setdefault((cell_of(w, edges, top), round(w[1])), []).append(w)
     medians = []
     for (col, y), row in rows.items():
@@ -783,7 +803,7 @@ def test_figures_set_large() -> None:
 
 
 def test_planted_small_figure() -> None:
-    tex = TEX.read_text().replace("width=33.5cm]{01_surface", "width=15cm]{01_surface")
+    tex = TEX.read_text().replace("width=42.0cm]{01_surface", "width=15cm]{01_surface")
     assert figure_scale_problems(tex, POSTER / "figures")
 
 
@@ -800,6 +820,10 @@ def test_planted_off_size_text() -> None:
         for a, b, c, d, t in words
     ]
     assert body_size_problems(bigger, tex)
+    # The TL;DR's first line, just under the header rule, set at 40 pt.
+    y = next(round(w[1]) for w in words if w[4] == "Fixed")
+    tldr = [(a, b, c, b + 40.0, t) if round(b) == y else (a, b, c, d, t) for a, b, c, d, t in words]
+    assert body_size_problems(tldr, tex)
 
 
 def paper_copy_problems(poster_dir: Path, paper_dir: Path) -> list[str]:
@@ -852,7 +876,7 @@ def test_figure_text_readable() -> None:
 
 
 def test_planted_unreadable_figure_text() -> None:
-    tex = TEX.read_text().replace("width=26.0cm]{01_isoflop", "width=12cm]{01_isoflop")
+    tex = TEX.read_text().replace("width=32.5cm]{01_isoflop", "width=12cm]{01_isoflop")
     assert figure_text_problems(tex, POSTER / "figures")
 
 
