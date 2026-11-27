@@ -17,7 +17,7 @@ from the paper's `src/updated_figures/`; their captions are the paper's. The two
 sits in the header, beside the NeurIPS logo. `tests/poster/` checks the page size, the fonts (Latin
 Modern or Computer Modern only), the three logos, the QR code, the title and authors against
 `CITATION.cff`, the absence of em dashes, at most 800 words, a header under 17% of the height, column
-bottoms within 1 cm, block gaps within 0.55 cm of the median, no math in bold heads, block title rules
+bottoms within 1 cm, block gaps within a 0.8 cm band, no math in bold heads, block title rules
 unbroken, logo groups centred on the title block within 0.5 cm, the figures being the paper's files (by
 SHA-256), set at least 1.6 times their natural width, and no TikZ figure, one body text size (captions at
 least 26 pt), and no overlapping text.
