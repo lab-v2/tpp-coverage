@@ -4,10 +4,10 @@
 % Logos come from ../images (SVG, converted by the Makefile); figures from figures/ (poster renders
 % of the paper's Figure 1 (a) and (c) from its own code and data). Every number and formula is the paper's.
 %
-% Grid (cm, origin top-left): 3.00 margins; 4 columns of 32.00 with 2.00 gutters,
-% c1 3-35 | c2 37-69 | c3 71-103 | c4 105-137, symmetric about x = 70. Header 3.00-12.80, its rule
+% Grid (cm, origin top-left): 3.00 margins; 3 columns of 43.333 with 2.00 gutters,
+% C1 3-46.333 | C2 48.333-91.667 | C3 93.667-137, symmetric about x = 70. Header rule
 % 13.00-13.20; body 15.20-83.60; footer rule 85.60-85.80, footer text from 86.30. Every block is a
-% card whose fill spans its column(s) exactly, with 0.80 padding on all four sides; blocks in a column
+% card whose fill spans its column exactly, with 0.80 padding on all four sides; blocks in a column
 % are 1.00 apart, and the last card of each column stretches to the body bottom.
 % Type scale: 110 (hero numbers), 90 (title), 44 (block titles, authors, key numbers, displays),
 % 30 (body), 24 (caption, footer).
@@ -58,12 +58,16 @@
 % A card: fill across the column(s), 0.80 padding, title centred, body ragged right.
 \tcbset{cardbase/.style={enhanced, colframe=white, boxrule=0pt, arc=0pt, boxsep=0pt, left=0.8cm, right=0.8cm,
   top=0.8cm, bottom=0.8cm, before skip=0pt, after skip=0pt}}
-\newcommand{\cardhead}[1]{\Sfour\parskip=0.35em{\centering\Sthree\bfseries\color{darkblue}#1\par}\vskip0.4em\RaggedRight}
+\newcommand{\cardhead}[1]{\Sfour\parskip=0.25em{\centering\Sthree\bfseries\color{darkblue}#1\par}\vskip0.2em\RaggedRight}
 \newtcolorbox{card}[2][]{cardbase, colback=cardplain, before upper={\cardhead{#2}}, #1}
 \newtcolorbox{alertcard}[2][]{cardbase, colback=cardalert, before upper={\cardhead{#2}}, #1}
 % The 1.00 cm between stacked cards.
 \newcommand{\cardgap}{\par\vskip1cm}
 \newlength{\bodyheight}\setlength{\bodyheight}{68.4cm}
+% Column width (134 - 2 x 2) / 3; card text width 41.733.
+\newlength{\colw}\setlength{\colw}{43.333cm}
+% \lastcard stretches a column's last card to the body bottom; build with \stretchfalse to measure natural heights.
+\tcbset{last/.style={height=\restheight}}% \tcbset{last/.style={}} gives the natural heights
 % A column: its stacked cards, then a last card that takes the rest of the body height.
 \newsavebox{\colstack}
 \newlength{\restheight}
@@ -79,7 +83,7 @@
 
 % ==== header: QR + NeurIPS outer edge at 3.00, SU AI Institute over Leibniz Lab outer edge at 137.00,
 % each group 16.0 wide and 6.0 tall, all centred on the title block's vertical centre.
-\begin{textblock*}{134cm}(3cm,3cm)
+\begin{textblock*}{134cm}(3cm,1.61cm)
 \makebox[134cm][s]{%
   \parbox[c][9.8cm][c]{16cm}{\includegraphics[height=6cm,trim=7.75 7.75 7.75 7.75,clip]{qr_project_page.pdf}\hfill
     \raisebox{\dimexpr3cm-0.5\height\relax}{\includegraphics[width=9cm]{neurips.pdf}}}%
@@ -94,10 +98,10 @@
 \end{textblock*}
 \begin{textblock*}{134cm}(3cm,13.0cm)\noindent{\color{darkblue}\rule{134cm}{0.2cm}}\end{textblock*}
 
-% ==== column 1 (3-35): the setting and the conditioning theory
-\begin{textblock*}{32cm}(3cm,15.2cm)
-\begin{minipage}[t][\bodyheight][t]{32cm}
-\setbox\colstack=\vbox{\hsize=32cm\linewidth=32cm
+% ==== C1 (3.000-46.333): the theory chain
+\begin{textblock*}{\colw}(3cm,15.2cm)
+\begin{minipage}[t][\bodyheight][t]{\colw}
+\setbox\colstack=\vbox{\hsize=\colw\linewidth=\colw
 \begin{alertcard}{TL;DR}
   Fixed tokens-per-parameter (TPP) ratios $D = kN$ make scaling-law fits ill-conditioned when the
   $N$- and $D$-exponents are close. Covering the $(N, D)$ plane fixes it: \NC{} beats \CO{} on held-out
@@ -120,29 +124,32 @@
      J_{ij} = \frac{\partial r_i}{\partial \theta_j}, \quad (J^\top J)\, \Delta\symbf{\theta} = -J^\top \symbfup{r} \]
   Scale pair: $\kappa_{A,B} := \kappa\bigl((J^\top J)_{A,B}\bigr)$. On a ray, up to sign, $j_A = N^{-\alpha}$ and
   $j_B = k^{-\beta} N^{-\beta}$: nearly parallel for small $\varepsilon$.
-\end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
-\begin{card}[height=\restheight]{One ray is ill-conditioned}
-  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, as $\varepsilon \to 0$ (Corollary 2: Gaussian noise, at least 5 sizes):
-  {\Sthree\[ \kappa_{A,B} = \Theta(\varepsilon^{-2}), \qquad
-       \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}) \]}
-  \par{\centering\begin{tabular}{@{}l@{\hspace{1.5em}}r@{\hspace{1.5em}}r@{\hspace{1.5em}}r@{}}
+\end{card}\cardgap
+\begin{card}{One ray is ill-conditioned}
+  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, \mbox{as $\varepsilon \to 0$} (Corollary 2: Gaussian noise, at least 5 sizes):\par\smallskip
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.54\linewidth}
+      \colorbox{lightblue}{\begin{minipage}{0.96\linewidth}\centering\Sfour
+    \abovedisplayskip=0.2em \belowdisplayskip=0.2em
+    \[ \kappa_{A,B} = \Theta(\varepsilon^{-2}) \]
+    \[ \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}) \]
+  \end{minipage}}
+    \end{column}
+    \begin{column}{0.44\linewidth}
+      \centering
+      \begin{tabular}{@{}l@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{}}
     \toprule
     Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
     \midrule
     Chinchilla & 0.06 & 17 & 278 \\
     Kaplan & 0.20 & 5\textsuperscript{$\dagger$} & 25 \\
     \bottomrule
-  \end{tabular}\par}
-  {\Sfive\textsuperscript{$\dagger$}Schur floor.\par}
-\end{card}
-\end{minipage}
-\end{textblock*}
-
-% ==== centre (37-103): the two main results side by side, then Figure 1 (a) and (c)
-\begin{textblock*}{66cm}(37cm,15.2cm)
-\begin{minipage}[t][\bodyheight][t]{66cm}
-\setbox\colstack=\vbox{\hsize=66cm\linewidth=66cm
-\begin{alertcard}[width=32cm, nobeforeafter, equal height group=centretop]{TPP-diversity threshold}
+  \end{tabular}\par
+      {\Sfive\textsuperscript{$\dagger$}Schur floor.\par}
+    \end{column}
+  \end{columns}
+\end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
+\begin{alertcard}[last]{TPP-diversity threshold}
   \statement{Proposition 1} Chinchilla and unsaturated repeated-data (Kaplan, Droppo-Elibol: a heuristic).
   To leading order, $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever
   \[ \underbrace{\frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
@@ -150,27 +157,28 @@
      \;\geq\;
      \underbrace{\frac{\bigl( K + \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} \bigr)^{2}}{K^{2}\, \kappa_{\mathrm{target}}}}_{\tau_K}. \]
   One ray never passes: $V_1 = 0 < \tau_1$.
-\end{alertcard}\hspace{2cm}%
-\begin{alertcard}[width=32cm, nobeforeafter, equal height group=centretop]{Holdout prediction}
-  \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), i.i.d.\ Gaussian residuals of
-  variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
-  (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, as $\varepsilon \to 0$:
-  {\Sthree\[ \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr]. \]}
-  For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient margin.
-\end{alertcard}}\measurestack{\colstack}\usebox{\colstack}\cardgap
-\begin{card}[height=\restheight]{Kaplan law on RedPajama, first epoch (paper Fig. 1a, 1c)}
-  \includegraphics[width=30.4cm]{01_surface_Red_Pajama_Kaplan_First.pdf}\hspace{3.6cm}%
-  \includegraphics[width=30.4cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}\par
-  {\Sfive Left: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Right: induced isoFLOP curves, coloured by compute $C$ (CO dashed, NC solid). Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.\par}
+\end{alertcard}
+\end{minipage}
+\end{textblock*}
+
+% ==== C2 (48.333-91.667): the evidence, Figure 1 (a) over Figure 1 (c), each rendered at 41.733 x 29.80 cm
+% and set at scale 1 (its text is the poster's 23.9 and 29.9 pt).
+\begin{textblock*}{\colw}(48.333cm,15.2cm)
+\begin{minipage}[t][\bodyheight][t]{\colw}
+\begin{card}[height=\bodyheight]{Kaplan law on RedPajama, first epoch}
+  \includegraphics[width=41.733cm]{01_surface_Red_Pajama_Kaplan_First.pdf}\par
+  \includegraphics[width=41.733cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}\par
+  {\Sfive Paper Fig. 1a (top) and 1c (bottom). Top: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Bottom: induced isoFLOP curves, coloured by compute $C$ (CO dashed, NC solid). Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.\par}
 \end{card}
 \end{minipage}
 \end{textblock*}
 
-% ==== column 4 (105-137): the evidence and what to do
-\begin{textblock*}{32cm}(105cm,15.2cm)
-\begin{minipage}[t][\bodyheight][t]{32cm}
-\setbox\colstack=\vbox{\hsize=32cm\linewidth=32cm
+% ==== C3 (93.667-137.000): the results and how to use them
+\begin{textblock*}{\colw}(93.667cm,15.2cm)
+\begin{minipage}[t][\bodyheight][t]{\colw}
+\setbox\colstack=\vbox{\hsize=\colw\linewidth=\colw
 \begin{alertcard}{\NC{} beats \CO{} on held-out runs}
+  \vskip0.3cm
   \begin{columns}[t,onlytextwidth]
     \begin{column}{0.48\linewidth}
       \raggedright
@@ -182,19 +190,22 @@
       {\Sone\bfseries\textcolor{accent}{98.7\%}}\par
       BF16, Wikipedia: 296/300
     \end{column}
-  \end{columns}\par\medskip
-  \begin{columns}[t,onlytextwidth]% key numbers, 2 x 2
-    \begin{column}{0.48\linewidth}\raggedright
-      {\Sthree\bfseries $\sim$1,900}\par LLaMA-style models\par\medskip
-      {\Sthree\bfseries 4 $\times$ 5}\par laws $\times$ corpora
-    \end{column}
-    \begin{column}{0.48\linewidth}\raggedright
-      {\Sthree\bfseries 5.04-76.5M}\par parameters\par\medskip
-      {\Sthree\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{} / \NC{}
-    \end{column}
-  \end{columns}\par\medskip
+  \end{columns}\par\bigskip
+  \begin{columns}[t,onlytextwidth]% key numbers, one row of four
+    \begin{column}{0.22\linewidth}\raggedright{\Sthree\bfseries $\sim$1,900}\par LLaMA-style models\end{column}
+    \begin{column}{0.18\linewidth}\raggedright{\Sthree\bfseries 4 $\times$ 5}\par laws $\times$ corpora\end{column}
+    \begin{column}{0.27\linewidth}\raggedright{\Sthree\bfseries 5.04-76.5M}\par parameters\end{column}
+    \begin{column}{0.29\linewidth}\raggedright{\Sthree\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{} / \NC{}\end{column}
+  \end{columns}\par\bigskip
   Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
 \end{alertcard}\cardgap
+\begin{card}{Holdout prediction}
+  \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), i.i.d.\ Gaussian residuals of
+  variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
+  (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, \mbox{as $\varepsilon \to 0$:}
+  {\Sthree\[ \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr]. \]}%
+  For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient margin.
+\end{card}\cardgap
 \begin{card}{The threshold on published designs}
   {\centering\begin{tabular}{@{}lrrr@{}}
     \toprule
@@ -210,12 +221,12 @@
 \begin{card}{Design recipe}
   \begin{enumerate}
     \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
-    \item Train on the two end ratios, runs split evenly, log-uniform in $N$.
+    \item Train on the two end ratios, runs split evenly, log-uniform \mbox{in $N$.}
     \item Check the exact $\kappa_{A,B}$ before training.
   \end{enumerate}
   $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
 \end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
-\begin{alertcard}[height=\restheight]{Takeaways}
+\begin{alertcard}[last]{Takeaways}
   \begin{itemize}
     \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
     \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
@@ -225,21 +236,20 @@
 \end{minipage}
 \end{textblock*}
 
-% ==== footer, on the grid: c1 left at 3.00, c2-c3 centred on x = 70, c4 right at 137.00
+% ==== footer: C1 left at 3.000, references centred on x = 70 (44-96), C3 right at 137.000; two lines each
 \begin{textblock*}{134cm}(3cm,85.6cm)\noindent{\color{darkblue}\rule{134cm}{0.2cm}}\end{textblock*}
 % Funding: the paper's own acknowledgement sentence (src/ack.tex); references: the works the poster names.
-\begin{textblock*}{32cm}(3cm,86.3cm)\Sfive\raggedright\color{darkblue}
+\begin{textblock*}{\colw}(3cm,86.1cm)\Sfive\raggedright\color{darkblue}
   \href{https://lab-v2.github.io/tpp-coverage/}{lab-v2.github.io/tpp-coverage}\par
   This research was funded by ARO grant W911NF-24-1-0007.\par
 \end{textblock*}
-\begin{textblock*}{66cm}(37cm,86.3cm)\Sfive\centering\color{darkblue}
-  \textsuperscript{$\|$}Equal contribution. \quad \textsuperscript{$*$}This work does not relate to the author's position at Amazon.\par
-  References: Kaplan et al.\ (2020), arXiv:2001.08361; Droppo and Elibol (2021), Interspeech; Hoffmann et al.\ (2022), NeurIPS;
+\begin{textblock*}{52cm}(44cm,86.1cm)\Sfive\centering\color{darkblue}
+  References: Kaplan et al.\ (2020), arXiv:2001.08361; Droppo and Elibol (2021), Interspeech; Hoffmann et al.\ (2022), NeurIPS;\\
   Muennighoff et al.\ (2025), JMLR; Bhagia et al.\ (2025), COLM; Magnusson et al.\ (2025), ICML.\par
 \end{textblock*}
-\begin{textblock*}{32cm}(105cm,86.3cm)\Sfive\raggedleft\color{darkblue}
-  NeurIPS 2026, Sydney\par
-  \href{https://arxiv.org/abs/2605.08541}{arXiv:2605.08541}\par
+\begin{textblock*}{\colw}(93.667cm,86.1cm)\Sfive\raggedleft\color{darkblue}
+  NeurIPS 2026, Sydney \quad \href{https://arxiv.org/abs/2605.08541}{arXiv:2605.08541}\par
+  \textsuperscript{$\|$}Equal contribution. \quad \textsuperscript{$*$}This work does not relate to the author's position at Amazon.\par
 \end{textblock*}
 \end{frame}
 \end{document}

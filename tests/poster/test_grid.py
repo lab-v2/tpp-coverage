@@ -10,7 +10,7 @@ import pytest
 
 PDF = Path(__file__).resolve().parents[2] / "poster" / "tpp_neurips2026_poster.pdf"
 CM = 2.54 / 72
-EDGES = (3.0, 35.0, 37.0, 69.0, 71.0, 103.0, 105.0, 137.0)
+EDGES = (3.0, 46.333, 48.333, 91.667, 93.667, 137.0)
 AXIS = 70.0
 TYPE_SCALE = (110.0, 90.0, 44.0, 30.0, 24.0)
 BODY_TOP, BODY_BOTTOM = 15.2, 83.6
@@ -62,8 +62,8 @@ def mirror_problems(cs: list[Rect], tol: float = 0.10) -> list[str]:  # G2 + G3
         for s in spans
         if not any(abs(s[0] - m[0]) <= tol and abs(s[1] - m[1]) <= tol for m in mirrored)
     ]
-    widths = {round(EDGES[i + 1] - EDGES[i], 2) for i in range(0, 8, 2)}
-    gutters = {round(EDGES[i + 1] - EDGES[i], 2) for i in range(1, 7, 2)}
+    widths = {round(EDGES[i + 1] - EDGES[i], 2) for i in range(0, 6, 2)}
+    gutters = {round(EDGES[i + 1] - EDGES[i], 2) for i in range(1, 5, 2)}
     out = [f"span {s} has no mirror about x = {AXIS}" for s in bad]
     if len(widths) != 1 or len(gutters) != 1 or EDGES[0] != 140 - EDGES[-1]:
         out.append("grid constants not equal")
@@ -77,16 +77,16 @@ def bottom_problems(cs: list[Rect], tol: float = 0.20) -> list[str]:  # G4
     for c in cs:
         key = (c[0], c[2])
         last[key] = max(last.get(key, 0.0), c[3])
-    columns = {k: v for k, v in last.items() if k in {(3.0, 35.0), (37.0, 103.0), (105.0, 137.0)}}
+    columns = {k: v for k, v in last.items() if k in {(3.0, 46.33), (48.33, 91.67), (93.67, 137.0)}}
     if len(columns) != 3:
-        out.append(f"expected c1, centre and c4 columns, found {sorted(last)}")
+        out.append(f"expected C1, C2 and C3 columns, found {sorted(last)}")
     out += [
         f"column {k} ends at {v}, not {BODY_BOTTOM}"
         for k, v in columns.items()
         if abs(v - BODY_BOTTOM) > tol
     ]
     first = [c[1] for c in cs if abs(c[1] - BODY_TOP) <= tol]
-    if len(first) < 4:
+    if len(first) < 3:
         out.append(f"only {len(first)} cards start at the body top")
     return out
 
@@ -98,14 +98,6 @@ def gap_problems(cs: list[Rect], tol: float = 0.10) -> list[str]:  # G15
         for a, b in zip(col, col[1:]):
             if abs(b[1] - a[3] - 1.0) > tol:
                 out.append(f"gap {b[1] - a[3]:.2f} in column {key}")
-    centre_top = [c for c in cs if c[0] in (37.0, 71.0) and c[2] - c[0] < 40]
-    fig = [c for c in cs if (c[0], c[2]) == (37.0, 103.0)]
-    out += [
-        f"centre gap {f[1] - t[3]:.2f}"
-        for t in centre_top
-        for f in fig
-        if abs(f[1] - t[3] - 1.0) > tol
-    ]
     return out
 
 
@@ -162,13 +154,13 @@ def test_type_scale() -> None:
 @pytest.mark.parametrize(
     "check, planted",
     [
-        (edge_problems, [(3.4, 15.2, 35.0, 30.0)]),
-        (mirror_problems, [(3.0, 15.2, 35.0, 30.0), (100.0, 15.2, 137.0, 30.0)]),
+        (edge_problems, [(3.4, 15.2, 46.33, 30.0)]),
+        (mirror_problems, [(3.0, 15.2, 46.33, 30.0), (100.0, 15.2, 137.0, 30.0)]),
         (
             bottom_problems,
             [(3.0, 15.2, 35.0, 80.0), (37.0, 15.2, 103.0, 83.6), (105.0, 15.2, 137.0, 83.6)],
         ),
-        (gap_problems, [(3.0, 15.2, 35.0, 30.0), (3.0, 32.5, 35.0, 83.6)]),
+        (gap_problems, [(3.0, 15.2, 46.33, 30.0), (3.0, 32.5, 46.33, 83.6)]),
         (rule_problems, [(1.5, 13.0, 138.5, 13.2), (3.0, 85.6, 137.0, 85.8)]),
     ],
 )
