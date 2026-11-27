@@ -30,19 +30,6 @@ build/$(NAME)_thumbnail.png: $(NAME).pdf
 	pdftoppm -png -singlefile -scale-to-x 320 -scale-to-y -1 $< build/$(NAME)_thumbnail
 .PHONY: png
 
-# `make figures TPP_DATA_ROOT=<root>` redraws the two data panels in the poster style from the released
-# losses, fits and seed-variance results under <root> (extracted_losses/, full_coverage_results/,
-# seed_variance_results/; `download_and_extract.py --results-only` fetches them), with the paper's
-# own plotting code (`FIG1_STYLE=poster`), and copies them into figures/.
-FIG1 := ../src/tpp_analysis/visualizations/figure1_panels.py
-POSTER_PANELS := poster_convergence_Red_Pajama_Kaplan_First.pdf poster_isoflop_Red_Pajama_Kaplan_First.pdf
-figures:
-	@test -n "$(TPP_DATA_ROOT)" || { echo "figures: set TPP_DATA_ROOT=<root>"; exit 2; }
-	cd .. && TPP_DATA_ROOT="$(TPP_DATA_ROOT)" FIG1_STYLE=poster FIG1_PREFIX=poster_ \
-		FIG1_DATASET="Red Pajama" FIG1_LAW=Kaplan FIG1_MODE=First uv run --locked python $(FIG1:../%=%)
-	for f in $(POSTER_PANELS); do cp "$(TPP_DATA_ROOT)/full_coverage_results/figures/$$f" figures/; done
-.PHONY: figures
-
 clean:
 	rm -rf build
 .PHONY: clean

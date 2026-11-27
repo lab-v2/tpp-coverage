@@ -1,20 +1,25 @@
 % NeurIPS 2026 poster: Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation.
 % Build: make (from this folder), with xelatex. A0 landscape (118.9 x 84.1 cm), inside the NeurIPS limit of
 % 140 x 90 cm. Theme: gemini (theme/, MIT). Logos come from ../images (SVG, converted by the Makefile);
-% figures from figures/ (the paper's Figure 1, panels b and c). Every number and formula is the paper's.
+% figures from figures/ (the paper's Figure 1 (a) and (c), copied byte for byte). Every number and formula is the paper's.
 \documentclass[final]{beamer}
-\usepackage[size=custom,width=118.9,height=84.1,scale=1.17]{beamerposter}
+\usepackage[size=custom,width=118.9,height=84.1,scale=1.24]{beamerposter}
 \usetheme{gemini}
 \usecolortheme{gemini}
 \usepackage{amsmath,booktabs,graphicx,tikz}
 % Images are found through TEXINPUTS, set by the Makefile (figures/, build/assets/, ../images/).
 
-% Body text in Lato Regular (the theme's Light is too thin for print); headings stay in Raleway.
-\setsansfont{Lato}[UprightFont=*-Regular, ItalicFont=*-Italic, BoldFont=*-Bold, BoldItalicFont=*-BoldItalic]
-% Genuine LaTeX math: Latin Modern Math through unicode-math, its x-height matched to Lato (the theme keeps
-% professionalfonts, so beamer leaves the math alone). No sans math font.
+% The owner asked for a poster that looks like LaTeX: every text in Latin Modern Roman (the theme's
+% Lato and Raleway are replaced, title and headings included) and math in Latin Modern Math.
+\usefonttheme{serif}
+\setmainfont{lmroman10}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold, ItalicFont=*-italic,
+  BoldItalicFont=*-bolditalic]
+\setsansfont{lmroman10}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold, ItalicFont=*-italic,
+  BoldItalicFont=*-bolditalic]
+\setfontfamily\Raleway{lmroman10}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold]
+\setfontfamily\Lato{lmroman10}[Extension=.otf, UprightFont=*-regular, BoldFont=*-bold]
 \usepackage{unicode-math}
-\setmathfont{Latin Modern Math}[Scale=MatchLowercase]
+\setmathfont{Latin Modern Math}
 % CO blue and NC red as in the paper's Figure 1 (matplotlib C0 and C3); orange for the headline numbers only.
 \definecolor{co}{RGB}{31, 119, 180}
 \definecolor{nc}{RGB}{214, 39, 40}
@@ -25,6 +30,11 @@
 \setbeamercolor{headline title}{fg=darkblue}
 \setbeamercolor{headline rule}{bg=darkblue}
 \setbeamercolor{block title alerted}{fg=darkblue,bg=lightblue}
+\setbeamercolor{block title}{fg=darkblue,bg=white}
+% Ragged-right body (each block opens with \RaggedRight), no hyphenation: a poster is read at a distance.
+\hyphenpenalty=10000 \exhyphenpenalty=10000
+% Fixed math spacing, so a ragged line never stretches the space around = or +.
+\thickmuskip=5mu \medmuskip=4mu
 \setbeamerfont{headline title}{size=\fontsize{91}{93}\selectfont,series=\bfseries}
 \setbeamerfont{headline author}{size=\fontsize{40}{44}\selectfont}
 \setbeamerfont{headline institute}{size=\fontsize{34}{40}\selectfont}
@@ -54,74 +64,6 @@
 \logoleft{\raisebox{-1.5cm}{\raisebox{-0.5\height}{\begin{tabular}{@{}c@{}}\includegraphics[height=6.0cm]{qr_project_page.pdf}\\[-0.4ex]{\small Project page}\end{tabular}}\hspace{1cm}\raisebox{-0.5\height}{\includegraphics[height=4.0cm]{neurips.pdf}}}}
 \logoright{\raisebox{-0.5\height}{\begin{tabular}{@{}c@{}}\includegraphics[height=3.0cm]{syracuse_ai_institute.pdf}\\[1.5ex]\includegraphics[height=2.9cm]{leibniz_lab.png}\end{tabular}}}
 
-% The two designs in the (N, D) plane, from the grids of the paper's Appendix F.1 (grid:ncgrid, grid:tpp):
-% sizes N (M parameters), CO ratios k, NC token counts D (M tokens). Holdout: the N = 55.5M row, the
-% k = 6 (CO) or D = 300.4M (NC) column, and the three largest sizes at k >= 6.2 (CO) or D >= 325.4M (NC).
-\newcommand{\designplane}{%
-\begin{tikzpicture}[x=0.36cm, y=0.047cm, font=\normalsize]
-  \def\trainN{5.0,10.1,14.4,19.4,22.8,28.8,32.5,35.4,40.3,47.9}
-  \def\allN{5.0,10.1,14.4,19.4,22.8,28.8,32.5,35.4,40.3,47.9,55.5,63.9,68.1,76.5}
-  \def\bigN{63.9,68.1,76.5}
-  \def\trainK{1,1.5,1.9,2,2.5,2.7,3,3.3,3.5,4,4.5,5}
-  \def\allK{1,1.5,1.9,2,2.5,2.7,3,3.3,3.5,4,4.5,5,6,6.2,6.5,6.7,7}
-  \def\testK{6.2,6.5,6.7,7}
-  \def\trainD{10.1,35.1,60.2,80.3,100.4,130.3,150.7,180.6,200.8,225.0,250.9,275.9}
-  \def\allD{10.1,35.1,60.2,80.3,100.4,130.3,150.7,180.6,200.8,225.0,250.9,275.9,300.4,325.4,350.4,375.8,400.7}
-  \def\bigD{325.4,350.4,375.8,400.7}
-  \def\sq{+(-5pt,-5pt) rectangle +(5pt,5pt)}
-  \def\hsq{+(-7pt,-7pt) rectangle +(7pt,7pt)}
-  \begin{scope}
-    \clip (0,0) rectangle (80,560);
-    \draw[gray!25] (0,0) grid[xstep=20, ystep=100] (80,560);
-    \foreach \k in \trainK { \draw[co!70, line width=1.4pt] (0,0) -- (80,{80*\k}); }
-  \end{scope}
-  \foreach \n in \trainN { \foreach \d in \trainD { \fill[nc] (\n,\d) \sq; } }
-  \foreach \n in \trainN { \foreach \k in \trainK { \fill[co] (\n,{\k*\n}) circle[radius=5.5pt]; } }
-  \foreach \n in \allN { \draw[co, line width=1.4pt] (\n,{6*\n}) circle[radius=7.5pt];
-    \draw[nc, line width=1.4pt] (\n,300.4) \hsq; }
-  \foreach \k in \allK { \draw[co, line width=1.4pt] (55.5,{55.5*\k}) circle[radius=7.5pt]; }
-  \foreach \d in \allD { \draw[nc, line width=1.4pt] (55.5,\d) \hsq; }
-  \foreach \n in \bigN { \foreach \k in \testK { \draw[co, line width=1.4pt] (\n,{\k*\n}) circle[radius=7.5pt]; }
-    \foreach \d in \bigD { \draw[nc, line width=1.4pt] (\n,\d) \hsq; } }
-  \draw[thick] (0,0) rectangle (80,560);
-  \foreach \x in {0,20,40,60,80} { \node[below] at (\x,0) {\x}; }
-  \foreach \y in {0,100,200,300,400,500} { \node[left] at (0,\y) {\y}; }
-  \node[below=1.3cm] at (40,0) {Parameters $N$ (M)};
-  \node[rotate=90] at (-9,280) {Tokens $D$ (M)};
-  \begin{scope}[shift={(2.5,535)}, y=1cm]
-    \fill[white, opacity=0.85] (-1.5,0.7) rectangle (46,-5.0);
-    \fill[co] (0,0) circle[radius=5.5pt]; \node[right] at (1.2,0) {\CO{}: 12 rays $D = kN$};
-    \fill[nc] (0,-1.4) \sq; \node[right] at (1.2,-1.4) {\NC{}: $10 \times 12$ grid};
-    \draw[co, line width=1.4pt] (0,-2.8) circle[radius=7.5pt]; \node[right] at (1.2,-2.8) {\CO{} held out, $H_{\mathrm{col}}$};
-    \draw[nc, line width=1.4pt] (0,-4.2) \hsq; \node[right] at (1.2,-4.2) {\NC{} held out, $H_{\mathrm{nc}}$};
-  \end{scope}
-\end{tikzpicture}}
-
-% V_K / tau_K = 100 / kappa of the 24 published designs (paper Table 11, kappa column) on a log axis, with
-% the pass line at 1; our CO fan (kappa ~ 250, so 0.40) and the recipe's two-ratio examples (1.22, 0.48).
-% Values are 100 / kappa of the printed kappa (27, 18, 12, 17, 7.5, 48, 12, 29, 7.8, 59, 94 pass; 180, 170, 290,
-% 120, 200, 170, 330, 3.2e4, 210, 380 fail). Single-ratio designs (V_1 = 0) are off the scale. x = log10.
-\newcommand{\thresholdstrip}{%
-\begin{tikzpicture}[x=5.6cm, y=3.0cm, font=\normalsize]
-  \fill[black!6] (-2.7,-0.5) rectangle (0,2.8); \fill[green!50!black!10] (0,-0.5) rectangle (1.55,2.8);
-  \node[font=\small\bfseries, text=black!70] at (-1.35,2.6) {fails}; \node[font=\small\bfseries, text=green!40!black] at (0.65,2.6) {passes};
-  \foreach \e/\l in {-2/{10^{-2}}, -1/{10^{-1}}, 0/{1}, 1/{10}} {
-    \draw[gray!40] (\e,-0.5) -- (\e,2.8); \node[below] at (\e,-0.5) {$\l$}; }
-  \draw[thick] (-2.7,-0.5) rectangle (1.55,2.8);
-  \draw[black, line width=2.5pt] (0,-0.5) -- (0,2.8);
-  \node[anchor=east] at (-2.75,2.2) {11 pass};
-  \node[anchor=east] at (-2.75,1.4) {13 fail (10 shown)};
-  \node[anchor=east] at (-2.75,0.6) {our \CO{} fan};
-  \node[anchor=east] at (-2.75,-0.15) {recipe};
-  \foreach \v in {3.704,5.556,8.333,5.882,13.33,2.083,8.333,3.448,12.82,1.695,1.064} { \fill[black!75] ({log10(\v)},2.2) circle[radius=9pt]; }
-  \foreach \v in {0.5556,0.5882,0.3448,0.8333,0.5,0.5882,0.303,0.003125,0.4762,0.2632} { \draw[black!75, line width=2pt] ({log10(\v)},1.4) circle[radius=8pt]; }
-  \fill[co] ({log10(0.40)},0.6) circle[radius=9pt];
-  \fill[black] ({log10(1.22)},-0.15) +(-8pt,-8pt) rectangle +(8pt,8pt) node[right=10pt, font=\small] {$k \in \{20, 400\}$};
-  \fill[black] ({log10(0.48)},-0.15) +(-8pt,-8pt) rectangle +(8pt,8pt);
-  \node[anchor=east, font=\small] at ({log10(0.48)-0.06},-0.15) {$k \in \{20, 100\}$};
-  \node[below=1.4cm] at (-0.7,-0.5) {$V_K / \tau_K$};
-\end{tikzpicture}}
-
 \begin{document}
 \begin{frame}[t]
 \begin{columns}[t]
@@ -131,38 +73,64 @@
 \begin{column}{\colwidth}
 
 \begin{alertblock}{TL;DR}
-  Fixed tokens-per-parameter (TPP) ratios $D = kN$ make scaling-law fits ill-conditioned when the $N$- and
-  $D$-exponents are close. Covering the $(N, D)$ plane fixes it: \NC{} beats \CO{} on held-out
-  runs in \textcolor{accent}{\textbf{97.3\%}}.
+  \RaggedRight
+  {\large Fixed tokens-per-parameter (TPP) ratios $D = kN$ make scaling-law fits ill-conditioned when the
+  $N$- and $D$-exponents are close. Covering the $(N, D)$ plane fixes it: \NC{} beats \CO{} on held-out
+  runs in \textcolor{accent}{\textbf{97.3\%}} of comparisons.\par}
 \end{alertblock}
 
+
+
+
+
 \begin{block}{\CO{} (collinear) and \NC{} (non-collinear) designs}
-  \centering
-  \designplane\par\medskip
+  \RaggedRight
+  \begin{itemize}
+    \item \textbf{\CO{}:} every run at $D = kN$, 12 ratios from $k = 1$ to $5$: a fan of rays.
+    \item \textbf{\NC{}:} 10 model sizes $\times$ 12 dataset sizes: a grid where $k = D/N$ varies freely.
+    \item \textbf{Same} models and recipe, scored on the same held-out runs.
+  \end{itemize}
 \end{block}
 
 \begin{block}{The law and one ray}
+  \RaggedRight
   \[ L(N, D) = A N^{-\alpha} + B D^{-\beta} + E \]
-  On a ray $D = kN$ with $\beta = \alpha$:
+  On a ray $D = kN$ with $\beta = \alpha$, the reduced model is
   \[ L(N; \psi, \alpha, E) = \psi N^{-\alpha} + E, \qquad \psi := A + B k^{-\alpha}. \]
-  One ray pins down $\psi$, not $A$ and $B$: a ``sloppy'' model; $\varepsilon := |\alpha - \beta|$
-  (Chinchilla: $\alpha \approx 0.34$, $\beta \approx 0.28$).
+  One ray pins down $\psi$, not $A$ and $B$: a ``sloppy'' model. Gap:
+  $\varepsilon := |\alpha - \beta|$ (Chinchilla: $\alpha \approx 0.34$, $\beta \approx 0.28$).
 \end{block}
 
 \begin{block}{Gauss-Newton conditioning}
+  \RaggedRight
   \[ S(\symbf{\theta}) = \tfrac{1}{2} \lVert \symbfup{r}(\symbf{\theta}) \rVert^2, \quad
      J_{ij} = \frac{\partial r_i}{\partial \theta_j}, \quad (J^\top J)\, \Delta\symbf{\theta} = -J^\top \symbfup{r} \]
-  $\kappa_{A,B} := \kappa\bigl((J^\top J)_{A,B}\bigr)$; on a ray, up to sign, $j_A = N^{-\alpha}$ and
-  $j_B = k^{-\beta} N^{-\beta}$.
+  Scale pair: $\kappa_{A,B} := \kappa\bigl((J^\top J)_{A,B}\bigr)$. On a ray, up to sign, $j_A = N^{-\alpha}$ and
+  $j_B = k^{-\beta} N^{-\beta}$: nearly parallel for small $\varepsilon$.
 \end{block}
 
 
 
-
-
-
-
-
+\begin{block}{One ray is ill-conditioned}
+  \RaggedRight
+  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla, Gaussian noise, at least 5 sizes)}
+  On one ray, as $\varepsilon \to 0$:\par\smallskip
+  \centering
+  \colorbox{lightblue}{\begin{minipage}{0.8\linewidth}\centering\Large
+    \[ \kappa_{A,B} = \Theta(\varepsilon^{-2}), \qquad
+       \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}) \]
+  \end{minipage}}\par\medskip
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
+    \midrule
+    Chinchilla & 0.06 & 17 & 278 \\
+    Kaplan & 0.20 & 5\textsuperscript{$\dagger$} & 25 \\
+    Droppo-Elibol & 0.18-0.80 & 1.3-5.6\textsuperscript{$\dagger$} & 1.6-32 \\
+    \bottomrule
+  \end{tabular}\quad
+  \begin{minipage}[b]{0.22\linewidth}\small\RaggedRight \textsuperscript{$\dagger$}Schur floor, no reduced model.\end{minipage}
+\end{block}
 
 
 
@@ -174,70 +142,56 @@
 
 
 
-
-
-
-
-\begin{block}{One ray is ill-conditioned}
-  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla, i.i.d.\ Gaussian noise, at least 5 sizes)}
-  On one ray, as $\varepsilon \to 0$:
-  \begin{columns}[c]
-    \begin{column}{0.4\linewidth}
-      \[ \kappa_{A,B} = \Theta(\varepsilon^{-2}) \]
-      \[ \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}) \]
-    \end{column}
-    \begin{column}{0.58\linewidth}
-      \centering
-      \begin{tabular}{@{}lccc@{}}
-        \toprule
-        Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
-        \midrule
-        Chinchilla & 0.06 & 17 & 278 \\
-        Kaplan & 0.20 & 5\textsuperscript{$\dagger$} & 25 \\
-        Droppo-Elibol & 0.18-0.80 & 1.3-5.6\textsuperscript{$\dagger$} & 1.6-32 \\
-        \bottomrule
-      \end{tabular}
-    \end{column}
-  \end{columns}
-  {\small \textsuperscript{$\dagger$}Schur floor, no reduced model.}
-\end{block}
-
 \begin{alertblock}{TPP-diversity threshold}
+  \RaggedRight
   \statement{Proposition 1} Chinchilla and unsaturated repeated-data (Kaplan, Droppo-Elibol: a heuristic).
   To leading order, $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever
-  \[ \underbrace{\frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
+  \[ \scalebox{1.3}{$\displaystyle \underbrace{\frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
      - \Bigl( \frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-\beta_{\mathrm{eff}}} \Bigr)^{2}}_{V_K}
      \;\geq\;
-     \underbrace{\frac{\bigl( K + \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} \bigr)^{2}}{K^{2}\, \kappa_{\mathrm{target}}}}_{\tau_K}. \]
-  Checkable before training. One ray never passes: $V_1 = 0 < \tau_1$.
+     \underbrace{\frac{\bigl( K + \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} \bigr)^{2}}{K^{2}\, \kappa_{\mathrm{target}}}}_{\tau_K}.$} \]
+  Checkable before training. One ray never passes: $V_1 = 0 < \tau_1$.\par\smallskip
 \end{alertblock}
 
 \begin{block}{The threshold on published designs}
+  \RaggedRight
   \centering
-  \thresholdstrip\par\smallskip
+  {\Large\begin{tabular}{@{}lrrr@{}}
+    \toprule
+    Design & $K$ & $R = k_K / k_1$ & $V_K / \tau_K$ \\
+    \midrule
+    Hoffmann et al.\ (2022) & 151 & $9.5 \times 10^3$ & \textbf{5.55} \\
+    Muennighoff et al.\ (2025) & 95 & $4.7 \times 10^5$ & \textbf{5.76} \\
+    Choshen et al.\ (2025) & 243 & $4.9 \times 10^3$ & \textbf{3.74} \\
+    Hu et al.\ (2024) & 6 & 6 & 0.30 \\
+    Bhagia et al.\ (2025) & 4 & 10 & 0.47 \\
+    Magnusson et al.\ (2025) & 1 & 1 & 0.00 \\
+    \bottomrule
+  \end{tabular}}\par\medskip
   \raggedright
-  Of 24 published designs at $\kappa_{\mathrm{target}} = 100$, 11 pass and 13 fail, 3 at one ratio
-  ($V_1 = 0$, off the scale); all 6 collinear ones fail.\par
-  {\small Two passes need equal per-ratio weight; five print no exponent, so $\beta_{\mathrm{eff}} = 0.28$ is used.}
+  At $\kappa_{\mathrm{target}} = 100$ ($V_K / \tau_K \geq 1$ passes), of 24 published designs 11 pass and 13 fail,
+  3 at one ratio; all 6 collinear ones fail. Our \CO{} fan gives 0.40 at $\beta_{\mathrm{eff}} = 0.28$.
+\end{block}
+
+\begin{block}{Holdout prediction}
+  \RaggedRight
+  \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), i.i.d.\ Gaussian residuals of
+  variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
+  (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, as $\varepsilon \to 0$:
+  \[ \scalebox{1.7}{$\mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr].$} \]
+  For $K \geq 2$ it is shown empirically (paper, Lemma 7).
 \end{block}
 
 
 
-
-
-
-
-
-
-
-
-\begin{block}{Holdout prediction}
-  \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), i.i.d.\ Gaussian residuals of
-  variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
-  (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, as $\varepsilon \to 0$:
-  \medskip
-  \[ \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr]. \]
-  For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient margin.
+\begin{block}{Design recipe}
+  \RaggedRight
+  \begin{enumerate}\setlength{\itemsep}{0.6em}
+    \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
+    \item Train on its two end ratios, runs split evenly, log-uniform in $N$.
+    \item Check the exact $\kappa_{A,B}$ of the planned $(N, D)$ before training.
+  \end{enumerate}
+  $k \in \{20, 400\}$ passes at $\beta_{\mathrm{eff}} = 0.28$ ($V_2 / \tau_2 = 1.22$); $\{20, 100\}$ fails (0.48).
 \end{block}
 
 
@@ -249,15 +203,16 @@
 \begin{column}{\colwidth}
 
 \begin{block}{\NC{} beats \CO{} on held-out runs}
+  \RaggedRight
   \begin{columns}[t]
     \begin{column}{0.48\linewidth}
       \centering
-      {\fontsize{120}{126}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
+      {\fontsize{160}{168}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
       {\large FP32: 1,460/1,500}
     \end{column}
     \begin{column}{0.48\linewidth}
       \centering
-      {\fontsize{120}{126}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
+      {\fontsize{160}{168}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
       {\large BF16, Wikipedia: 296/300}
     \end{column}
   \end{columns}
@@ -266,28 +221,30 @@
   Holdout $R^2$: \CO{} 0.837, \NC{} 0.932.
 \end{block}
 
-\begin{block}{Largest \CO{}/\NC{} gap: Kaplan on RedPajama}
-  \begin{columns}[t]
-    \begin{column}{0.49\linewidth}
+
+
+
+
+\begin{block}{Kaplan law on RedPajama, first epoch}
+  \RaggedRight
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.53\linewidth}
       \centering
-      \includegraphics[width=\linewidth]{poster_convergence_Red_Pajama_Kaplan_First.pdf}
+      \includegraphics[width=\linewidth]{01_surface_Red_Pajama_Kaplan_First.pdf}\\
+      (a) Loss surface.
     \end{column}
-    \begin{column}{0.49\linewidth}
+    \begin{column}{0.47\linewidth}
       \centering
-      \includegraphics[width=\linewidth]{poster_isoflop_Red_Pajama_Kaplan_First.pdf}
+      \includegraphics[width=\linewidth]{01_isoflop_Red_Pajama_Kaplan_First.pdf}\\
+      (c) Induced isoFLOP curves.
     \end{column}
   \end{columns}
-  {\small Left: holdout $R^2$, mean over 30 seeds with 5th-95th percentile bars.
-  Right: induced isoFLOP curves at seed 0, \CO{} dashed, \NC{} solid, with residual bars.}\par\smallskip
-  For Kaplan this error is bias, not conditioning; on one Chinchilla ray, $A$'s interval is of order
-  $10^4$ times $\psi$'s.
+  \smallskip
+  {\small Seed-0 \CO{} holdout $R^2 = 0.51$, \NC{} $R^2 = 0.91$. (a) Fitted surface $\hat{L}(N, D; \symbf{\theta})$ with holdout points and residual bars.
+  (c) Induced isoFLOP curves, one per kept holdout point, with residual bars at each $N_i$.}\par\smallskip
+  \CO{}'s dashed isoFLOP curves splay apart at high $N$ while \NC{}'s stay tight. For Kaplan this error is
+  bias, not conditioning.
 \end{block}
-
-
-
-
-
-
 
 
 
@@ -296,27 +253,20 @@
 
 
 \begin{block}{Below the threshold, and the stakes}
-  Against budget-matched \CO{} below the threshold, \NC{} wins \textbf{68.5\%} (Chinchilla), \textbf{57.4\%}
-  (Droppo-Elibol), \textbf{80.6\%} (Kaplan); CIs exclude 50\%. On Wikipedia, \CO{} and \NC{}
-  Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
-\end{block}
-
-\begin{block}{Design recipe}
-  \begin{enumerate}\setlength{\itemsep}{0.3em}
-    \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
-    \item Train on its two end ratios, runs split evenly, log-uniform in $N$.
-    \item Check the exact $\kappa_{A,B}$ before training.
-  \end{enumerate}\vspace{-0.3em}
-  $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
+  \RaggedRight
+  Against budget-matched \CO{} subsets below the threshold, \NC{} wins \textbf{68.5\%} (Chinchilla),
+  \textbf{57.4\%} (Droppo-Elibol) and \textbf{80.6\%} (Kaplan); all CIs exclude 50\%. On Wikipedia, the
+  \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
 \end{block}
 
 \begin{alertblock}{Takeaways}
-  \begin{itemize}
+  \RaggedRight
+  \large
+  \begin{itemize}\setlength{\itemsep}{0.4em}
     \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
     \item \textbf{On one ray}, report $\psi$, not separate model and data contributions.
   \end{itemize}
-  \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training
-  loss.
+  \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
 \end{alertblock}
 
 \end{column}
