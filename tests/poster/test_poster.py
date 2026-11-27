@@ -27,6 +27,12 @@ MAX_COLUMN_SPREAD_CM = 1.0  # the three column bottoms within 1 cm
 MIN_TICK_PT = 24.0  # printed size of the figures' tick labels
 TICK_WORDS = {"0.0", "0.2", "0.4", "0.5", "0.6", "0.8", "1.0", "16.0", "16.6", "16.9", "17.4"}
 PT_PER_CM = 72 / 2.54
+# The owner asked for genuine LaTeX math: every font is Lato, Raleway or Computer / Latin Modern.
+ALLOWED_FONT = re.compile(
+    r"^(Lato|Raleway|CM(MI|MIB|SY|EX|R|BX|SS)[0-9]+|Cm(mi|r|sy|ex)[0-9]+|MSBM10|MSAM10|LMRoman|LMMath|"
+    r"LatinModernMath)"
+)
+MATH_FONT = re.compile(r"LatinModernMath|LMMath|CMMI|Cmmi")
 MAX_WORDS = 750  # the reference posters carry 500-800 words; the round-1 review set 750
 
 
@@ -97,6 +103,17 @@ def em_dash_problems(text: str) -> list[str]:
         for i, line in enumerate(text.splitlines(), 1)
         if EM_DASH.search(line)
     ]
+
+
+def math_font_problems(pdffonts: str, need_math: bool = True) -> list[str]:
+    """Fonts outside Lato, Raleway and CM/LM; and, for the poster, no genuine math font at all."""
+    names = [row.split()[0].split("+", 1)[-1] for row in pdffonts.splitlines()[2:] if row.strip()]
+    problems = [
+        f"font {n} is not Lato, Raleway or CM/LM" for n in names if not ALLOWED_FONT.match(n)
+    ]
+    if need_math and not any(MATH_FONT.search(n) for n in names):
+        problems.append("no LaTeX math font embedded")
+    return problems
 
 
 def word_count_problems(text: str) -> list[str]:
@@ -193,6 +210,12 @@ def test_title_and_authors_match_citation_cff() -> None:
 def test_no_em_dash_in_sources() -> None:
     for tex in POSTER.glob("*.tex"):
         assert em_dash_problems(tex.read_text()) == [], tex.name
+
+
+def test_latex_math_fonts_only() -> None:
+    assert math_font_problems(_run("pdffonts", str(PDF))) == []
+    for fig in sorted((POSTER / "figures").glob("*.pdf")):
+        assert math_font_problems(_run("pdffonts", str(fig)), need_math=False) == [], fig.name
 
 
 def test_at_most_750_words() -> None:
@@ -304,3 +327,17 @@ def test_planted_tall_header(tmp_path: Path) -> None:
         str(png),
     )
     assert header_fraction(png) > MAX_HEADER_FRACTION
+
+
+def test_planted_math_fonts() -> None:
+    head = "name type encoding emb sub uni object ID\n---- ---- ---- --- --- --- ---------\n"
+    lato = "ABCDEF+Lato-Regular CID TrueType Identity-H yes yes yes 5 0\n"
+    math = "ABCDEF+LatinModernMath-Regular-Identity-H CID Type 0C Identity-H yes yes yes 6 0\n"
+    assert not math_font_problems(head + lato + math)
+    assert math_font_problems(head + lato)  # math faked in the text font
+    assert math_font_problems(
+        head + lato + math + "ABCDEF+FiraMath-Regular CID Type 0C Identity-H yes yes yes 7 0\n"
+    )
+    assert math_font_problems(
+        head + "ABCDEF+DejaVuSans CID TrueType Identity-H yes yes yes 8 0\n", need_math=False
+    )

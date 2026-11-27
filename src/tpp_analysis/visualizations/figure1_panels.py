@@ -751,6 +751,26 @@ style_ticks_2d(ax_conv)
 _darken_errorbars(ax_conv)
 if POSTER:
     style_ticks_poster(ax_conv)
+    ax_conv.set_xlabel("TPP coverage", fontsize=AXIS_LABEL_FS)
+    # The poster's exact CO / NC colours (matplotlib C0 and C3), as in its TikZ figures and text.
+    _POSTER_DESIGN = {
+        "CO": "#1F77B4",
+        "Colinear": "#1F77B4",
+        "NC": "#D62728",
+        "Non-Colinear": "#D62728",
+    }
+    for _line in ax_conv.get_lines():
+        _c = _POSTER_DESIGN.get(_line.get_label())
+        if _c:
+            _line.set_color(_c)
+            _line.set_markerfacecolor(_c)
+            _line.set_markeredgecolor(_c)
+    _leg = ax_conv.get_legend()
+    if _leg is not None:
+        for _h, _t in zip(_leg.legend_handles, _leg.get_texts()):
+            _c = _POSTER_DESIGN.get(_t.get_text())
+            if _c:
+                _h.set_color(_c)
 # Forces white face, black edge of width SPINE_LW, alpha=LEGEND_ALPHA on the
 # convergence legend regardless of how plot_convergence_with_errorbars built it
 _style_all_legends(ax_conv)
@@ -794,7 +814,7 @@ _draw_isoflop_generic(
     x_lim=(None, 1e8),
     show_optimal=SHOW_OPTIMAL,
     fontsize=AXIS_LABEL_FS,
-    legend_fontsize=LEGEND_FS - 8 if POSTER else LEGEND_FS - 4,
+    legend_fontsize=LEGEND_FS if POSTER else LEGEND_FS - 4,
     legend_loc="upper right" if POSTER else "lower left",
     line_width=LINE_WIDTH,
     holdout_mode=MODE_NAME.lower(),
@@ -804,6 +824,8 @@ _draw_isoflop_generic(
 style_ticks_2d(ax_iso)
 if POSTER:
     style_ticks_poster(ax_iso)
+    # Symbols as math (Computer Modern), 1.15 times the text size to match Lato's x-height.
+    ax_iso.set_xlabel(r"$N$", fontsize=AXIS_LABEL_FS * 1.15)
 # _draw_isoflop_generic already calls _style_all_legends; this is a belt-and-
 # suspenders second pass in case anything got reattached.
 _style_all_legends(ax_iso)
