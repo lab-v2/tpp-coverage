@@ -379,8 +379,30 @@ def poster_words() -> list:
     return [w for w in words if not (w[0] >= left - 5 and top < w[1] and w[3] < bottom)]
 
 
+def footer_rule_top(pdf: Path = PDF) -> float:
+    """Top (pt) of the footer rule: the lowest thin wide bar in the theme's dark blue."""
+    import pymupdf
+
+    page = pymupdf.open(pdf)[0]
+    bars = [
+        d["rect"]
+        for d in page.get_drawings()
+        if d["rect"].width > 0.9 * page.rect.width
+        and d["rect"].height < 0.01 * page.rect.height
+        and d.get("fill") not in (None, (1.0, 1.0, 1.0))
+    ]
+    assert len(bars) >= 2, "no footer rule found"
+    return max(bars, key=lambda r: r.y0).y0
+
+
+def body_word_problems(words: list, footer_top: float) -> list[str]:
+    """At most MAX_WORDS above the footer rule; the footer band (links, footnotes, funding and
+    references: attribution) is not counted."""
+    return word_count_problems(" ".join(w[4] for w in words if w[3] <= footer_top))
+
+
 def test_at_most_800_words() -> None:
-    assert word_count_problems(" ".join(w[4] for w in poster_words())) == []
+    assert body_word_problems(poster_words(), footer_rule_top()) == []
 
 
 def test_column_bottoms_within_1_cm() -> None:
@@ -503,6 +525,12 @@ def test_planted_too_many_words() -> None:
     text = " ".join(w[4] for w in poster_words())
     assert word_count_problems(text + " extra" * (MAX_WORDS + 1 - len(text.split())))
     assert not word_count_problems("word " * MAX_WORDS)
+    # The footer band may run past 800; the body may not.
+    top = 2000.0
+    footer = [(0, top + 10, 10, top + 20, "ref")] * (MAX_WORDS + 50)
+    body = [(0, 100, 10, 110, "word")] * 100
+    assert not body_word_problems(body + footer, top)
+    assert body_word_problems(body * 9, top)
 
 
 def test_planted_column_spread() -> None:

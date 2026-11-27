@@ -35,7 +35,7 @@ src/tpp_analysis/visualizations/figure1_panels.py` and copy the panel from `full
 proves the poster style draws exactly the paper render's data (lines, collections, limits, labels, legends). The QR code of the project page
 sits in the header, beside the NeurIPS logo. `tests/poster/` checks the page size, the fonts (Latin
 Modern or Computer Modern only), the three logos, the QR code, the title and authors against
-`CITATION.cff`, the absence of em dashes, at most 800 words, a header under 17% of the height, the
+`CITATION.cff`, the absence of em dashes, at most 800 words above the footer rule (the footer band is attribution), a header under 17% of the height, the
 top-zone column bottoms within 1 cm, block gaps within a 0.8 cm band, the gap between the zones at most 3.5 cm with no `\vspace`, no overfull `\vbox` (the committed `build_stamp.txt` holds the PDF sha256 and overfull count that `make` wrote), no math in bold heads, block title rules
 unbroken, logo groups centred on the title block within 0.5 cm, the figures being the pinned poster renders (by
 SHA-256), set at least 0.75 times their natural width (rendered at paper print size), every figure word printing at least 24 pt, and no TikZ figure, one body text size (captions at
@@ -91,6 +91,7 @@ Trim-safe without bleed: the header and footer rules stop 1.5 cm inside each edg
 the vendored `theme/beamerthemegemini.sty`, marked in it), and `tests/poster/` fails on any ink, image or
 text within 1.0 cm of an edge (measured text margins: left 2.44, right 1.36, top 1.36, bottom 1.10 cm).
 
-Final PDF (round 23): `tpp_neurips2026_poster.pdf`, sha256
-`29b6a653eeba874636f75eabb6984782c2910b73a5aa46abfa1866d35e80a1df`, 800 words; virtual PNG 4480 x 2880 px,
-1,512,018 bytes; thumbnail 320 x 206 px, 38,007 bytes (`build_stamp.txt`, gated in `tests/poster/`).
+Final PDF (round 24): `tpp_neurips2026_poster.pdf`, sha256
+`74dee81eb6002fb03c03507650900eb2e1a14b0b251bf8433808e3c123000317`, 749 words above the footer rule (the
+word gate's count; the footer band, links, footnotes, funding and references, adds 59); virtual PNG 4480 x 2880 px,
+1,518,967 bytes; thumbnail 320 x 206 px, 38,201 bytes (`build_stamp.txt`, gated in `tests/poster/`).
