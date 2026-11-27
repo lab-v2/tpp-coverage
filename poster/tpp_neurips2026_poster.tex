@@ -61,15 +61,24 @@
 \newcommand{\cardhead}[1]{\Sfour\parskip=0.25em{\centering\Sthree\bfseries\color{darkblue}#1\par}\vskip0.2em\RaggedRight}
 \newtcolorbox{card}[2][]{cardbase, colback=cardplain, before upper={\cardhead{#2}}, #1}
 \newtcolorbox{alertcard}[2][]{cardbase, colback=cardalert, before upper={\cardhead{#2}}, #1}
+% Title to body: a card opening with a list, a display or a table starts with that element's own
+% skip (topsep, abovedisplayskip, the table's top rule); \opencorr{<cm>} takes it back so every card's
+% body ink starts 0.70 cm below its title's ink (tests/poster/test_grid.py measures it).
+\newcommand{\opencorr}[1]{\vskip#1cm\relax}
 % The 1.00 cm between stacked cards.
 \newcommand{\cardgap}{\par\vskip1cm}
 \newlength{\bodyheight}\setlength{\bodyheight}{68.4cm}
 % Column width (134 - 2 x 2) / 3; card text width 41.733.
 \newlength{\colw}\setlength{\colw}{43.333cm}
 % \lastcard stretches a column's last card to the body bottom; build with \stretchfalse to measure natural heights.
-\tcbset{last/.style={height=\restheight}}% \tcbset{last/.style={}} gives the natural heights
+% A column's last card ends at the body bottom; its lower part (after \tcblower) sits at the card's foot,
+% so every column's ink ends 0.80 above it.
+\tcbset{foot/.style={segmentation hidden, valign lower=bottom, middle=0pt,
+  before lower={\Sfour\parskip=0.25em\RaggedRight}}}
+\tcbset{last/.style={height=\restheight, foot}}% \tcbset{last/.style={}} gives the natural heights
 % A column: its stacked cards, then a last card that takes the rest of the body height.
 \newsavebox{\colstack}
+\newsavebox{\kappatab}
 \newlength{\restheight}
 \newcommand{\measurestack}[1]{\setlength{\restheight}{\dimexpr\bodyheight-\ht#1-\dp#1-1cm\relax}}
 
@@ -108,18 +117,21 @@
   runs in \textcolor{accent}{\textbf{97.3\%}}.
 \end{alertcard}\cardgap
 \begin{card}{\CO{} (collinear) and \NC{} (non-collinear) designs}
+  \opencorr{-0.42}
   \begin{itemize}
     \item \textbf{\CO{}:} every run at $D = kN$, 12 ratios from $k = 1$ to $5$: a fan of rays.
     \item \textbf{\NC{}:} the 10 smallest sizes crossed with 12 dataset sizes, so $k = D/N$ varies freely; both are scored on the same held-out runs.
   \end{itemize}
 \end{card}\cardgap
 \begin{card}{The law and one ray}
-  \[ L(N, D) = A N^{-\alpha} + B D^{-\beta} + E \]
+  \opencorr{-0.81}
+  \[ \mbox{\Sthree$\displaystyle L(N, D) = A N^{-\alpha} + B D^{-\beta} + E$} \]
   On a ray $D = kN$ with $\beta = \alpha$, the reduced model is
-  \[ L(N; \psi, \alpha, E) = \psi N^{-\alpha} + E, \qquad \psi := A + B k^{-\alpha}. \]
+  \[ \mbox{\Sthree$\displaystyle L(N; \psi, \alpha, E) = \psi N^{-\alpha} + E, \qquad \psi := A + B k^{-\alpha}.$} \]
   One ray pins down $\psi$, not $A$ and $B$: a ``sloppy'' model. Gap $\varepsilon := |\alpha - \beta|$.
 \end{card}\cardgap
 \begin{card}{Gauss-Newton conditioning}
+  \opencorr{-0.80}
   \[ S(\symbf{\theta}) = \tfrac{1}{2} \lVert \symbfup{r}(\symbf{\theta}) \rVert^2, \quad
      J_{ij} = \frac{\partial r_i}{\partial \theta_j}, \quad (J^\top J)\, \Delta\symbf{\theta} = -J^\top \symbfup{r} \]
   Scale pair: $\kappa_{A,B} := \kappa\bigl((J^\top J)_{A,B}\bigr)$. On a ray, up to sign, $j_A = N^{-\alpha}$ and
@@ -127,11 +139,9 @@
 \end{card}\cardgap
 \begin{card}{One ray is ill-conditioned}
   \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, \mbox{as $\varepsilon \to 0$} (Corollary 2: Gaussian noise, at least 5 sizes):\par\smallskip
-  % The box at the text's left edge, the table flush right at its right edge; one aligned pair of "=".
-  \noindent\colorbox{lightblue}{\parbox[c]{25cm}{\centering\Sfour
-    \[ \begin{aligned} \kappa_{A,B} &= \Theta(\varepsilon^{-2}) \\
-       \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} &= \Omega(\varepsilon^{-1}) \end{aligned} \]}}\hfill
-  \parbox[c]{12.8cm}{\raggedleft\begin{tabular}{@{}l@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{}}
+  % The kappa box and the table as one centred unit, the box given the table's height so their
+  % tops and bottoms align; one aligned pair of "=".
+  \sbox{\kappatab}{\begin{tabular}{@{}l@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{}}
     \toprule
     Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
     \midrule
@@ -139,27 +149,33 @@
     Kaplan & 0.20 & 5\textsuperscript{$\dagger$} & 25 \\
     \bottomrule
     \multicolumn{4}{@{}l}{\Sfive\textsuperscript{$\dagger$}Schur floor.}
-  \end{tabular}}
+  \end{tabular}}%
+  {\centering\setlength{\fboxsep}{0pt}%
+  \colorbox{lightblue}{\parbox[c][\dimexpr\ht\kappatab+\dp\kappatab\relax][c]{12cm}{\centering\Sfour
+    \[ \begin{aligned} \kappa_{A,B} &= \Theta(\varepsilon^{-2}) \\
+       \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} &= \Omega(\varepsilon^{-1}) \end{aligned} \]}}\hspace{2cm}%
+  \parbox[c]{\wd\kappatab}{\usebox{\kappatab}}\par}
 \end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
 \begin{alertcard}[last]{TPP-diversity threshold}
   \statement{Proposition 1} Chinchilla and unsaturated repeated-data (Kaplan, Droppo-Elibol: a heuristic).
   To leading order, $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever
-  \[ \underbrace{\frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
+  % The threshold, the poster's central formula, at the display size (44 pt).
+  \[ \mbox{\Sthree$\displaystyle \underbrace{\frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
      - \Bigl( \frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-\beta_{\mathrm{eff}}} \Bigr)^{2}}_{V_K}
      \;\geq\;
-     \underbrace{\frac{\bigl( K + \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} \bigr)^{2}}{K^{2}\, \kappa_{\mathrm{target}}}}_{\tau_K}. \]
-  One ray never passes: $V_1 = 0 < \tau_1$.
+     \underbrace{\frac{\bigl( K + \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} \bigr)^{2}}{K^{2}\, \kappa_{\mathrm{target}}}}_{\tau_K}.$} \]
+  \tcblower One ray never passes: $V_1 = 0 < \tau_1$.
 \end{alertcard}
 \end{minipage}
 \end{textblock*}
 
-% ==== C2 (48.333-91.667): the evidence, Figure 1 (a) over Figure 1 (c), each rendered at 41.733 x 29.80 cm
+% ==== C2 (48.333-91.667): the evidence, Figure 1 (a) over Figure 1 (c), each rendered at 41.733 x 30.18 cm
 % and set at scale 1 (its text is the poster's 23.9 and 29.9 pt).
 \begin{textblock*}{\colw}(48.333cm,15.2cm)
 \begin{minipage}[t][\bodyheight][t]{\colw}
-\begin{card}[height=\bodyheight]{Kaplan law on RedPajama, first epoch}
+\begin{card}[height=\bodyheight, foot]{Kaplan law on RedPajama, first epoch}
   \includegraphics[width=41.733cm]{01_surface_Red_Pajama_Kaplan_First.pdf}\par
-  \includegraphics[width=41.733cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}\par
+  \includegraphics[width=41.733cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}\par\tcblower
   {\Sfive Paper Fig. 1a (top) and 1c (bottom). Top: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Bottom: induced isoFLOP curves, coloured by compute $C$ (CO dashed, NC solid). Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.\par}
 \end{card}
 \end{minipage}
@@ -173,11 +189,11 @@
   % Hero numbers on the half-width line, key numbers on four equal quarter steps.
   \vskip0.1cm
   \noindent\makebox[0.5\linewidth][l]{\parbox[t]{0.48\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{97.3\%}}\par FP32: 1,460/1,500}}%
-  \makebox[0.5\linewidth][l]{\parbox[t]{0.5\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{98.7\%}}\par BF16, Wikipedia: 296/300}}\par\vskip1.3cm
+  \makebox[0.5\linewidth][l]{\parbox[t]{0.5\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{98.7\%}}\par BF16, Wikipedia: 296/300}}\par\vskip1.8cm
   \noindent\makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries $\sim$1,900}\par LLaMA-style models}}%
   \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 4 $\times$ 5}\par laws $\times$ corpora}}%
   \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 5.04-76.5M}\par parameters}}%
-  \makebox[0.25\linewidth][l]{\parbox[t]{0.25\linewidth}{\raggedright{\Sthree\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{}\,/\,\NC{}}}\par\vskip1.3cm
+  \makebox[0.25\linewidth][l]{\parbox[t]{0.25\linewidth}{\raggedright{\Sthree\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{}\,/\,\NC{}}}\par\vskip1.6cm
   Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
 \end{alertcard}\cardgap
 \begin{card}{Holdout prediction}
@@ -189,6 +205,7 @@
   For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient~margin.
 \end{card}\cardgap
 \begin{card}{The threshold on published designs}
+  \opencorr{0.19}
   {\centering\begin{tabular}{@{}lrrr@{}}
     \toprule
     Design & $K$ & $R = k_K / k_1$ & $V_K / \tau_K$ \\
@@ -201,6 +218,7 @@
   At $\kappa_{\mathrm{target}} = 100$: 11 of 24 pass ($\geq 1$), 13 fail (all 6 collinear); our \CO{} fan: 0.40.
 \end{card}\cardgap
 \begin{card}{Design recipe}
+  \opencorr{-0.49}
   \begin{enumerate}
     \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
     \item Train on the two end ratios, runs split evenly, log-uniform \mbox{in $N$.}
@@ -209,11 +227,12 @@
   $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
 \end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
 \begin{alertcard}[last]{Takeaways}
+  \opencorr{-0.47}
   \begin{itemize}
     \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling~law.
     \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
   \end{itemize}
-  \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
+  \tcblower\textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
 \end{alertcard}
 \end{minipage}
 \end{textblock*}
@@ -221,17 +240,18 @@
 % ==== footer: C1 left at 3.000, references centred in C2, C3 right at 137.000
 \begin{textblock*}{134cm}(3cm,85.6cm)\noindent{\color{darkblue}\rule{134cm}{0.2cm}}\end{textblock*}
 % Funding: the paper's own acknowledgement sentence (src/ack.tex); references: the works the poster names.
-% Each footer block is centred vertically between the rule (85.80) and the 1.0 cm trim limit (89.00).
-\begin{textblock*}{\colw}(3cm,85.8cm)\parbox[c][3.2cm][c]{\colw}{\Sfive\raggedright\color{darkblue}
+% The footer blocks are top-aligned on one first baseline, the 3-line block centred between the rule (85.80)
+% and the 1.0 cm trim limit (89.00).
+\begin{textblock*}{\colw}(3cm,86.0cm)\parbox[t]{\colw}{\Sfive\raggedright\color{darkblue}
   \href{https://lab-v2.github.io/tpp-coverage/}{lab-v2.github.io/tpp-coverage}\par
   This research was funded by ARO grant W911NF-24-1-0007.\par}
 \end{textblock*}
-\begin{textblock*}{\colw}(48.333cm,85.8cm)\parbox[c][3.2cm][c]{\colw}{\Sfive\centering\color{darkblue}
+\begin{textblock*}{\colw}(48.333cm,86.0cm)\parbox[t]{\colw}{\Sfive\centering\color{darkblue}
   References: Kaplan et al.\ (2020), arXiv:2001.08361; Droppo and Elibol (2021),\\
   Interspeech; Hoffmann et al.\ (2022), NeurIPS; Muennighoff et al.\ (2025), JMLR;\\
   Bhagia et al.\ (2025), COLM; Magnusson et al.\ (2025), ICML.\par}
 \end{textblock*}
-\begin{textblock*}{\colw}(93.667cm,85.8cm)\parbox[c][3.2cm][c]{\colw}{\Sfive\raggedleft\color{darkblue}
+\begin{textblock*}{\colw}(93.667cm,86.0cm)\parbox[t]{\colw}{\Sfive\raggedleft\color{darkblue}
   NeurIPS 2026, Sydney \quad \href{https://arxiv.org/abs/2605.08541}{arXiv:2605.08541}\par
   \textsuperscript{$\|$}Equal contribution.\par
   \textsuperscript{$*$}This work does not relate to the author's position at Amazon.\par}

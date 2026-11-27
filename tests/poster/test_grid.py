@@ -397,7 +397,8 @@ def title_wrap_problems(cs: list[Rect], lines: list[Line]) -> list[str]:  # R11
     out = []
     for c in cs:
         mine = sorted((ln for ln in lines if inside(ln, c)), key=lambda ln: ln[1])
-        if len(mine) >= 2 and abs(mine[0][4] - 43.8) < 0.5 and abs(mine[1][4] - 43.8) < 0.5:
+        bold = len(mine) >= 2 and "Bold" in mine[1][5]  # a 44 pt display is not a title line
+        if bold and abs(mine[0][4] - 43.8) < 0.5 and abs(mine[1][4] - 43.8) < 0.5:
             if mine[1][1] - mine[0][1] < 2.2 and mine[1][0] > c[0] + PAD + 0.5:
                 out.append(f"title wraps: {mine[0][6]!r} / {mine[1][6]!r}")
     return out
@@ -468,4 +469,132 @@ def test_planted_r_gates() -> None:
         line(5.0, 15.8, 30, "Kaplan law on RedPajama", 43.8),
         line(10.0, 17.6, 10, "1a, 1c", 43.8),
     ]
+    title = [(*t[:5], "LMRoman10-Bold", t[6]) for t in title]
     assert title_wrap_problems([card], title)  # R11
+
+
+# --- review M3: card profiles (title-to-body gap, ink bottoms), footer baselines, legends ---------
+
+TITLE_GAP, TITLE_GAP_TOL = 0.70, 0.15
+BOTTOM_TOL = 0.15
+
+
+def _profile(args: tuple) -> tuple[float, float, float]:
+    """(title ink bottom, first body ink top, ink bottom) of one card (cm), from a raster."""
+    import numpy as np
+
+    img, card, dpi = args
+    per_cm = dpi / 2.54
+    a, b = int((card[0] + PAD) * per_cm), int((card[2] - PAD) * per_cm)
+    top, bottom = int((card[1] + 0.3) * per_cm), int((card[3] - 0.3) * per_cm)
+    sub = img[top:bottom, a:b].astype(int)
+    bg = np.median(sub.reshape(-1, 3), axis=0)
+    rows = np.nonzero((np.abs(sub - bg).sum(axis=2) > 40).any(axis=1))[0]
+    breaks = np.nonzero(np.diff(rows) > int(0.3 * per_cm))[0]
+    k = breaks[0] if len(breaks) else len(rows) - 1
+    first_body = rows[k + 1] if len(breaks) else rows[-1]
+    return ((top + rows[k]) / per_cm, (top + first_body) / per_cm, (top + rows[-1]) / per_cm)
+
+
+def card_profiles(img, cs: list[Rect], dpi: float) -> list[tuple[float, float, float]]:
+    """Profiles of all cards, one process per card (the cards are independent)."""
+    import os
+    from concurrent.futures import ProcessPoolExecutor
+
+    workers = min(len(cs), len(os.sched_getaffinity(0)))
+    with ProcessPoolExecutor(workers) as pool:
+        return list(pool.map(_profile, [(img, c, dpi) for c in cs]))
+
+
+def title_gap_problems(cs: list[Rect], profiles: list) -> list[str]:  # M3-7
+    return [
+        f"card {c}: title to body {p[1] - p[0]:.2f} cm, not {TITLE_GAP} +- {TITLE_GAP_TOL}"
+        for c, p in zip(cs, profiles)
+        if abs(p[1] - p[0] - TITLE_GAP) > TITLE_GAP_TOL
+    ]
+
+
+def ink_bottom_problems(cs: list[Rect], profiles: list) -> list[str]:  # M4-2
+    last: dict[float, float] = {}
+    for c, p in zip(cs, profiles):
+        if c[3] >= BODY_BOTTOM - 0.05:
+            last[c[0]] = p[2]
+    if len(last) != 3:
+        return [f"expected 3 column bottoms, found {last}"]
+    spread = max(last.values()) - min(last.values())
+    return (
+        []
+        if spread <= BOTTOM_TOL
+        else [f"column ink bottoms {sorted(last.values())} spread {spread:.2f}"]
+    )
+
+
+def footer_problems(lines: list[Line], tol: float = 0.10) -> list[str]:  # M3-8, M4-3
+    """Every footer line inside one column (or 3-137), and the three blocks' first baselines equal."""
+    foot = [ln for ln in lines if ln[1] > 85.8]
+    spans = [(EDGES[i], EDGES[i + 1]) for i in range(0, 6, 2)] + [(EDGES[0], EDGES[-1])]
+    out = [
+        f"footer line {ln[6][:25]!r} {ln[0]:.2f}-{ln[2]:.2f} crosses a gutter"
+        for ln in foot
+        if not any(a - tol <= ln[0] and ln[2] <= b + tol for a, b in spans[:3])
+    ]
+    firsts = []
+    for a, b in spans[:3]:
+        mine = [ln for ln in foot if a - tol <= ln[0] and ln[2] <= b + tol]
+        if mine:
+            firsts.append(min(ln[3] for ln in mine))
+    if len(firsts) != 3 or max(firsts) - min(firsts) > 0.05:
+        out.append(f"footer first lines end at {[round(f, 2) for f in firsts]}")
+    return out
+
+
+def hero_problems(lines: list[Line], tol: float = 0.10) -> list[str]:  # M3-6
+    x0 = EDGES[4] + PAD
+    q = (EDGES[5] - EDGES[4] - 2 * PAD) / 4
+    big = sorted(ln[0] for ln in lines if abs(ln[4] - 109.6) < 0.5)
+    keys = sorted(
+        ln[0] for ln in lines if abs(ln[4] - 43.8) < 0.5 and ln[0] > x0 - 0.1 and 20 < ln[1] < 30
+    )
+    keys = [k for i, k in enumerate(keys) if i == 0 or k - keys[i - 1] > 2.0]  # one per sub-column
+    out = []
+    if len(big) != 2 or abs(big[0] - x0) > tol or abs(big[1] - x0 - 2 * q) > tol:
+        out.append(f"hero numbers at {big}")
+    if len(keys) != 4 or any(abs(k - x0 - i * q) > tol for i, k in enumerate(keys)):
+        out.append(f"key numbers at {keys}")
+    return out
+
+
+def test_title_to_body_gap() -> None:
+    cs = cards()
+    assert title_gap_problems(cs, card_profiles(render(PDF, 100), cs, 100)) == []
+
+
+def test_column_ink_bottoms_equal() -> None:
+    cs = cards()
+    assert ink_bottom_problems(cs, card_profiles(render(PDF, 100), cs, 100)) == []
+
+
+def test_footer_on_the_grid() -> None:
+    assert footer_problems(text_lines()) == []
+
+
+def test_hero_sub_grid() -> None:
+    assert hero_problems(text_lines()) == []
+
+
+def test_planted_m3_gates() -> None:
+    card = (3.0, 15.2, 46.33, 40.0)
+    assert title_gap_problems([card], [(17.3, 18.9, 39.0)])  # 1.6 cm title to body
+    cs = [(3.0, 15.2, 46.33, 83.6), (48.33, 15.2, 91.67, 83.6), (93.67, 15.2, 137.0, 83.6)]
+    assert ink_bottom_problems(cs, [(0, 0, 82.8), (0, 0, 82.8), (0, 0, 81.1)])
+    ln = lambda x0, x1, y1, t: (x0, y1 - 0.9, x1, y1, 23.9, "LMRoman10-Regular", t)  # noqa: E731
+    good = [ln(3.0, 20, 86.9, "a b"), ln(55, 85, 86.9, "c d"), ln(120, 137, 86.9, "e f")]
+    assert not footer_problems(good)
+    assert footer_problems([ln(3.0, 20, 87.4, "a b")] + good[1:])  # first baselines differ
+    assert footer_problems(good + [ln(44.0, 96.0, 87.9, "refs across a gutter")])
+    hero = lambda xs: [(x, 23.3, x + 5, 24.6, 43.8, "LMRoman10-Bold", "1") for x in xs]  # noqa: E731
+    big = [
+        (94.47, 18, 106, 21, 109.6, "LMRoman10-Bold", "97.3%"),
+        (116.17, 18, 127, 21, 109.6, "LMRoman10-Bold", "98.7%"),
+    ]
+    assert hero_problems(big + hero([94.47, 104.9, 115.33, 125.77]))  # 98.7% 0.84 off the half line

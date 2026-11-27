@@ -91,3 +91,81 @@ def test_figure1_poster_style_draws_the_paper_data(
     # The comparison can fail: another combo's frozen data is refused.
     with pytest.raises((AssertionError, pytest.fail.Exception)):
         check_frozen(FROZEN / "figure1_04.json", observed)
+
+
+def legend_problems(fig, window_in=None, pad_cm: float = 0.2) -> list[str]:
+    """R6 / M4-1: every legend frame lies inside its own axes and at least pad_cm inside the saved
+    area (the whole canvas, or the crop window `window_in` in inches), so its frame is closed."""
+    from matplotlib.transforms import Bbox
+
+    fig.canvas.draw()
+    dpi = fig.dpi
+    if window_in is None:
+        area = fig.bbox
+    else:
+        area = Bbox.from_extents(*(v * dpi for v in window_in.extents))
+    pad = pad_cm / 2.54 * dpi
+    out = []
+    for ax in fig.axes:
+        leg = ax.get_legend()
+        if leg is None:
+            continue
+        b = leg.get_window_extent()
+        if not (
+            b.x0 >= ax.bbox.x0 and b.x1 <= ax.bbox.x1 and b.y0 >= ax.bbox.y0 and b.y1 <= ax.bbox.y1
+        ):
+            out.append(f"legend outside its axes: {b.extents} vs {ax.bbox.extents}")
+        if not (
+            b.x0 >= area.x0 + pad
+            and b.x1 <= area.x1 - pad
+            and b.y0 >= area.y0 + pad
+            and b.y1 <= area.y1 - pad
+        ):
+            out.append(
+                f"legend within {pad_cm} cm of the saved edge: {b.extents} vs {area.extents}"
+            )
+    return out
+
+
+def test_poster_legends_inside(data_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from matplotlib.figure import Figure
+
+    for key, value in (
+        ("PREFIX", "01_"),
+        ("DATASET", "Red Pajama"),
+        ("LAW", "Kaplan"),
+        ("MODE", "First"),
+    ):
+        monkeypatch.setenv(f"FIG1_{key}", value)
+    monkeypatch.setenv("FIG1_STYLE", "poster")
+    monkeypatch.setenv("TPP_DATA_ROOT", str(data_root))
+    found: dict[str, list[str]] = {}
+
+    def check(self, path, **kw):  # noqa: ANN001, ANN003, ANN202
+        name = Path(path).name
+        if name.endswith(".pdf") and ("surface" in name or "isoflop" in name):
+            window = kw.get("bbox_inches")
+            found[name] = legend_problems(self, window if window not in (None, "tight") else None)
+
+    monkeypatch.setattr(Figure, "savefig", check)
+    runpy.run_path(str(ANALYSIS / "visualizations/figure1_panels.py"), run_name="__main__")
+    assert len(found) == 2 and all(v == [] for v in found.values()), found
+
+
+def test_planted_legend_outside() -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(4, 3))
+    ax.plot([0, 1], [0, 1], label="a")
+    ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1.0))  # beside the axes
+    assert legend_problems(fig)
+    ax.legend(loc="upper left", borderaxespad=0)  # its frame on the axes edge: no 0.2 cm pad
+    assert legend_problems(
+        fig, window_in=ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    )
+    ax.legend(loc="center")
+    assert not legend_problems(fig)
+    plt.close(fig)
