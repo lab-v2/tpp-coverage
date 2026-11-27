@@ -159,7 +159,9 @@
     \end{columns}
     \vspace{5ex}
     \ifbeamercolorempty[bg]{headline rule}{}{
-      \begin{beamercolorbox}[wd=\paperwidth,colsep=0.5ex]{headline rule}\end{beamercolorbox}
+      % Local change (tpp-coverage poster): the rule stops 1.5 cm inside each edge, so nothing prints
+      % in the trim zone.
+      \moveright1.5cm\vbox{\begin{beamercolorbox}[wd=\dimexpr\paperwidth-3cm\relax,colsep=0.5ex]{headline rule}\end{beamercolorbox}}
     }
   \end{beamercolorbox}
 }
@@ -249,7 +251,8 @@
   \ifdefined\insertfootercontent
   \begin{beamercolorbox}[vmode]{headline}
     \ifbeamercolorempty[bg]{headline rule}{}{
-      \begin{beamercolorbox}[wd=\paperwidth,colsep=0.25ex]{headline rule}\end{beamercolorbox}
+      % Local change (tpp-coverage poster): 1.5 cm inside each edge, as the header rule.
+      \moveright1.5cm\vbox{\begin{beamercolorbox}[wd=\dimexpr\paperwidth-3cm\relax,colsep=0.25ex]{headline rule}\end{beamercolorbox}}
     }
     \vspace{1.5ex}
     \hspace{\sepwidth}

@@ -2,7 +2,7 @@
 
 The NeurIPS 2026 poster, 140 x 90 cm landscape (the NeurIPS maximum),
 built with the [gemini](https://github.com/anishathalye/gemini) beamerposter theme (vendored in
-`theme/` with its MIT licence). Every text, title and headings included, is set in Latin Modern Roman and
+`theme/` with its MIT licence; one local change, the inset rules). Every text, title and headings included, is set in Latin Modern Roman and
 the mathematics in Latin Modern Math, as LaTeX sets them; every font is embedded (no Type 3).
 
 `make` converts the SVG logos in `../images/` to PDF, draws the QR code of the project page, and
@@ -82,11 +82,15 @@ At 41.2 / 33 cm the surface's 3-D box prints about 18.8 cm wide and the isoFLOP 
 
 The footer carries the paper's funding sentence verbatim (`src/ack.tex`: "This research was funded by
 ARO grant W911NF-24-1-0007.") and a one-line reference list for the works the poster names (Kaplan et
-al. 2020, Droppo and Elibol 2021, Hoffmann et al. 2022, Bhagia et al. 2025, Magnusson et al. 2025, from
-the paper's `.bib`). Proofread on 2026-11-27 against the paper's `src/neurips2026_conference.tex`: title,
+al. 2020, Droppo and Elibol 2021, Hoffmann et al. 2022, Muennighoff et al. 2025, Bhagia et al. 2025,
+Magnusson et al. 2025, from the paper's `.bib`). Proofread on 2026-11-27 against the paper's `src/neurips2026_conference.tex`: title,
 the five authors in the OpenReview order, the equal-contribution and Amazon marks, both affiliations,
 and all 50 numbers in the poster source (each found verbatim in the paper's `.tex` sources).
 
-Final PDF (round 22): `tpp_neurips2026_poster.pdf`, sha256
-`e9be1107d87ed6827614f94beb386df103f1f84a1c6df41b16b68199c72424df`, 795 words; virtual PNG 4480 x 2880 px,
-1,507,928 bytes; thumbnail 320 x 206 px, 37,785 bytes (`build_stamp.txt`, gated in `tests/poster/`).
+Trim-safe without bleed: the header and footer rules stop 1.5 cm inside each edge (a local change to
+the vendored `theme/beamerthemegemini.sty`, marked in it), and `tests/poster/` fails on any ink, image or
+text within 1.0 cm of an edge (measured text margins: left 2.44, right 1.36, top 1.36, bottom 1.10 cm).
+
+Final PDF (round 23): `tpp_neurips2026_poster.pdf`, sha256
+`29b6a653eeba874636f75eabb6984782c2910b73a5aa46abfa1866d35e80a1df`, 800 words; virtual PNG 4480 x 2880 px,
+1,512,018 bytes; thumbnail 320 x 206 px, 38,007 bytes (`build_stamp.txt`, gated in `tests/poster/`).
