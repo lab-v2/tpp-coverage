@@ -1,4 +1,4 @@
-pdf_sha256 b6ab42ff1652d4cbaeaaffd4b7afda7da5a6d053db460ba26118cd220581a5f6
+pdf_sha256 50b3cfb5e0ad45ea114a31055ab904f9a976cf15fa9aa1768c26a2736f95c5c5
 overfull_vbox 0
-virtual_png 1518081 4480x2880
-thumbnail_png 38211 320x206
+virtual_png 1884416 4480x2880
+thumbnail_png 45516 320x206

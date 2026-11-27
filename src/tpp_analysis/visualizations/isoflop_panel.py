@@ -15,7 +15,6 @@ from collections.abc import Callable
 import numpy as np
 import panel_style as _panel_style
 
-POSTER_LEGEND_X = 1.42  # axes fraction: right of the colorbar and its label (poster render only)
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy.optimize import minimize_scalar
@@ -372,23 +371,27 @@ def draw_isoflop_panel(
         even = np.arange(np.ceil(log_c[0] * 2) / 2, log_c[-1] + 1e-9, 0.5)
         cbar.set_ticks(np.interp(even, log_c, np.arange(n_budgets) + 0.5))
         cbar.set_ticklabels([f"{v:.1f}" for v in even])
+        beside = _panel_style.TEXT_SCALE != 1  # the poster render
         cbar.ax.tick_params(
-            labelsize=fontsize - 4 * _panel_style.TEXT_SCALE, pad=12 * _panel_style.TEXT_SCALE
+            labelsize=_panel_style.TICK_LABEL_FS
+            if beside
+            else fontsize - 4 * _panel_style.TEXT_SCALE,
+            pad=12 * _panel_style.TEXT_SCALE,
         )
         cbar.set_label(r"$\log_{10} C$", fontsize=fontsize, labelpad=28 * _panel_style.TEXT_SCALE)
         if main_leg is not None:
             handles = main_leg.legend_handles
             labels = [t.get_text() for t in main_leg.get_texts()]
             main_leg.remove()
-            # The poster render (TEXT_SCALE below 1) puts the legend beside the colorbar, one column.
-            beside = _panel_style.TEXT_SCALE != 1
+            # The poster render (TEXT_SCALE below 1) puts the legend inside the axes, in the empty
+            # upper-right corner (large N, high loss), one column.
             ax.legend(
                 handles,
                 labels,
-                loc="center left" if beside else "upper center",
-                bbox_to_anchor=(POSTER_LEGEND_X, 0.5) if beside else (0.5, -0.25),
+                loc="upper right" if beside else "upper center",
+                bbox_to_anchor=(1.0, 1.0) if beside else (0.5, -0.25),
                 ncol=1 if beside else 2,
-                fontsize=0.8 * legend_fontsize,
+                fontsize=legend_fontsize if beside else 0.8 * legend_fontsize,
                 framealpha=LEGEND_ALPHA,
                 columnspacing=0.8,
                 handlelength=1.4,

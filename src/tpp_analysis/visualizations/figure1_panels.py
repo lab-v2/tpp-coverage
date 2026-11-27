@@ -128,10 +128,28 @@ TEXT_SCALE = (
     else 1
 )
 _panel_style.TEXT_SCALE = TEXT_SCALE
-POSTER_SURF_LEGEND_X = float(os.environ.get("FIG1_SURF_LEGEND_X", "1.25"))  # poster render only
+POSTER_SURF_LEGEND_X = float(os.environ.get("FIG1_SURF_LEGEND_X", "0.0"))  # poster render only
 # The poster keeps legend text at its 24 pt floor: legends shrink less than the rest.
 AXIS_LABEL_FS, TICK_LABEL_FS = 62 * TEXT_SCALE, 54 * TEXT_SCALE
 LEGEND_FS = 48 * TEXT_SCALE * (1 if TEXT_SCALE == 1 else 1.45)
+# The poster render is drawn at its printed size (one 43.3 cm poster column, text width 41.73 cm)
+# and set at scale 1, so its text uses the poster's type scale in PDF points: ticks 23.9, labels and
+# legends 29.9. TEXT_SCALE then sets only the point-sized gaps.
+POSTER = TEXT_SCALE != 1
+# The 3-D axes box in figure fractions (left, bottom, width, height) for the poster render.
+POSTER_SURF_BOX = [float(v) for v in os.environ.get("FIG1_SURF_BOX", "0.0,0.0,0.92,1.0").split(",")]
+# matplotlib leaves wide empty margins around a 3-D axes. The poster draws the 3-D panel on a
+# canvas POSTER_SURF_GROW times the printed size (text sizes are absolute, so they do not grow) and
+# saves the printed-size window centred at POSTER_SURF_CENTRE (canvas fractions) around the ink. The
+# 3-D view itself (projection, zoom, aspect) is the paper's, so the drawn data are identical.
+POSTER_SURF_GROW = float(os.environ.get("FIG1_SURF_GROW", "1.25"))
+POSTER_SURF_LEGEND_Y = float(os.environ.get("FIG1_SURF_LEGEND_Y", "0.93"))
+POSTER_SURF_CENTRE = [
+    float(v) for v in os.environ.get("FIG1_SURF_CENTRE", "0.4967,0.506").split(",")
+]
+POSTER_FIGSIZE = (41.733 / 2.54, 29.80 / 2.54)
+if POSTER:
+    AXIS_LABEL_FS, TICK_LABEL_FS, LEGEND_FS = 29.9, 23.9, 29.9
 _panel_style.AXIS_LABEL_FS, _panel_style.TICK_LABEL_FS = AXIS_LABEL_FS, TICK_LABEL_FS
 _panel_style.LEGEND_FS = LEGEND_FS
 from matplotlib.legend import Legend
@@ -441,8 +459,14 @@ SAVE_PAD_2D = 0.1
 # ══════════════════════════════════════════════════════════════
 # Canvas shapes chosen so the three panels print at one height at the paper's subfigure widths
 # (0.37, 0.30 and 0.30 of the text width).
-fig_surf = plt.figure(figsize=(SURF_W, SURF_H * 0.8))
+fig_surf = plt.figure(
+    figsize=tuple(v * POSTER_SURF_GROW for v in POSTER_FIGSIZE)
+    if POSTER
+    else (SURF_W, SURF_H * 0.8)
+)
 ax_surf = fig_surf.add_subplot(111, projection="3d")
+if POSTER:
+    ax_surf.set_position(POSTER_SURF_BOX)
 
 co_params = co_result["params"]
 nc_params = nc_result["params"]
@@ -604,8 +628,12 @@ for i in range(len(N_b)):
 # formatter, the same way N's "1e7" auto-offset reads.  labelpad bumped
 # from 10 → 18 so the axis names sit clear of the tick numbers.
 # Units in the labels (no "1e7" / "1e8" offset text, which collided with the ticks).
-ax_surf.set_xlabel(r"$N$ ($10^7$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=80 * TEXT_SCALE)
-ax_surf.set_ylabel(r"$D$ ($10^8$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=80 * TEXT_SCALE)
+ax_surf.set_xlabel(
+    r"$N$ ($10^7$)", fontsize=(1 if POSTER else 0.85) * AXIS_LABEL_FS, labelpad=80 * TEXT_SCALE
+)
+ax_surf.set_ylabel(
+    r"$D$ ($10^8$)", fontsize=(1 if POSTER else 0.85) * AXIS_LABEL_FS, labelpad=80 * TEXT_SCALE
+)
 # Smaller labelpad keeps the rotated "Loss" text inside the savefig bbox.
 # 'Loss' placed via text2D in axes-fraction coords - bypasses the 3-D
 # rotated-zlabel bbox quirk that was causing 'Loss' to get cropped by
@@ -643,10 +671,10 @@ _keep = [i for i, lab in enumerate(_l) if lab.startswith(("CO", "NC")) and "resi
 ax_surf.legend(
     [_h[i] for i in _keep],
     [_l[i] for i in _keep],
-    fontsize=LEGEND_FS * 0.8,
-    # The poster render puts the legend right of the 3-D box, one column.
-    loc="upper center" if TEXT_SCALE == 1 else "center left",
-    bbox_to_anchor=(0.5, -0.31) if TEXT_SCALE == 1 else (POSTER_SURF_LEGEND_X, 0.5),
+    fontsize=LEGEND_FS * (1 if POSTER else 0.8),
+    # The poster render puts the legend inside the panel, in its empty upper-left corner.
+    loc="upper center" if not POSTER else "upper left",
+    bbox_to_anchor=(0.5, -0.31) if not POSTER else (POSTER_SURF_LEGEND_X, POSTER_SURF_LEGEND_Y),
     ncol=2 if TEXT_SCALE == 1 else 1,
     columnspacing=0.8,
     handlelength=1.4,
@@ -657,7 +685,15 @@ _style_all_legends(ax_surf)
 
 for ext in ["pdf", "png"]:
     out = os.path.join(FIG_DIR, f"{OUT_PREFIX}surface_{base_tag}.{ext}")
-    fig_surf.savefig(out, dpi=DPI, bbox_inches="tight", pad_inches=SAVE_PAD_3D)
+    if POSTER:  # the printed size exactly: no tight box, transparent canvas
+        from matplotlib.transforms import Bbox
+
+        (fw, fh), (cx, cy) = fig_surf.get_size_inches(), POSTER_SURF_CENTRE
+        w, h = POSTER_FIGSIZE
+        window = Bbox.from_bounds(cx * fw - w / 2, cy * fh - h / 2, w, h)
+        fig_surf.savefig(out, dpi=DPI, transparent=True, bbox_inches=window, pad_inches=0)
+    else:
+        fig_surf.savefig(out, dpi=DPI, bbox_inches="tight", pad_inches=SAVE_PAD_3D)
     print(f"Saved: {out}")
 plt.show()
 plt.close(fig_surf)
@@ -807,8 +843,13 @@ plt.close(fig_conv)
 # ══════════════════════════════════════════════════════════════
 # PANEL C - IsoFLOP Curves (2-D)
 # ══════════════════════════════════════════════════════════════
-fig_iso = plt.figure(figsize=(PANEL_W, PANEL_H))
+fig_iso = plt.figure(
+    figsize=POSTER_FIGSIZE if POSTER else (PANEL_W, PANEL_H),
+    layout="constrained" if POSTER else None,
+)
 ax_iso = fig_iso.add_subplot(111)
+if POSTER:  # 0.30 cm free above the isoFLOP panel: the gap under the 3-D panel stacked above it
+    fig_iso.get_layout_engine().set(rect=(0, 0, 1, 1 - 0.30 / 29.80))
 
 iso_fits = [
     r
@@ -851,6 +892,9 @@ _style_all_legends(ax_iso)
 for ext in ["pdf", "png"]:
     out = os.path.join(FIG_DIR, f"{OUT_PREFIX}isoflop_{base_tag}.{ext}")
     # The legends sit outside the axes: list them so the tight box keeps their frames whole.
+    if POSTER:  # the printed size exactly: no tight box, transparent canvas
+        fig_iso.savefig(out, dpi=DPI, transparent=True)
+        continue
     fig_iso.savefig(
         out,
         dpi=DPI,
