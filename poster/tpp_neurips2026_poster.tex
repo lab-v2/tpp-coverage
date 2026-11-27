@@ -127,27 +127,19 @@
 \end{card}\cardgap
 \begin{card}{One ray is ill-conditioned}
   \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, \mbox{as $\varepsilon \to 0$} (Corollary 2: Gaussian noise, at least 5 sizes):\par\smallskip
-  \begin{columns}[c,onlytextwidth]
-    \begin{column}{0.54\linewidth}
-      \colorbox{lightblue}{\begin{minipage}{0.96\linewidth}\centering\Sfour
-    \abovedisplayskip=0.2em \belowdisplayskip=0.2em
-    \[ \kappa_{A,B} = \Theta(\varepsilon^{-2}) \]
-    \[ \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}) \]
-  \end{minipage}}
-    \end{column}
-    \begin{column}{0.44\linewidth}
-      \centering
-      \begin{tabular}{@{}l@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{}}
+  % The box at the text's left edge, the table flush right at its right edge; one aligned pair of "=".
+  \noindent\colorbox{lightblue}{\parbox[c]{25cm}{\centering\Sfour
+    \[ \begin{aligned} \kappa_{A,B} &= \Theta(\varepsilon^{-2}) \\
+       \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} &= \Omega(\varepsilon^{-1}) \end{aligned} \]}}\hfill
+  \parbox[c]{12.8cm}{\raggedleft\begin{tabular}{@{}l@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{}}
     \toprule
     Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
     \midrule
     Chinchilla & 0.06 & 17 & 278 \\
     Kaplan & 0.20 & 5\textsuperscript{$\dagger$} & 25 \\
     \bottomrule
-  \end{tabular}\par
-      {\Sfive\textsuperscript{$\dagger$}Schur floor.\par}
-    \end{column}
-  \end{columns}
+    \multicolumn{4}{@{}l}{\Sfive\textsuperscript{$\dagger$}Schur floor.}
+  \end{tabular}}
 \end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
 \begin{alertcard}[last]{TPP-diversity threshold}
   \statement{Proposition 1} Chinchilla and unsaturated repeated-data (Kaplan, Droppo-Elibol: a heuristic).
@@ -178,32 +170,22 @@
 \begin{minipage}[t][\bodyheight][t]{\colw}
 \setbox\colstack=\vbox{\hsize=\colw\linewidth=\colw
 \begin{alertcard}{\NC{} beats \CO{} on held-out runs}
-  \vskip0.3cm
-  \begin{columns}[t,onlytextwidth]
-    \begin{column}{0.48\linewidth}
-      \raggedright
-      {\Sone\bfseries\textcolor{accent}{97.3\%}}\par
-      FP32: 1,460/1,500
-    \end{column}
-    \begin{column}{0.48\linewidth}
-      \raggedright
-      {\Sone\bfseries\textcolor{accent}{98.7\%}}\par
-      BF16, Wikipedia: 296/300
-    \end{column}
-  \end{columns}\par\bigskip
-  \begin{columns}[t,onlytextwidth]% key numbers, one row of four
-    \begin{column}{0.25\linewidth}\raggedright{\Sthree\bfseries $\sim$1,900}\par LLaMA-style models\end{column}
-    \begin{column}{0.17\linewidth}\raggedright{\Sthree\bfseries 4 $\times$ 5}\par laws $\times$ corpora\end{column}
-    \begin{column}{0.25\linewidth}\raggedright{\Sthree\bfseries 5.04-76.5M}\par parameters\end{column}
-    \begin{column}{0.29\linewidth}\raggedright{\Sthree\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{} / \NC{}\end{column}
-  \end{columns}\par\bigskip
+  % Hero numbers on the half-width line, key numbers on four equal quarter steps.
+  \vskip0.1cm
+  \noindent\makebox[0.5\linewidth][l]{\parbox[t]{0.48\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{97.3\%}}\par FP32: 1,460/1,500}}%
+  \makebox[0.5\linewidth][l]{\parbox[t]{0.5\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{98.7\%}}\par BF16, Wikipedia: 296/300}}\par\vskip1.3cm
+  \noindent\makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries $\sim$1,900}\par LLaMA-style models}}%
+  \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 4 $\times$ 5}\par laws $\times$ corpora}}%
+  \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 5.04-76.5M}\par parameters}}%
+  \makebox[0.25\linewidth][l]{\parbox[t]{0.25\linewidth}{\raggedright{\Sthree\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{}\,/\,\NC{}}}\par\vskip1.3cm
   Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
 \end{alertcard}\cardgap
 \begin{card}{Holdout prediction}
   \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), i.i.d.\ Gaussian residuals of
   variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
   (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, \mbox{as $\varepsilon \to 0$:}
-  {\Sthree\[ \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr]. \]}%
+  % The display is set at 44 pt inside the math, so the paragraph keeps the body's 1.30 cm leading.
+  \[ \mbox{\Sthree$\displaystyle \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr].$} \]
   For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient~margin.
 \end{card}\cardgap
 \begin{card}{The threshold on published designs}
@@ -236,20 +218,23 @@
 \end{minipage}
 \end{textblock*}
 
-% ==== footer: C1 left at 3.000, references centred on x = 70 (44-96), C3 right at 137.000; two lines each
+% ==== footer: C1 left at 3.000, references centred in C2, C3 right at 137.000
 \begin{textblock*}{134cm}(3cm,85.6cm)\noindent{\color{darkblue}\rule{134cm}{0.2cm}}\end{textblock*}
 % Funding: the paper's own acknowledgement sentence (src/ack.tex); references: the works the poster names.
-\begin{textblock*}{\colw}(3cm,86.1cm)\Sfive\raggedright\color{darkblue}
+% Each footer block is centred vertically between the rule (85.80) and the 1.0 cm trim limit (89.00).
+\begin{textblock*}{\colw}(3cm,85.8cm)\parbox[c][3.2cm][c]{\colw}{\Sfive\raggedright\color{darkblue}
   \href{https://lab-v2.github.io/tpp-coverage/}{lab-v2.github.io/tpp-coverage}\par
-  This research was funded by ARO grant W911NF-24-1-0007.\par
+  This research was funded by ARO grant W911NF-24-1-0007.\par}
 \end{textblock*}
-\begin{textblock*}{52cm}(44cm,86.1cm)\Sfive\centering\color{darkblue}
-  References: Kaplan et al.\ (2020), arXiv:2001.08361; Droppo and Elibol (2021), Interspeech; Hoffmann et al.\ (2022), NeurIPS;\\
-  Muennighoff et al.\ (2025), JMLR; Bhagia et al.\ (2025), COLM; Magnusson et al.\ (2025), ICML.\par
+\begin{textblock*}{\colw}(48.333cm,85.8cm)\parbox[c][3.2cm][c]{\colw}{\Sfive\centering\color{darkblue}
+  References: Kaplan et al.\ (2020), arXiv:2001.08361; Droppo and Elibol (2021),\\
+  Interspeech; Hoffmann et al.\ (2022), NeurIPS; Muennighoff et al.\ (2025), JMLR;\\
+  Bhagia et al.\ (2025), COLM; Magnusson et al.\ (2025), ICML.\par}
 \end{textblock*}
-\begin{textblock*}{\colw}(93.667cm,86.1cm)\Sfive\raggedleft\color{darkblue}
+\begin{textblock*}{\colw}(93.667cm,85.8cm)\parbox[c][3.2cm][c]{\colw}{\Sfive\raggedleft\color{darkblue}
   NeurIPS 2026, Sydney \quad \href{https://arxiv.org/abs/2605.08541}{arXiv:2605.08541}\par
-  \textsuperscript{$\|$}Equal contribution. \quad \textsuperscript{$*$}This work does not relate to the author's position at Amazon.\par
+  \textsuperscript{$\|$}Equal contribution.\par
+  \textsuperscript{$*$}This work does not relate to the author's position at Amazon.\par}
 \end{textblock*}
 \end{frame}
 \end{document}

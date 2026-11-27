@@ -15,6 +15,7 @@ AXIS = 70.0
 TYPE_SCALE = (110.0, 90.0, 44.0, 30.0, 24.0)
 BODY_TOP, BODY_BOTTOM = 15.2, 83.6
 Rect = tuple[float, float, float, float]
+CARD_FILLS = ((243 / 255, 245 / 255, 249 / 255), (0.9098, 0.9569, 1.0))
 
 
 def cards(pdf: Path = PDF) -> list[Rect]:
@@ -31,7 +32,8 @@ def cards(pdf: Path = PDF) -> list[Rect]:
             and y0 >= BODY_TOP - 0.1
             and y1 <= BODY_BOTTOM + 0.1
         ):
-            if d["fill"] != (1.0, 1.0, 1.0):  # white figure canvases are not cards
+            # Only the two card colours (cardplain, cardalert): figure panes are not cards.
+            if any(all(abs(f - g) < 0.01 for f, g in zip(d["fill"], col)) for col in CARD_FILLS):
                 out.add((x0, y0, x1, y1))
     return sorted(out)
 
@@ -217,27 +219,99 @@ def slack_problems(cs: list[Rect], lines: list[Line]) -> list[str]:  # R2
     return out
 
 
-def empty_square_problems(img, cs: list[Rect], dpi: float) -> list[str]:  # R3
-    """Largest square of card-background pixels inside each card (raster, `img` an RGB array)."""
+def empty_band_problems(img, cs: list[Rect], dpi: float) -> list[str]:  # R3 (redefined, M3)
+    """(a) a band >= 3 cm tall empty across a card's full text width; (c) an empty rectangle >= 3 cm
+    tall and >= 40% of the text width wide inside the text area, where the space beside a single
+    centred line (a title, a display, a table) does not count: a row counts as empty on a side only
+    when its ink on that row is not centred on the card. (b), the figure slots, is gated by
+    figure_extent_problems."""
     import numpy as np
 
     per_cm = dpi / 2.54
     out = []
     for c in cs:
-        x0, y0, x1, y1 = (int(round(v * per_cm)) for v in c)
-        sub = img[y0 + 1 : y1 - 1, x0 + 1 : x1 - 1].astype(int)
-        bg = sub[2, 2]
-        empty = (np.abs(sub - bg).sum(axis=2) < 12).astype(np.int32)
-        # Largest all-empty square ending at each pixel (dynamic programme over rows).
-        best, prev = 0, np.zeros(empty.shape[1] + 1, dtype=np.int32)
-        for row in empty:
-            cur = np.zeros_like(prev)
-            for j in np.nonzero(row)[0]:
-                cur[j + 1] = 1 + min(prev[j], prev[j + 1], cur[j])
-            best = max(best, int(cur.max()))
-            prev = cur
-        if best / per_cm > EMPTY_CM:
-            out.append(f"card {c}: empty {best / per_cm:.1f} x {best / per_cm:.1f} cm area")
+        x0, x1 = (int(round((v) * per_cm)) for v in (c[0] + PAD, c[2] - PAD))
+        y0, y1 = (int(round(v * per_cm)) for v in (c[1] + PAD, c[3] - PAD))
+        sub = img[y0:y1, x0:x1].astype(int)
+        bg = img[int(round((c[1] + 0.3) * per_cm)), int(round((c[0] + 0.3) * per_cm))].astype(int)
+        ink = np.abs(sub - bg).sum(axis=2) >= 24
+        rows = ink.any(axis=1)
+        need = EMPTY_CM * per_cm
+        run = best = 0
+        for r in rows:
+            run = 0 if r else run + 1
+            best = max(best, run)
+        if best >= need:
+            out.append(f"card {c}: empty band {best / per_cm:.1f} cm tall across the text width")
+            continue
+        if (
+            abs(c[0] - EDGES[2]) < 0.01
+        ):  # the figure card: its slots are gated by figure_extent_problems
+            continue
+        width = ink.shape[1]
+        free = np.zeros(ink.shape, dtype=bool)  # empty cells that are not beside a centred line
+        for i, row in enumerate(ink):
+            xs = np.nonzero(row)[0]
+            if len(xs) == 0:
+                free[i] = True
+                continue
+            centred = abs((xs[0] + xs[-1]) / 2 - width / 2) < 0.5 * per_cm
+            if not centred:
+                free[i] = ~row
+                free[i, : xs[0]] = False  # text starts at the left edge: nothing free before it
+        # Columns of free cells: the tallest run per column, then the widest span of columns
+        # whose runs all reach 3 cm over a common window.
+        wide = int(0.4 * width)
+        for start in range(0, ink.shape[0] - int(need) + 1, max(1, int(per_cm // 2))):
+            window = free[start : start + int(need)].all(axis=0)
+            run = longest = 0
+            for v in window:
+                run = run + 1 if v else 0
+                longest = max(longest, run)
+            if longest >= wide:
+                out.append(f"card {c}: empty {longest / per_cm:.1f} x {EMPTY_CM} cm area")
+                break
+    return out
+
+
+def figure_inks(img, card: Rect, dpi: float) -> list[tuple[float, float, float, float]]:
+    """Ink boxes (cm) of the figures in the figure card, split at the widest empty band."""
+    import numpy as np
+
+    per_cm = dpi / 2.54
+    x0, x1 = int(card[0] * per_cm) + 2, int(card[2] * per_cm) - 2
+    top, bottom = (
+        int((card[1] + 3.0) * per_cm),
+        int((card[3] - 4.0) * per_cm),
+    )  # below the title, above the caption
+    bg = img[int((card[1] + 0.3) * per_cm), int((card[0] + 0.3) * per_cm)].astype(int)
+    ink = np.abs(img[top:bottom, x0:x1].astype(int) - bg).sum(axis=2) >= 24
+    rows = np.nonzero(ink.any(axis=1))[0]
+    gaps = np.diff(rows)
+    k = int(np.argmax(gaps))
+    out = []
+    for a, b in ((rows[0], rows[k]), (rows[k + 1], rows[-1])):
+        cols = np.nonzero(ink[a : b + 1].any(axis=0))[0]
+        out.append(
+            (
+                (x0 + cols[0]) / per_cm,
+                (top + a) / per_cm,
+                (x0 + cols[-1]) / per_cm,
+                (top + b) / per_cm,
+            )
+        )
+    return out
+
+
+def figure_extent_problems(inks: list, tol: float = 0.5) -> list[str]:  # R3 (b), R7, M3-2, M3-3
+    left, right = EDGES[2] + PAD, EDGES[3] - PAD
+    out = [
+        f"figure ink {f[0]:.2f}-{f[2]:.2f}, not the text width {left:.2f}-{right:.2f}"
+        for f in inks
+        if abs(f[0] - left) > tol or abs(f[2] - right) > tol
+    ]
+    if len(inks) == 2 and abs(inks[1][1] - inks[0][3] - 1.0) > 0.3:
+        out.append(f"gap between the figures {inks[1][1] - inks[0][3]:.2f} cm, not 1.0 +- 0.3")
     return out
 
 
@@ -333,8 +407,13 @@ def test_card_slack_under_3_cm() -> None:
     assert slack_problems(cards(), text_lines()) == []
 
 
-def test_no_empty_3_cm_square_in_a_card() -> None:
-    assert empty_square_problems(render(PDF, 20), cards(), 20) == []
+def test_no_empty_band_or_area_in_a_card() -> None:
+    assert empty_band_problems(render(PDF, 20), cards(), 20) == []
+
+
+def test_figures_span_the_text_width_one_cm_apart() -> None:
+    fig = next(c for c in cards() if c[0] == 48.33)
+    assert figure_extent_problems(figure_inks(render(PDF, 50), fig, 50)) == []
 
 
 def test_all_text_on_the_type_scale() -> None:
@@ -364,7 +443,18 @@ def test_planted_r_gates() -> None:
     line = lambda x, y, w, text, size=29.9: (x, y, x + w, y + 1.0, size, "LMRoman10-Regular", text)  # noqa: E731
     assert slack_problems([card], [line(3.8, 16.0, 30, "only one line")])  # R2
     img = np.full((int(90 * 20 / 2.54), int(140 * 20 / 2.54), 3), 240, dtype=np.uint8)
-    assert empty_square_problems(img, [card], 20)  # R3
+    assert empty_band_problems(img, [card], 20)  # R3 (a): an empty card
+    px = 20 / 2.54
+    img[int(16 * px) : int(39 * px), int(3.8 * px) : int(20 * px)] = 0  # left side full height
+    img[int(16 * px) : int(30 * px), int(25 * px) : int(45.5 * px)] = 0  # right side 9 cm shorter
+    assert any("area" in p for p in empty_band_problems(img, [card], 20))  # R3 (c)
+    assert figure_extent_problems(
+        [(49.1, 18, 90.9, 46), (49.1, 49.5, 90.9, 78)]
+    )  # R3 (b): 3.5 cm gap
+    assert figure_extent_problems(
+        [(53.5, 18, 86.3, 46), (49.1, 47, 90.9, 78)]
+    )  # Fig 1a narrower (R7)
+    assert not figure_extent_problems([(49.2, 18, 90.8, 46), (49.2, 47.1, 90.8, 78)])
     assert all_size_problems([29.9, 34.5])  # R4
     assert not all_size_problems([29.9, 20.9, 16.7])
     assert short_line_problems([card], [line(3.8, 20.0, 1.2, "N.")])  # R8

@@ -138,6 +138,15 @@ LEGEND_FS = 48 * TEXT_SCALE * (1 if TEXT_SCALE == 1 else 1.45)
 POSTER = TEXT_SCALE != 1
 # The 3-D axes box in figure fractions (left, bottom, width, height) for the poster render.
 POSTER_SURF_BOX = [float(v) for v in os.environ.get("FIG1_SURF_BOX", "0.0,0.0,0.92,1.0").split(",")]
+# matplotlib leaves wide empty margins around a 3-D axes. The poster draws the 3-D panel on a
+# canvas POSTER_SURF_GROW times the printed size (text sizes are absolute, so they do not grow) and
+# saves the printed-size window centred at POSTER_SURF_CENTRE (canvas fractions) around the ink. The
+# 3-D view itself (projection, zoom, aspect) is the paper's, so the drawn data are identical.
+POSTER_SURF_GROW = float(os.environ.get("FIG1_SURF_GROW", "1.25"))
+POSTER_SURF_LEGEND_Y = float(os.environ.get("FIG1_SURF_LEGEND_Y", "0.93"))
+POSTER_SURF_CENTRE = [
+    float(v) for v in os.environ.get("FIG1_SURF_CENTRE", "0.4967,0.506").split(",")
+]
 POSTER_FIGSIZE = (41.733 / 2.54, 29.80 / 2.54)
 if POSTER:
     AXIS_LABEL_FS, TICK_LABEL_FS, LEGEND_FS = 29.9, 23.9, 29.9
@@ -450,7 +459,11 @@ SAVE_PAD_2D = 0.1
 # ══════════════════════════════════════════════════════════════
 # Canvas shapes chosen so the three panels print at one height at the paper's subfigure widths
 # (0.37, 0.30 and 0.30 of the text width).
-fig_surf = plt.figure(figsize=POSTER_FIGSIZE if POSTER else (SURF_W, SURF_H * 0.8))
+fig_surf = plt.figure(
+    figsize=tuple(v * POSTER_SURF_GROW for v in POSTER_FIGSIZE)
+    if POSTER
+    else (SURF_W, SURF_H * 0.8)
+)
 ax_surf = fig_surf.add_subplot(111, projection="3d")
 if POSTER:
     ax_surf.set_position(POSTER_SURF_BOX)
@@ -661,7 +674,7 @@ ax_surf.legend(
     fontsize=LEGEND_FS * (1 if POSTER else 0.8),
     # The poster render puts the legend inside the panel, in its empty upper-left corner.
     loc="upper center" if not POSTER else "upper left",
-    bbox_to_anchor=(0.5, -0.31) if not POSTER else (POSTER_SURF_LEGEND_X, 1.0),
+    bbox_to_anchor=(0.5, -0.31) if not POSTER else (POSTER_SURF_LEGEND_X, POSTER_SURF_LEGEND_Y),
     ncol=2 if TEXT_SCALE == 1 else 1,
     columnspacing=0.8,
     handlelength=1.4,
@@ -673,7 +686,12 @@ _style_all_legends(ax_surf)
 for ext in ["pdf", "png"]:
     out = os.path.join(FIG_DIR, f"{OUT_PREFIX}surface_{base_tag}.{ext}")
     if POSTER:  # the printed size exactly: no tight box, transparent canvas
-        fig_surf.savefig(out, dpi=DPI, transparent=True)
+        from matplotlib.transforms import Bbox
+
+        (fw, fh), (cx, cy) = fig_surf.get_size_inches(), POSTER_SURF_CENTRE
+        w, h = POSTER_FIGSIZE
+        window = Bbox.from_bounds(cx * fw - w / 2, cy * fh - h / 2, w, h)
+        fig_surf.savefig(out, dpi=DPI, transparent=True, bbox_inches=window, pad_inches=0)
     else:
         fig_surf.savefig(out, dpi=DPI, bbox_inches="tight", pad_inches=SAVE_PAD_3D)
     print(f"Saved: {out}")
@@ -830,6 +848,8 @@ fig_iso = plt.figure(
     layout="constrained" if POSTER else None,
 )
 ax_iso = fig_iso.add_subplot(111)
+if POSTER:  # 0.30 cm free above the isoFLOP panel: the gap under the 3-D panel stacked above it
+    fig_iso.get_layout_engine().set(rect=(0, 0, 1, 1 - 0.30 / 29.80))
 
 iso_fits = [
     r
