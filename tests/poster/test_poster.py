@@ -512,8 +512,8 @@ def test_planted_high_logo(tmp_path: Path) -> None:
 # The two figures the owner chose: the paper's Figure 1 (a) and (c), rendered poster-sized by
 # figure1_panels.py (FIG1_STYLE=poster; owner's decision of 2026-11-27). Pinned by content.
 PAPER_FIGURES = {
-    "01_surface_Red_Pajama_Kaplan_First.pdf": "d8d81fd530f5ca1748e9d3d80c9a8bec1dd31a1c187ba5da3eb5e1cb49e44c61",
-    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "4ed411f02630b0322b2b30c95ec54e2a40c9f24c7d8c5abf63ba0331eec5c75c",
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "4438df50ee6cfc708bf71eea621c35106568e90601a6e0fee7c71eb18712d572",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "2e3b1e765e215b20647b57f03cb7f12c988b4976272535fd174b61d5b64c51f7",
 }
 MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
 

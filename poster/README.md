@@ -15,10 +15,10 @@ The poster shows only the paper's own figures, Figure 1 (a), the loss surface, a
 induced isoFLOP curves (Kaplan law on RedPajama, first epoch), as poster renders from the paper's own
 code and the same released data. `src/tpp_analysis/visualizations/figure1_panels.py` with
 `FIG1_STYLE=poster` draws each panel at its printed size, 41.733 x 30.18 cm (one column's text
-width; the 3-D panel is drawn on a canvas 1.25 times that and saved as the printed-size window
+width; the 3-D panel is drawn on a canvas 1.12 times that and saved as the printed-size window
 around its ink, with the paper's 3-D view), with a transparent canvas, ticks at 23.9 pt, axis labels and legends at 29.9 pt, and the
-legends inside the axes and at least 0.2 cm inside the saved figure (Fig. 1a upper left, Fig. 1c
-upper right). The poster sets them at scale 1.00.
+legends inside the axes and at least 0.2 cm inside the saved figure (Fig. 1a in one column in the empty top-left corner, clear of the 3-D box by at least 0.2 cm;
+Fig. 1c upper right, inside its axes frame). The poster sets them at scale 1.00.
 The paper style is unchanged; `tests/tpp_analysis/visualizations/test_characterize_figure1_panels.py`
 proves both styles draw the same data. Regenerate with `TPP_DATA_ROOT=<released data root>
 FIG1_STYLE=poster FIG1_TEXT_SCALE=0.45 uv run python src/tpp_analysis/visualizations/figure1_panels.py`

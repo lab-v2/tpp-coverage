@@ -58,7 +58,13 @@
 % A card: fill across the column(s), 0.80 padding, title centred, body ragged right.
 \tcbset{cardbase/.style={enhanced, colframe=white, boxrule=0pt, arc=0pt, boxsep=0pt, left=0.8cm, right=0.8cm,
   top=0.8cm, bottom=0.8cm, before skip=0pt, after skip=0pt}}
-\newcommand{\cardhead}[1]{\Sfour\parskip=0.25em{\centering\Sthree\bfseries\color{darkblue}#1\par}\vskip0.2em\RaggedRight}
+\newlength{\dispskip}\setlength{\dispskip}{0.52cm}% one display skip, poster-wide
+% A body-size display sits on the line grid (baselineskip), a 44 pt one does not (lineskip): the
+% body-size ones take 0.25 cm less skip, so every display's ink is 0.5 cm from its neighbours.
+\newcommand{\bodydisplays}{\abovedisplayskip=\dimexpr\dispskip-0.25cm\relax \belowdisplayskip=\abovedisplayskip
+  \abovedisplayshortskip=\abovedisplayskip \belowdisplayshortskip=\abovedisplayskip}
+\newcommand{\cardhead}[1]{\Sfour\abovedisplayskip=\dispskip \belowdisplayskip=\dispskip
+  \abovedisplayshortskip=\dispskip \belowdisplayshortskip=\dispskip\parskip=0.25em{\centering\Sthree\bfseries\color{darkblue}#1\par}\vskip0.2em\RaggedRight}
 \newtcolorbox{card}[2][]{cardbase, colback=cardplain, before upper={\cardhead{#2}}, #1}
 \newtcolorbox{alertcard}[2][]{cardbase, colback=cardalert, before upper={\cardhead{#2}}, #1}
 % Title to body: a card opening with a list, a display or a table starts with that element's own
@@ -67,6 +73,9 @@
 \newcommand{\opencorr}[1]{\vskip#1cm\relax}
 % The 1.00 cm between stacked cards.
 \newcommand{\cardgap}{\par\vskip1cm}
+% The hero card's two internal gaps: a base gap plus C3's spare height, split equally;
+% \herodelta evens the ink gaps (the key numbers' 44 pt ascent against the body's).
+\newlength{\herogap}\newlength{\herobase}\setlength{\herobase}{0.5cm}\newlength{\herodelta}\setlength{\herodelta}{0cm}
 \newlength{\bodyheight}\setlength{\bodyheight}{68.4cm}
 % Column width (134 - 2 x 2) / 3; card text width 41.733.
 \newlength{\colw}\setlength{\colw}{43.333cm}
@@ -78,7 +87,10 @@
 \tcbset{last/.style={height=\restheight, foot}}% \tcbset{last/.style={}} gives the natural heights
 % A column: its stacked cards, then a last card that takes the rest of the body height.
 \newsavebox{\colstack}
-\newsavebox{\kappatab}
+\newsavebox{\kappatab}\newsavebox{\kappaeq}\newlength{\kappah}
+% The table's last row carries a strut below the note's baseline; taking it back puts the note's
+% ink on the box's bottom edge.
+\newlength{\kappanote}\setlength{\kappanote}{0.3cm}
 \newlength{\restheight}
 \newcommand{\measurestack}[1]{\setlength{\restheight}{\dimexpr\bodyheight-\ht#1-\dp#1-1cm\relax}}
 
@@ -124,22 +136,25 @@
   \end{itemize}
 \end{card}\cardgap
 \begin{card}{The law and one ray}
-  \opencorr{-0.81}
-  \[ \mbox{\Sthree$\displaystyle L(N, D) = A N^{-\alpha} + B D^{-\beta} + E$} \]
+  \opencorr{-1.41}\bodydisplays
+  \[ L(N, D) = A N^{-\alpha} + B D^{-\beta} + E \]
   On a ray $D = kN$ with $\beta = \alpha$, the reduced model is
-  \[ \mbox{\Sthree$\displaystyle L(N; \psi, \alpha, E) = \psi N^{-\alpha} + E, \qquad \psi := A + B k^{-\alpha}.$} \]
+  \[ L(N; \psi, \alpha, E) = \psi N^{-\alpha} + E, \qquad \psi := A + B k^{-\alpha}. \]
   One ray pins down $\psi$, not $A$ and $B$: a ``sloppy'' model. Gap $\varepsilon := |\alpha - \beta|$.
 \end{card}\cardgap
 \begin{card}{Gauss-Newton conditioning}
-  \opencorr{-0.80}
-  \[ S(\symbf{\theta}) = \tfrac{1}{2} \lVert \symbfup{r}(\symbf{\theta}) \rVert^2, \quad
-     J_{ij} = \frac{\partial r_i}{\partial \theta_j}, \quad (J^\top J)\, \Delta\symbf{\theta} = -J^\top \symbfup{r} \]
+  \opencorr{-1.26}\belowdisplayskip=\dimexpr\dispskip-0.16cm\relax \belowdisplayshortskip=\belowdisplayskip% its second line sits on the line grid
+  \[ \begin{gathered} S(\symbf{\theta}) = \tfrac{1}{2} \lVert \symbfup{r}(\symbf{\theta}) \rVert^2, \quad
+     J_{ij} = \frac{\partial r_i}{\partial \theta_j} \\[0.4cm]
+     (J^\top J)\, \Delta\symbf{\theta} = -J^\top \symbfup{r} \end{gathered} \]
+  % (One display of two lines, the normal equations on the second: C1 is full, and two stacked
+  % displays would put both their skips between them.)
   Scale pair: $\kappa_{A,B} := \kappa\bigl((J^\top J)_{A,B}\bigr)$. On a ray, up to sign, $j_A = N^{-\alpha}$ and
   $j_B = k^{-\beta} N^{-\beta}$: nearly parallel for small $\varepsilon$.
 \end{card}\cardgap
 \begin{card}{One ray is ill-conditioned}
   \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, \mbox{as $\varepsilon \to 0$} (Corollary 2: Gaussian noise, at least 5 sizes):\par\smallskip
-  % The kappa box and the table as one centred unit, the box given the table's height so their
+  % The kappa result (44 pt) in its box and the table as one centred unit of one height, so their
   % tops and bottoms align; one aligned pair of "=".
   \sbox{\kappatab}{\begin{tabular}{@{}l@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{}}
     \toprule
@@ -150,11 +165,13 @@
     \bottomrule
     \multicolumn{4}{@{}l}{\Sfive\textsuperscript{$\dagger$}Schur floor.}
   \end{tabular}}%
-  {\centering\setlength{\fboxsep}{0pt}%
-  \colorbox{lightblue}{\parbox[c][\dimexpr\ht\kappatab+\dp\kappatab\relax][c]{12cm}{\centering\Sfour
-    \[ \begin{aligned} \kappa_{A,B} &= \Theta(\varepsilon^{-2}) \\
-       \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} &= \Omega(\varepsilon^{-1}) \end{aligned} \]}}\hspace{2cm}%
-  \parbox[c]{\wd\kappatab}{\usebox{\kappatab}}\par}
+  \sbox{\kappaeq}{\Sthree$\displaystyle \begin{aligned} \kappa_{A,B} &= \Theta(\varepsilon^{-2}) \\
+       \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} &= \Omega(\varepsilon^{-1}) \end{aligned}$}%
+  % One height for both: the table's, from its top rule to the note's baseline strut.
+  \setlength{\kappah}{\dimexpr\ht\kappatab+\dp\kappatab-\kappanote\relax}%
+  \par\smallskip{\centering\setlength{\fboxsep}{0pt}%
+  \colorbox{lightblue}{\parbox[c][\kappah][c]{\dimexpr\wd\kappaeq+2.4cm\relax}{\centering\usebox{\kappaeq}}}\hspace{2cm}%
+  \parbox[c][\kappah][s]{\wd\kappatab}{\vfill\usebox{\kappatab}\par\vskip-\kappanote}\par}
 \end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
 \begin{alertcard}[last]{TPP-diversity threshold}
   \statement{Proposition 1} Chinchilla and unsaturated repeated-data (Kaplan, Droppo-Elibol: a heuristic).
@@ -184,16 +201,18 @@
 % ==== C3 (93.667-137.000): the results and how to use them
 \begin{textblock*}{\colw}(93.667cm,15.2cm)
 \begin{minipage}[t][\bodyheight][t]{\colw}
-\setbox\colstack=\vbox{\hsize=\colw\linewidth=\colw
+% C3's spare height goes only into the hero card's two internal gaps, equally: the column is set once
+% with no spare (\herogap = 0) to measure it, then again with the spare split between the gaps.
+\newcommand{\Cthreecards}{%
 \begin{alertcard}{\NC{} beats \CO{} on held-out runs}
   % Hero numbers on the half-width line, key numbers on four equal quarter steps.
   \vskip0.1cm
   \noindent\makebox[0.5\linewidth][l]{\parbox[t]{0.48\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{97.3\%}}\par FP32: 1,460/1,500}}%
-  \makebox[0.5\linewidth][l]{\parbox[t]{0.5\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{98.7\%}}\par BF16, Wikipedia: 296/300}}\par\vskip1.8cm
+  \makebox[0.5\linewidth][l]{\parbox[t]{0.5\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{98.7\%}}\par BF16, Wikipedia: 296/300}}\par\vskip\dimexpr\herobase+\herogap\relax
   \noindent\makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries $\sim$1,900}\par LLaMA-style models}}%
   \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 4 $\times$ 5}\par laws $\times$ corpora}}%
   \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 5.04-76.5M}\par parameters}}%
-  \makebox[0.25\linewidth][l]{\parbox[t]{0.25\linewidth}{\raggedright{\Sthree\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{}\,/\,\NC{}}}\par\vskip1.6cm
+  \makebox[0.25\linewidth][l]{\parbox[t]{0.25\linewidth}{\raggedright{\Sthree\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{}\,/\,\NC{}}}\par\vskip\dimexpr\herobase+\herogap-\herodelta\relax
   Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
 \end{alertcard}\cardgap
 \begin{card}{Holdout prediction}
@@ -225,15 +244,19 @@
     \item Check the exact $\kappa_{A,B}$ before training.
   \end{enumerate}
   $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
-\end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
-\begin{alertcard}[last]{Takeaways}
+\end{card}\cardgap
+\begin{alertcard}{Takeaways}
   \opencorr{-0.47}
   \begin{itemize}
     \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling~law.
     \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
   \end{itemize}
-  \tcblower\textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
+  \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
 \end{alertcard}
+}%
+\setlength{\herogap}{0pt}\setbox\colstack=\vbox{\hsize=\colw\linewidth=\colw\Cthreecards}%
+\setlength{\herogap}{\dimexpr(\bodyheight-\ht\colstack-\dp\colstack)/2\relax}%
+\Cthreecards
 \end{minipage}
 \end{textblock*}
 
