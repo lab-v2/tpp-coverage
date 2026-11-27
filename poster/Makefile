@@ -11,7 +11,7 @@ export TEXINPUTS := $(CURDIR)/theme//:$(CURDIR)/build/assets//:$(CURDIR)/figures
 $(NAME).pdf: $(NAME).tex $(LOGOS) build/assets/qr_project_page.pdf $(wildcard theme/*.sty) $(wildcard figures/*.pdf)
 	latexmk -xelatex -interaction=nonstopmode -halt-on-error -outdir=build $<
 	cp build/$@ $@
-	rm -f build/$(NAME)_virtual.png build/$(NAME)_thumbnail.png && $(MAKE) --no-print-directory png
+	rm -f build/$(NAME)_virtual.png build/$(NAME)_thumbnail.png && $(MAKE) --no-print-directory -o $(NAME).pdf png
 
 build/assets/%.pdf: ../images/%.svg
 	mkdir -p build/assets && uvx --quiet cairosvg $< -o $@
