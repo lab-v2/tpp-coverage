@@ -365,7 +365,7 @@ def draw_isoflop_panel(
         log_c = np.log10(np.asarray(flop_budgets, dtype=float))
         mappable = ScalarMappable(norm=Normalize(0, n_budgets), cmap=ListedColormap(list(colors)))
         cbar = ax.figure.colorbar(mappable, ax=ax, orientation="vertical", pad=0.02, fraction=0.04)
-        # The caption names the colour scale (log10 C, C = 6ND); a label would not fit beside it.
+        cbar.set_label(r"$\log_{10} C$", fontsize=fontsize, labelpad=6)
         idx = sorted({0, n_budgets // 3, (2 * n_budgets) // 3, n_budgets - 1})
         cbar.set_ticks([i + 0.5 for i in idx])
         cbar.set_ticklabels([f"{log_c[i]:.1f}" for i in idx])
