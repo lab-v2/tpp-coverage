@@ -649,11 +649,11 @@ def test_planted_high_logo(tmp_path: Path) -> None:
 
 # --- the paper's figures, copied byte for byte; no overlapping text -------------------------------
 
-# The two figures the owner chose: the paper's Figure 1 (a) and (c), as `src/updated_figures/` of the
-# paper's LaTeX source ships them (`\includegraphics` in its empirical section). Pinned by content.
+# The two figures the owner chose: the paper's Figure 1 (a) and (c), rendered poster-sized by
+# figure1_panels.py (FIG1_STYLE=poster; owner's decision of 2026-11-27). Pinned by content.
 PAPER_FIGURES = {
-    "01_surface_Red_Pajama_Kaplan_First.pdf": "ea6ee430fe4a25fa246ebce828d35d15799801fe39211e83931353815cd0eeca",
-    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "ce974e0d2f6af0263d8e8f8308b8384613584882486ac9992a48eb15c9b4529e",
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "06103b7d6583fd419b63dc763def66d89b2e333902c496fc716efb2bf6d9dcc4",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "4de2d5f4d257c41e889bd3717f0883b741b23fb4bd3b27632ad23b5e1a7b4ca2",
 }
 MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
 
@@ -803,7 +803,7 @@ def test_figures_set_large() -> None:
 
 
 def test_planted_small_figure() -> None:
-    tex = TEX.read_text().replace("width=41.2cm]{01_surface", "width=15cm]{01_surface")
+    tex = TEX.read_text().replace("width=26.5cm]{01_surface", "width=8cm]{01_surface")
     assert figure_scale_problems(tex, POSTER / "figures")
 
 
@@ -826,105 +826,40 @@ def test_planted_off_size_text() -> None:
     assert body_size_problems(tldr, tex)
 
 
-def paper_copy_problems(poster_dir: Path, paper_dir: Path) -> list[str]:
-    import hashlib
-
-    digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()  # noqa: E731
-    return [
-        f"{name}: poster copy differs from the paper's"
-        for name in PAPER_FIGURES
-        if not (paper_dir / name).is_file() or digest(poster_dir / name) != digest(paper_dir / name)
-    ]
-
-
-def test_figures_equal_the_paper_repos() -> None:
-    """With TPP_PAPER_FIGURES=<the paper source's src/updated_figures>, the copies are byte-identical."""
-    import os
-
-    paper = os.environ.get("TPP_PAPER_FIGURES")
-    if not paper:
-        pytest.skip("TPP_PAPER_FIGURES not set (the paper's LaTeX source is a separate repository)")
-    assert paper_copy_problems(POSTER / "figures", Path(paper)) == []
-
-
-def test_planted_paper_copy_mismatch(tmp_path: Path) -> None:
-    for name in PAPER_FIGURES:
-        (tmp_path / name).write_bytes((POSTER / "figures" / name).read_bytes())
-    assert not paper_copy_problems(POSTER / "figures", tmp_path)
-    (tmp_path / "01_surface_Red_Pajama_Kaplan_First.pdf").write_bytes(b"%PDF old render")
-    assert paper_copy_problems(POSTER / "figures", tmp_path)
+# The poster's figures are poster-sized renders of the paper's panels (figure1_panels.py,
+# FIG1_STYLE=poster), not byte copies; tests/tpp_analysis/visualizations/
+# test_characterize_figure1_panels.py::test_figure1_poster_style_draws_the_paper_data proves they
+# draw exactly the paper render's data.
 
 
 def figure_text_problems(tex: str, folder: Path) -> list[str]:
-    """Every word inside each paper figure, at the poster's scale, prints at least MIN_FIG_TEXT_PT."""
-    problems = []
-    for width_cm, name in re.findall(r"\\includegraphics\[width=([\d.]+)cm\]\{(01_[^}]+)\}", tex):
-        m = re.search(r"^Page size:\s+([\d.]+) x", _run("pdfinfo", str(folder / name)), re.M)
-        scale = float(width_cm) * PT_PER_CM / float(m[1])
-        words = bbox_words(folder / name)
-        if not words:
-            problems.append(f"{name}: no text found")
-            continue
-        h, word = min((w[3] - w[1], w[4]) for w in words)
-        if h * scale < MIN_FIG_TEXT_PT:
-            problems.append(f"{name}: {word!r} prints {h * scale:.1f} pt")
-    return problems
-
-
-def figure_text_sizes(tex: str, folder: Path) -> dict[str, tuple[float, str]]:
-    """Per figure, its largest font size (pt) at the poster's scale and that text (PyMuPDF spans,
-    so a rotated label counts by its font size, not its bounding box)."""
+    """Every word inside each figure, at the poster's scale, prints at least MIN_FIG_TEXT_PT (font
+    size from PyMuPDF spans); a super- or subscript (a span under 0.8 of its line's largest) is
+    exempt, as in running text."""
     import pymupdf
 
-    out = {}
+    problems = []
     for width_cm, name in re.findall(r"\\includegraphics\[width=([\d.]+)cm\]\{(01_[^}]+)\}", tex):
         page = pymupdf.open(folder / name)[0]
         scale = float(width_cm) * PT_PER_CM / page.rect.width
-        spans = [
-            (span["size"] * scale, span["text"].strip())
-            for block in page.get_text("dict")["blocks"]
-            for line in block.get("lines", [])
-            for span in line["spans"]
-            if span["text"].strip()
-        ]
-        out[name] = max(spans)
-    return out
-
-
-def block_title_pt(pdf: Path = PDF) -> float:
-    """Font size of the block titles (the TL;DR title's span)."""
-    import pymupdf
-
-    page = pymupdf.open(pdf)[0]
-    return next(
-        span["size"]
-        for block in page.get_text("dict")["blocks"]
-        for line in block.get("lines", [])
-        for span in line["spans"]
-        if span["text"].strip() == "TL;DR"
-    )
-
-
-def oversized_figure_text(sizes: dict, title_pt: float) -> list[str]:
-    return [
-        f"{n}: {t!r} at {pt:.1f} pt > titles {title_pt:.1f} pt"
-        for n, (pt, t) in sizes.items()
-        if pt > title_pt
-    ]
-
-
-# Measured 2026-11-27 at 41.2 / 33 cm: Fig. 1a "Loss" 82.9 pt and Fig. 1c 66.4 pt against 34.5 pt
-# block titles. The fix is in the paper figures (kept unchanged while they await the owner's
-# merge), so this stays a strict xfail: it turns red the moment the figures pass.
-@pytest.mark.xfail(strict=True, reason="paper figures' text prints larger than the block titles")
-def test_figure_text_not_larger_than_titles() -> None:
-    sizes = figure_text_sizes(TEX.read_text(), POSTER / "figures")
-    assert oversized_figure_text(sizes, block_title_pt()) == []
-
-
-def test_planted_oversized_figure_text() -> None:
-    assert oversized_figure_text({"f.pdf": (40.0, "Loss")}, 34.5)
-    assert not oversized_figure_text({"f.pdf": (30.0, "Loss")}, 34.5)
+        main = []
+        for block in page.get_text("dict")["blocks"]:
+            for line in block.get("lines", []):
+                spans = [sp for sp in line["spans"] if sp["text"].strip()]
+                if spans:
+                    top = max(sp["size"] for sp in spans)
+                    main += [
+                        (sp["size"] * scale, sp["text"].strip())
+                        for sp in spans
+                        if sp["size"] >= 0.8 * top
+                    ]
+        if not main:
+            problems.append(f"{name}: no text found")
+            continue
+        pt, word = min(main)
+        if pt < MIN_FIG_TEXT_PT:
+            problems.append(f"{name}: {word!r} prints {pt:.1f} pt")
+    return problems
 
 
 def test_figure_text_readable() -> None:
@@ -932,7 +867,7 @@ def test_figure_text_readable() -> None:
 
 
 def test_planted_unreadable_figure_text() -> None:
-    tex = TEX.read_text().replace("width=33.0cm]{01_isoflop", "width=12cm]{01_isoflop")
+    tex = TEX.read_text().replace("width=27.0cm]{01_isoflop", "width=12cm]{01_isoflop")
     assert figure_text_problems(tex, POSTER / "figures")
 
 

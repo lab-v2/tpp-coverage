@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from collections.abc import Callable
 
 import numpy as np
+import panel_style as _panel_style
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy.optimize import minimize_scalar
@@ -369,8 +370,10 @@ def draw_isoflop_panel(
         even = np.arange(np.ceil(log_c[0] * 2) / 2, log_c[-1] + 1e-9, 0.5)
         cbar.set_ticks(np.interp(even, log_c, np.arange(n_budgets) + 0.5))
         cbar.set_ticklabels([f"{v:.1f}" for v in even])
-        cbar.ax.tick_params(labelsize=fontsize - 4, pad=12)
-        cbar.set_label(r"$\log_{10} C$", fontsize=fontsize, labelpad=28)
+        cbar.ax.tick_params(
+            labelsize=fontsize - 4 * _panel_style.TEXT_SCALE, pad=12 * _panel_style.TEXT_SCALE
+        )
+        cbar.set_label(r"$\log_{10} C$", fontsize=fontsize, labelpad=28 * _panel_style.TEXT_SCALE)
         if main_leg is not None:
             handles = main_leg.legend_handles
             labels = [t.get_text() for t in main_leg.get_texts()]

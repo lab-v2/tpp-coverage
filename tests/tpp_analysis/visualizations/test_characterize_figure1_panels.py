@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from characterize import FigureCapture, check_frozen, released
+from characterize import FREEZE, FigureCapture, check_frozen, released
 from conftest import ANALYSIS
 
 pytestmark = pytest.mark.network
@@ -62,3 +62,32 @@ def test_figure1_panels(
     with FigureCapture() as cap:
         runpy.run_path(str(ANALYSIS / "visualizations/figure1_panels.py"), run_name="__main__")
     check_frozen(FROZEN / f"figure1_{prefix}.json", {"saved": saved, "figures": cap.figures})
+
+
+def test_figure1_poster_style_draws_the_paper_data(
+    data_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """FIG1_STYLE=poster changes only text sizes and gaps: every drawn series, label, limit and
+    legend equals the paper render's frozen data (figure1_01.json), compared as arrays."""
+    from matplotlib.figure import Figure
+
+    for key, value in (
+        ("PREFIX", "01_"),
+        ("DATASET", "Red Pajama"),
+        ("LAW", "Kaplan"),
+        ("MODE", "First"),
+    ):
+        monkeypatch.setenv(f"FIG1_{key}", value)
+    monkeypatch.setenv("FIG1_STYLE", "poster")
+    monkeypatch.setenv("TPP_DATA_ROOT", str(data_root))
+    saved: list[str] = []
+    monkeypatch.setattr(Figure, "savefig", lambda self, path, **kw: saved.append(Path(path).name))
+    with FigureCapture() as cap:
+        runpy.run_path(str(ANALYSIS / "visualizations/figure1_panels.py"), run_name="__main__")
+    if FREEZE:
+        pytest.skip("the paper render is the reference; nothing to freeze here")
+    observed = {"saved": saved, "figures": cap.figures}
+    check_frozen(FROZEN / "figure1_01.json", observed)
+    # The comparison can fail: another combo's frozen data is refused.
+    with pytest.raises((AssertionError, pytest.fail.Exception)):
+        check_frozen(FROZEN / "figure1_04.json", observed)

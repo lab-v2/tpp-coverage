@@ -83,7 +83,7 @@ MAX_LABEL_GAP = 2.0  # an axis label sits within this many tick-label heights of
 
 
 def floating_labels(page) -> list[str]:
-    """Axis labels farther than MAX_LABEL_GAP tick heights from the nearest tick label in line with them.
+    """Axis labels farther than MAX_LABEL_GAP tick heights from the nearest tick row or column in line.
 
     Tick labels are numeric words; an axis label is a text line with letters, outside every stroked
     frame (a legend's entries are not axis labels), that has tick labels beside it or above or below.
@@ -99,6 +99,22 @@ def floating_labels(page) -> list[str]:
         for d in page.get_drawings()
         if d.get("color") is not None and d["rect"].width * d["rect"].height < 0.5 * area
     ]
+    # A tick row (shared baseline) or column (shared right edge) as one box, so a label set
+    # between two colorbar ticks still lines up with their column.
+    boxes = [pymupdf.Rect(t[:4]) for t in ticks]
+    rows_and_columns = []
+    for key in (lambda r: r.y1, lambda r: r.x1):
+        groups: list[list] = []
+        for r in sorted(boxes, key=key):
+            if groups and abs(key(r) - key(groups[-1][-1])) < 0.5 * h:
+                groups[-1].append(r)
+            else:
+                groups.append([r])
+        for g in groups:
+            u = pymupdf.Rect(g[0])
+            for r in g[1:]:
+                u |= r
+            rows_and_columns.append(u)
     out = []
     for block in page.get_text("dict")["blocks"]:
         for line in block.get("lines", []):
@@ -109,8 +125,7 @@ def floating_labels(page) -> list[str]:
             if any(f.contains(b) for f in frames):
                 continue
             gaps = []
-            for t in ticks:
-                tb = pymupdf.Rect(t[:4])
+            for tb in rows_and_columns:
                 if min(b.x1, tb.x1) > max(b.x0, tb.x0):  # stacked: label above or below the row
                     gaps.append(max(tb.y0 - b.y1, b.y0 - tb.y1))
                 elif min(b.y1, tb.y1) > max(b.y0, tb.y0):  # side by side
