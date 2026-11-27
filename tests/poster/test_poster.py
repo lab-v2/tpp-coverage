@@ -35,7 +35,7 @@ BLOCK_TITLE_PT = 41.2  # fallback block-title height; normally read off the TL;D
 # Gaps run from a block's last text line to the next block title, so a tinted block's inner padding
 # (about 0.4 cm) and a figure's bottom margin are inside them; 0.55 cm around the median allows that
 # and nothing more (a 0.9 cm \vspace pad fails).
-MAX_GAP_DEVIATION_CM = 0.55
+MAX_GAP_DEVIATION_CM = 0.4  # all gaps within a 0.8 cm band
 MAX_WORDS = 800  # the reference posters carry 500-800 words; raised from 750 in round 7
 
 
@@ -157,11 +157,14 @@ def block_gaps(words: list, width: float) -> list[list[float]]:
     """Per column, the gaps (cm) between each block title and the text line above it."""
     gaps = []
     for c in range(3):
-        col = [w for w in words if c * width / 3 <= w[0] < (c + 1) * width / 3]
         tops = sorted({y0 for cc, y0, _ in block_title_tops(words, TEX.read_text()) if cc == c})
         col_gaps = []
         for top in tops[1:]:
-            above = [w[3] for w in col if w[3] < top - 1]
+            # A title on a band across columns (its line holds title-size words in two thirds)
+            # sits below the lower of the columns above it.
+            line = [w for w in words if abs(w[1] - top) < 1 and w[3] - w[1] > 0.8 * BLOCK_TITLE_PT]
+            thirds = {int(w[0] // (width / 3)) for w in line} | {c}
+            above = [w[3] for w in words if int(w[0] // (width / 3)) in thirds and w[3] < top - 1]
             col_gaps.append((top - max(above)) / PT_PER_CM)
         gaps.append(col_gaps)
     return gaps
@@ -176,7 +179,7 @@ def block_title_tops(words: list, tex: str) -> list[tuple[int, float, float]]:
         plain = re.sub(r"[\\{}$]", " ", plain).split()
         # A title is a row holding exactly its words (the TL;DR repeats one title's words mid-line).
         if plain:
-            firsts[plain[0]] = plain
+            firsts.setdefault(plain[0], []).append(plain)
     width = A0_LANDSCAPE_PT[0]
     # The title size is read off the first block's title ("TL;DR"), so a body-scale change follows.
     sizes = [w[3] - w[1] for w in words if w[4] == "TL;DR"]
@@ -186,12 +189,18 @@ def block_title_tops(words: list, tex: str) -> list[tuple[int, float, float]]:
         if w[4] not in firsts or abs((w[3] - w[1]) - title_pt) >= 0.3:
             continue
         want = firsts[w[4]]
-        col = int(w[0] // (width / 3))
-        row = sorted(
-            (v for v in words if abs(v[1] - w[1]) < 1 and int(v[0] // (width / 3)) == col),
-            key=lambda v: v[0],
+        # The words on this line that run on from w with normal word spacing (a title may span the
+        # band across columns 2 and 3; another column's text on the same line starts a new run).
+        line = sorted(
+            (v for v in words if abs(v[1] - w[1]) < 1 and v[0] >= w[0]), key=lambda v: v[0]
         )
-        if [v[4] for v in row] == want:
+        row = [line[0]]
+        for v in line[1:]:
+            if v[0] - row[-1][2] > title_pt:
+                break
+            row.append(v)
+        left = [v for v in words if abs(v[1] - w[1]) < 1 and 0 < w[0] - v[2] <= title_pt]
+        if not left and [v[4] for v in row] in want:
             out.add((int(w[0] // (width / 3)), round(w[1], 1), round(w[3], 1)))
     return sorted(out)
 
@@ -232,13 +241,14 @@ def gap_problems(gaps: list[list[float]]) -> list[str]:
     flat = sorted(g for col in gaps for g in col)
     if len(flat) < 6:
         return [f"only {len(flat)} block gaps found"]
-    median = flat[len(flat) // 2]
-    return [
-        f"column {c + 1}: gap {g:.2f} cm, median {median:.2f} cm"
-        for c, col in enumerate(gaps)
-        for g in col
-        if abs(g - median) > MAX_GAP_DEVIATION_CM
-    ]
+    # Centre of the range, not the median: a gap may end on text or on a tinted box (about 0.4 cm
+    # apart), so the honest gaps form a band; a padding \vspace sits outside it.
+    centre = (flat[0] + flat[-1]) / 2 if flat[-1] - flat[0] <= 2 * MAX_GAP_DEVIATION_CM else None
+    if centre is None:
+        return [
+            f"block gaps span {flat[0]:.2f}-{flat[-1]:.2f} cm, more than {2 * MAX_GAP_DEVIATION_CM} cm"
+        ]
+    return []
 
 
 def header_fraction(png: Path) -> float:
@@ -322,7 +332,7 @@ def test_block_gaps_are_the_theme_gap() -> None:
 def test_block_title_rules_are_unbroken(tmp_path: Path) -> None:
     """Nothing (a figure's white margin, a legend) covers a block title's rule: >= 95% of the column."""
     titles = block_title_tops(bbox_words(PDF), TEX.read_text())
-    assert len(titles) >= 12
+    assert len(titles) == len(re.findall(r"\\begin\{(?:alert)?block\}", TEX.read_text()))
     _run("pdftoppm", "-png", "-r", "72", "-singlefile", str(PDF), str(tmp_path / "p"))
     cover = rule_coverage(tmp_path / "p.png", titles, 1.0)
     assert min(cover) >= 0.95, list(zip(titles, cover))
@@ -469,7 +479,7 @@ def test_planted_math_fonts() -> None:
 def test_planted_padded_gap() -> None:
     gaps = block_gaps(bbox_words(PDF), A0_LANDSCAPE_PT[0])
     padded = [list(col) for col in gaps]
-    padded[2][1] += 0.9  # a \vspace{0.9cm} "column balance" pad, as round 4 had
+    padded[0][1] += 0.9  # a \vspace{0.9cm} "column balance" pad, as round 4 had
     assert gap_problems(padded)
     assert gap_problems([[1.4], [1.4], []])
 
@@ -480,7 +490,9 @@ def test_no_math_in_bold_heads() -> None:
 
 def test_planted_heading_math() -> None:
     tex = TEX.read_text()
-    assert heading_math_problems(tex.replace("at least 5 sizes", "$n \\geq 5$ sizes"))
+    assert heading_math_problems(
+        tex.replace("Corollary 2 (Chinchilla)}", "Corollary 2 ($n \\geq 5$)}")
+    )
     assert heading_math_problems("\\begin{block}{Two designs in the $(N, D)$ plane}")
 
 
@@ -635,3 +647,78 @@ def test_planted_overlapping_text() -> None:
     words = bbox_words(PDF)
     a = words[len(words) // 2]
     assert overlap_problems(words + [(a[0] + 2, a[1] + 2, a[2] + 2, a[3] + 2, "planted")])
+
+
+# --- figure size and one body size (round 10) ------------------------------------------------------
+
+MIN_FIG_SCALE = 1.6  # each paper figure is set at least 1.6 times its natural width
+CAPTION_MIN_PT = 26.0  # pdftotext height of caption text
+TEXT_WORD = re.compile(r"^[A-Za-z][A-Za-z,.;:'()-]*$")
+
+
+def figure_scale_problems(tex: str, folder: Path) -> list[str]:
+    problems = []
+    found = re.findall(r"\\includegraphics\[width=([\d.]+)cm\]\{(01_[^}]+)\}", tex)
+    if len(found) != len(PAPER_FIGURES):
+        return [f"{len(found)} figures with an absolute width, expected {len(PAPER_FIGURES)}"]
+    for width_cm, name in found:
+        m = re.search(r"^Page size:\s+([\d.]+) x", _run("pdfinfo", str(folder / name)), re.M)
+        natural_cm = float(m[1]) / PT_PER_CM
+        if float(width_cm) < MIN_FIG_SCALE * natural_cm:
+            problems.append(f"{name}: {width_cm} cm < {MIN_FIG_SCALE} x {natural_cm:.1f} cm")
+    return problems
+
+
+def body_size_problems(words: list, tex: str) -> list[str]:
+    """Rows of running text (at least 4 words, half of them plain words) are body size or caption size.
+
+    Block titles, the header, the footer, the banner numbers and display math are not running text.
+    """
+    width, height = A0_LANDSCAPE_PT
+    titles = {round(y0) for _, y0, _ in block_title_tops(words, tex)}
+    rows: dict[tuple[int, int], list] = {}
+    for w in words:
+        if 0.2 * height < w[1] and w[3] < 0.955 * height:
+            rows.setdefault((int(w[0] // (width / 3)), round(w[1])), []).append(w)
+    medians = []
+    for (col, y), row in rows.items():
+        plain = [w for w in row if TEXT_WORD.match(w[4])]
+        if len(row) < 4 or 2 * len(plain) < len(row) or any(abs(y - t) <= 1 for t in titles):
+            continue
+        hs = sorted(w[3] - w[1] for w in row)
+        medians.append(((col, y), hs[len(hs) // 2], row[0][4]))
+    if not medians:
+        return ["no running text found"]
+    from collections import Counter
+
+    body = Counter(round(m, 1) for _, m, _ in medians).most_common(1)[0][0]
+    return [
+        f"row at {pos} ({first!r}...) is {m:.1f} pt; body {body:.1f}, captions {CAPTION_MIN_PT}-{body:.1f}"
+        for pos, m, first in medians
+        if abs(m - body) > 0.6 and not (CAPTION_MIN_PT <= m < body)
+    ]
+
+
+def test_figures_set_large() -> None:
+    assert figure_scale_problems(TEX.read_text(), POSTER / "figures") == []
+
+
+def test_planted_small_figure() -> None:
+    tex = TEX.read_text().replace("width=35.2cm]{01_surface", "width=24cm]{01_surface")
+    assert figure_scale_problems(tex, POSTER / "figures")
+
+
+def test_one_body_size() -> None:
+    assert body_size_problems(bbox_words(PDF), TEX.read_text()) == []
+
+
+def test_planted_off_size_text() -> None:
+    words = bbox_words(PDF)
+    tex = TEX.read_text()
+    ys = sorted({round(w[1]) for w in words if TEXT_WORD.match(w[4]) and w[3] - w[1] < 32})
+    y = ys[len(ys) // 2]  # one running-text row set at a third size (a stray \large)
+    bigger = [
+        (a, b, c, b + 1.15 * (d - b), t) if round(b) == y else (a, b, c, d, t)
+        for a, b, c, d, t in words
+    ]
+    assert body_size_problems(bigger, tex)
