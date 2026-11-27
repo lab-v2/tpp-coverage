@@ -336,7 +336,7 @@ def test_latex_math_fonts_only() -> None:
         assert math_font_problems(_run("pdffonts", str(fig)), need_math=False) == [], fig.name
 
 
-def test_at_most_750_words() -> None:
+def test_at_most_800_words() -> None:
     assert word_count_problems(_run("pdftotext", str(PDF), "-")) == []
 
 
