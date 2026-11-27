@@ -6,11 +6,13 @@ Prints one JSON list of problems for the PDF in argv[1]:
   MIN_GAP_PT inside its box), e.g. a tick label running into a colorbar; only the part of a
   path inside its clip rectangle and not under a later opaque fill (a legend face) counts,
   and neither the page background nor an unstroked white fill is a line.
+* an axis label more than MAX_LABEL_GAP tick-label heights from its tick row.
 Boxes are words; superscripts and subscripts share their label's text line, so a label's pieces
 never count against each other.
 """
 
 import json
+import re
 import sys
 
 import pymupdf
@@ -76,6 +78,48 @@ def _segments(page):
     return out
 
 
+NUMERIC = re.compile(r"^[0-9.,-]+$")
+MAX_LABEL_GAP = 2.0  # an axis label sits within this many tick-label heights of its tick row
+
+
+def floating_labels(page) -> list[str]:
+    """Axis labels farther than MAX_LABEL_GAP tick heights from the nearest tick label in line with them.
+
+    Tick labels are numeric words; an axis label is a text line with letters, outside every stroked
+    frame (a legend's entries are not axis labels), that has tick labels beside it or above or below.
+    """
+    words = page.get_text("words")
+    ticks = [w for w in words if NUMERIC.match(w[4])]
+    if not ticks:
+        return []
+    h = sorted(w[3] - w[1] for w in ticks)[len(ticks) // 2]
+    area = page.rect.width * page.rect.height
+    frames = [
+        d["rect"]
+        for d in page.get_drawings()
+        if d.get("color") is not None and d["rect"].width * d["rect"].height < 0.5 * area
+    ]
+    out = []
+    for block in page.get_text("dict")["blocks"]:
+        for line in block.get("lines", []):
+            text = "".join(sp["text"] for sp in line["spans"]).strip()
+            if not re.search(r"[A-Za-z]", text):
+                continue
+            b = pymupdf.Rect(line["bbox"])
+            if any(f.contains(b) for f in frames):
+                continue
+            gaps = []
+            for t in ticks:
+                tb = pymupdf.Rect(t[:4])
+                if min(b.x1, tb.x1) > max(b.x0, tb.x0):  # stacked: label above or below the row
+                    gaps.append(max(tb.y0 - b.y1, b.y0 - tb.y1))
+                elif min(b.y1, tb.y1) > max(b.y0, tb.y0):  # side by side
+                    gaps.append(max(tb.x0 - b.x1, b.x0 - tb.x1))
+            if gaps and min(gaps) > MAX_LABEL_GAP * h:
+                out.append(f"label {text!r} floats {min(gaps) / h:.1f} tick heights from its ticks")
+    return out
+
+
 def problems(path: str) -> list[str]:
     page = pymupdf.open(path)[0]
     # Words, keyed by their text line: a label's superscripts and subscripts share its line, and
@@ -102,6 +146,7 @@ def problems(path: str) -> list[str]:
                 inner[1], ib.y0
             ):
                 out.append(f"text {text!r} on an image")
+    out += floating_labels(page)
     return sorted(set(out))
 
 

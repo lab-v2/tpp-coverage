@@ -52,3 +52,27 @@ def test_line_hidden_under_legend_face_passes(tmp_path: Path) -> None:
         page.insert_text((20, 50), "NC", fontsize=12)
 
     assert problems(_pdf(tmp_path, "hidden.pdf", hidden)) == []
+
+
+def test_line_under_translucent_legend_fails(tmp_path: Path) -> None:
+    def seen(page):
+        page.draw_line((10, 45), (90, 45))
+        page.draw_rect(pymupdf.Rect(5, 30, 95, 60), color=None, fill=(1, 1, 1), fill_opacity=0.8)
+        page.insert_text((20, 50), "NC", fontsize=12)
+
+    assert any("crossed" in p for p in problems(_pdf(tmp_path, "translucent.pdf", seen)))
+
+
+def _axis(page, label_y):
+    for x, t in ((40, "0.0"), (120, "0.5"), (200, "1.0")):
+        page.insert_text((x, 100), t, fontsize=12)
+    page.insert_text((90, label_y), "coverage", fontsize=12)
+
+
+def test_label_by_its_ticks_passes(tmp_path: Path) -> None:
+    assert problems(_pdf(tmp_path, "near.pdf", lambda page: _axis(page, 118))) == []
+
+
+def test_floating_label_fails(tmp_path: Path) -> None:
+    found = problems(_pdf(tmp_path, "far.pdf", lambda page: _axis(page, 160)))
+    assert any("floats" in p for p in found)
