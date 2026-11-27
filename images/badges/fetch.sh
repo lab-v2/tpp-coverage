@@ -9,6 +9,7 @@ mark=$(base64 -w0 neurips_mark.png)
 S=https://img.shields.io
 while read -r name url; do
   curl -fsS --retry 3 -o "rendered/$name.svg" "$url"
+  echo >>"rendered/$name.svg" # end-of-file-fixer wants a final newline
 done <<LIST
 arxiv $S/badge/arXiv-2605.08541-b31b1b.svg?logo=arxiv&logoColor=white
 project-page $S/badge/project-page-F76900.svg?logo=githubpages&logoColor=white
