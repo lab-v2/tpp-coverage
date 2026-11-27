@@ -92,7 +92,6 @@ from panel_style import (
     LEGEND_ALPHA,
     DPI,
     _sv_tag,
-    FixedOrderFormatter,
     style_ticks_2d,
     style_ticks_3d,
     _style_all_legends,
@@ -120,9 +119,12 @@ matplotlib.rcParams["ps.fonttype"] = 42
 # files up. style_ticks_2d / style_ticks_3d read the tick size from panel_style.
 import panel_style as _panel_style
 
-AXIS_LABEL_FS, TICK_LABEL_FS, LEGEND_FS = 40, 34, 32
+AXIS_LABEL_FS, TICK_LABEL_FS, LEGEND_FS = 62, 54, 48
 _panel_style.AXIS_LABEL_FS, _panel_style.TICK_LABEL_FS = AXIS_LABEL_FS, TICK_LABEL_FS
 _panel_style.LEGEND_FS = LEGEND_FS
+from matplotlib.legend import Legend
+from matplotlib.ticker import FixedLocator, FuncFormatter
+
 print("Imports OK")
 
 
@@ -411,7 +413,7 @@ print("Ready to plot.")
 # 10 · DRAW INDIVIDUAL PANEL FIGURES
 # ============================================================
 
-from matplotlib.ticker import ScalarFormatter, MultipleLocator
+from matplotlib.ticker import MultipleLocator
 
 ds_tag = DATASET_NAME.replace(" ", "_")
 law_tag = LAW_NAME.replace(" ", "_").replace("-", "_")
@@ -425,7 +427,9 @@ SAVE_PAD_2D = 0.1
 # ══════════════════════════════════════════════════════════════
 # PANEL A - Surface Plot (3-D)
 # ══════════════════════════════════════════════════════════════
-fig_surf = plt.figure(figsize=(SURF_W, SURF_H))
+# Canvas shapes chosen so the three panels print at one height at the paper's subfigure widths
+# (0.37, 0.30 and 0.30 of the text width).
+fig_surf = plt.figure(figsize=(SURF_W, SURF_H * 0.8))
 ax_surf = fig_surf.add_subplot(111, projection="3d")
 
 co_params = co_result["params"]
@@ -587,15 +591,16 @@ for i in range(len(N_b)):
 # Plain 'N' / 'D' - the offset multiplier is rendered separately by the
 # formatter, the same way N's "1e7" auto-offset reads.  labelpad bumped
 # from 10 → 18 so the axis names sit clear of the tick numbers.
-ax_surf.set_xlabel(r"$N$", fontsize=AXIS_LABEL_FS, labelpad=24)
-ax_surf.set_ylabel(r"$D$", fontsize=AXIS_LABEL_FS, labelpad=24)
+# Units in the labels (no "1e7" / "1e8" offset text, which collided with the ticks).
+ax_surf.set_xlabel(r"$N$ ($10^7$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=64)
+ax_surf.set_ylabel(r"$D$ ($10^8$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=64)
 # Smaller labelpad keeps the rotated "Loss" text inside the savefig bbox.
 # 'Loss' placed via text2D in axes-fraction coords - bypasses the 3-D
 # rotated-zlabel bbox quirk that was causing 'Loss' to get cropped by
 # bbox_inches='tight' even with generous pad_inches.
 ax_surf.set_zlabel("")
 ax_surf.text2D(
-    1.08,
+    1.2,
     0.5,
     "Loss",
     transform=ax_surf.transAxes,
@@ -606,28 +611,24 @@ ax_surf.text2D(
 )
 
 # N axis: standard auto-offset (gives "1e7" with integer-ish ticks).
-_sf_n = ScalarFormatter(useMathText=False)
-_sf_n.set_scientific(True)
-_sf_n.set_powerlimits((0, 0))
-ax_surf.xaxis.set_major_formatter(_sf_n)
+ax_surf.xaxis.set_major_locator(FixedLocator([1e7, 4e7, 7e7]))
+ax_surf.xaxis.set_major_formatter(FuncFormatter(lambda v, _pos: f"{v / 1e7:g}"))
 
 # D axis: tick spacing fixed at 2e8 with integer labels (0, 2, ..., 14)
 # and offset locked at 1e8, so it visually matches N's '1e7' offset.
-ax_surf.yaxis.set_major_locator(MultipleLocator(2e8))
-ax_surf.yaxis.set_major_formatter(FixedOrderFormatter(oom=8, fmt="%d"))
+ax_surf.yaxis.set_major_locator(MultipleLocator(6e8))
+ax_surf.yaxis.set_major_formatter(FuncFormatter(lambda v, _pos: f"{v / 1e8:g}"))
 
-# The "1e7" / "1e8" offset labels at the tick size, so they stay readable in print.
-for _axis in (ax_surf.xaxis, ax_surf.yaxis):
-    _axis.get_offset_text().set_fontsize(TICK_LABEL_FS * 0.8)
+ax_surf.zaxis.set_major_locator(MultipleLocator(3))
 ax_surf.invert_yaxis()
 ax_surf.set_zlim(z_lo, z_hi)
 ax_surf.view_init(elev=SIDE_ELEV, azim=SIDE_AZIM)
-# Legend above the axes, outside the data.
+# Legend below the axes, outside the data, no wider than the axes.
 ax_surf.legend(
-    fontsize=LEGEND_FS,
+    fontsize=LEGEND_FS * 0.85,
     loc="upper center",
-    bbox_to_anchor=(0.5, 0.02),
-    ncol=3,
+    bbox_to_anchor=(0.5, -0.2),
+    ncol=2,
     columnspacing=0.8,
     handlelength=1.4,
     framealpha=LEGEND_ALPHA,
@@ -646,7 +647,7 @@ plt.close(fig_surf)
 # ══════════════════════════════════════════════════════════════
 # PANEL B - R² Convergence with Seed-Variance Error Bars (2-D)
 # ══════════════════════════════════════════════════════════════
-fig_conv = plt.figure(figsize=(PANEL_W, PANEL_H))
+fig_conv = plt.figure(figsize=(PANEL_W, PANEL_H * 1.2))
 ax_conv = fig_conv.add_subplot(111)
 
 sv_tag = _sv_tag(DATASET_NAME, LAW_NAME, MODE_NAME)
@@ -699,6 +700,7 @@ if os.path.exists(sv_path):
             new = txt.get_text().replace("Non-Colinear", "NC").replace("Colinear", "CO")
             txt.set_text(new)
     ax_conv.set_ylabel(r"Holdout $R^2$", fontsize=AXIS_LABEL_FS)
+    ax_conv.set_xlabel("TPP coverage fraction", fontsize=AXIS_LABEL_FS)
     print(f"Panel B: seed-variance plot (tag={sv_tag}, y_min={y_min_use:.3f})")
 else:
     print(f"Panel B: no seed-variance data for tag={sv_tag}, using single-seed fallback")
@@ -758,7 +760,13 @@ _style_all_legends(ax_conv)
 
 for ext in ["pdf", "png"]:
     out = os.path.join(FIG_DIR, f"{OUT_PREFIX}convergence_{base_tag}.{ext}")
-    fig_conv.savefig(out, dpi=DPI, bbox_inches="tight", pad_inches=SAVE_PAD_2D)
+    fig_conv.savefig(
+        out,
+        dpi=DPI,
+        bbox_inches="tight",
+        pad_inches=SAVE_PAD_2D,
+        bbox_extra_artists=[ax_conv.xaxis.label, ax_conv.yaxis.label],
+    )
     print(f"Saved: {out}")
 plt.show()
 plt.close(fig_conv)
@@ -809,7 +817,17 @@ _style_all_legends(ax_iso)
 
 for ext in ["pdf", "png"]:
     out = os.path.join(FIG_DIR, f"{OUT_PREFIX}isoflop_{base_tag}.{ext}")
-    fig_iso.savefig(out, dpi=DPI, bbox_inches="tight", pad_inches=SAVE_PAD_2D)
+    # The legends sit outside the axes: list them so the tight box keeps their frames whole.
+    fig_iso.savefig(
+        out,
+        dpi=DPI,
+        bbox_inches="tight",
+        # 0.3 in: the legend frame's square box style (pad 0.4 em, panel_style._style_legend) reaches
+        # past the tight box by about 15 pt, which a smaller pad clips.
+        pad_inches=0.3,
+        bbox_extra_artists=[a for a in ax_iso.get_children() if isinstance(a, Legend)]
+        + [a.yaxis.label for a in fig_iso.axes if a is not ax_iso],
+    )
     print(f"Saved: {out}")
 plt.show()
 plt.close(fig_iso)
