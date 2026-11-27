@@ -128,6 +128,7 @@ TEXT_SCALE = (
     else 1
 )
 _panel_style.TEXT_SCALE = TEXT_SCALE
+POSTER_SURF_LEGEND_X = float(os.environ.get("FIG1_SURF_LEGEND_X", "1.25"))  # poster render only
 # The poster keeps legend text at its 24 pt floor: legends shrink less than the rest.
 AXIS_LABEL_FS, TICK_LABEL_FS = 62 * TEXT_SCALE, 54 * TEXT_SCALE
 LEGEND_FS = 48 * TEXT_SCALE * (1 if TEXT_SCALE == 1 else 1.45)
@@ -643,9 +644,10 @@ ax_surf.legend(
     [_h[i] for i in _keep],
     [_l[i] for i in _keep],
     fontsize=LEGEND_FS * 0.8,
-    loc="upper center",
-    bbox_to_anchor=(0.5, -0.31 if TEXT_SCALE == 1 else -0.16),
-    ncol=2,
+    # The poster render puts the legend right of the 3-D box, one column.
+    loc="upper center" if TEXT_SCALE == 1 else "center left",
+    bbox_to_anchor=(0.5, -0.31) if TEXT_SCALE == 1 else (POSTER_SURF_LEGEND_X, 0.5),
+    ncol=2 if TEXT_SCALE == 1 else 1,
     columnspacing=0.8,
     handlelength=1.4,
     framealpha=LEGEND_ALPHA,

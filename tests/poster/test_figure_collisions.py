@@ -76,3 +76,17 @@ def test_label_by_its_ticks_passes(tmp_path: Path) -> None:
 def test_floating_label_fails(tmp_path: Path) -> None:
     found = problems(_pdf(tmp_path, "far.pdf", lambda page: _axis(page, 160)))
     assert any("floats" in p for p in found)
+
+
+def _slanted_axis(page, label_y):
+    # A 3-D axis: its tick labels step down a slant, the axis label sits below the last one.
+    for k, t in enumerate(("1", "4", "7")):
+        page.insert_text((40 + 40 * k, 60 + 20 * k), t, fontsize=12)
+    page.insert_text((150, label_y), "Size", fontsize=12)
+
+
+def test_planted_floating_3d_label(tmp_path: Path) -> None:
+    # Beside the slanted row: passes; pushed five tick heights below it: floats.
+    assert problems(_pdf(tmp_path, "near3d.pdf", lambda page: _slanted_axis(page, 110))) == []
+    far = problems(_pdf(tmp_path, "far3d.pdf", lambda page: _slanted_axis(page, 170)))
+    assert any("floats" in p for p in far)

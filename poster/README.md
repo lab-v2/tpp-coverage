@@ -19,10 +19,15 @@ on the poster). `src/tpp_analysis/visualizations/figure1_panels.py` with `FIG1_S
 every text size and point-sized gap by `FIG1_TEXT_SCALE` (legends by 1.45 times that); the paper style
 is unchanged (its PDFs' content streams are identical). `figures/` holds:
 
-| Figure | Rendered with | Set at | Its text on the poster (main / max) | Plot box |
+| Figure | Rendered with | Set at | Its text on the poster (main, by font size) | Legend |
 |---|---|---|---|---|
-| `01_surface_...pdf` | `FIG1_STYLE=poster FIG1_TEXT_SCALE=0.36` | 26.5 cm | ticks about 28 pt, at most 32.2 pt | 3-D box about 20.3 cm |
-| `01_isoflop_...pdf` | `FIG1_STYLE=poster FIG1_TEXT_SCALE=0.46` | 27 cm | 27.1-31.1 pt | axes 17.0 x 19.2 cm |
+| `01_surface_...pdf` | `FIG1_STYLE=poster FIG1_TEXT_SCALE=0.31` | 44 cm | 27.2-32.0 pt | one column, right of the 3-D box |
+| `01_isoflop_...pdf` | `FIG1_STYLE=poster FIG1_TEXT_SCALE=0.33` | 45 cm | 26.0-29.8 pt | one column, right of the colorbar |
+
+Each figure is centred in its half of the figure block; the caption starts at Fig. 1a's left edge.
+The poster renders are made by `src/tpp_analysis/visualizations/figure1_panels.py` (poster-only
+branches: text and gaps times `FIG1_TEXT_SCALE`, legends beside the plots) and kept in `figures/`,
+pinned by SHA-256 in `tests/poster/test_poster.py`; the owner approved this on 2026-11-27.
 
 Regenerate with `TPP_DATA_ROOT=<released data root> FIG1_STYLE=poster FIG1_TEXT_SCALE=<scale> uv run python
 src/tpp_analysis/visualizations/figure1_panels.py` and copy the panel from `full_coverage_results/figures/`.
