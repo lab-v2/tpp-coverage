@@ -333,8 +333,8 @@ if POSTER:
     )
     LINE_WIDTH, MARKER_SIZE = POSTER_LINE_WIDTH, POSTER_MARKER_SIZE
     # One fixed axes box for both 2-D panels, saved without a tight crop, so the pair matches.
-    POSTER_AXES_RECT = [0.2, 0.1, 0.56, 0.82]
-    PANEL_H = 11.4  # taller than the paper's square panels: the poster's evidence pair
+    POSTER_AXES_RECT = [0.17, 0.12, 0.6, 0.82]
+    PANEL_H = 13.6  # near-square axes, the poster's evidence pair
     POSTER_SAVE = dict(bbox_inches=None, transparent=True)  # no white margin over block rules
 
 HOLDOUT_COL = "r2_unified"
@@ -769,14 +769,17 @@ if POSTER:
             ax_conv.annotate(
                 _name,
                 (_x, _y),
-                xytext=(0, 18 if _name == "NC" else -75),
+                xytext=(14, 0),
                 textcoords="offset points",
-                ha="right",
+                ha="left",
+                va="center",
                 color=_line.get_color(),
                 fontsize=AXIS_LABEL_FS,
                 fontweight="bold",
             )
     ax_conv.set_xlabel("TPP coverage", fontsize=AXIS_LABEL_FS)
+    ax_conv.set_xlim(right=1.22)  # room for the direct labels right of the line ends
+    ax_conv.set_xticks([0.0, 0.5, 1.0])
     # The poster's exact CO / NC colours (matplotlib C0 and C3), as in its TikZ figures and text.
     _POSTER_DESIGN = {
         "CO": "#1F77B4",
@@ -862,6 +865,10 @@ if POSTER:
         ax_iso.get_legend().remove()
     for _coll in ax_iso.collections:
         _coll.set_sizes([220])  # holdout dots about 8 pt across in print
+    for _line in ax_iso.get_lines():
+        _c = _line.get_color()
+        if isinstance(_c, str) and _c == "green":  # CO residual bars: grey, not a third hue
+            _line.set_color("#808080")
     _cax = [a for a in fig_iso.axes if a is not ax_iso]
     if _cax:
         _x0, _y0, _w, _h = POSTER_AXES_RECT

@@ -3,7 +3,7 @@
 % 140 x 90 cm. Theme: gemini (theme/, MIT). Logos come from ../images (SVG, converted by the Makefile);
 % figures from figures/ (the paper's Figure 1, panels b and c). Every number and formula is the paper's.
 \documentclass[final]{beamer}
-\usepackage[size=custom,width=118.9,height=84.1,scale=1.18]{beamerposter}
+\usepackage[size=custom,width=118.9,height=84.1,scale=1.17]{beamerposter}
 \usetheme{gemini}
 \usecolortheme{gemini}
 \usepackage{amsmath,booktabs,graphicx,tikz}
@@ -51,14 +51,14 @@
 % Header corners: the labelled QR code of the project page beside the NeurIPS logo (4.0 cm, left); the
 % Syracuse AI Institute (3.0 cm) over the Leibniz Lab (2.9 cm: its 1024 x 348 px PNG at 300 ppi; no
 % vector copy exists) on the right.
-\logoleft{\raisebox{-0.5\height}{\begin{tabular}{@{}c@{}}\includegraphics[height=6.0cm]{qr_project_page.pdf}\\[-0.4ex]{\small Project page}\end{tabular}}\hspace{1cm}\raisebox{-0.5\height}{\includegraphics[height=4.0cm]{neurips.pdf}}}
+\logoleft{\raisebox{-1.5cm}{\raisebox{-0.5\height}{\begin{tabular}{@{}c@{}}\includegraphics[height=6.0cm]{qr_project_page.pdf}\\[-0.4ex]{\small Project page}\end{tabular}}\hspace{1cm}\raisebox{-0.5\height}{\includegraphics[height=4.0cm]{neurips.pdf}}}}
 \logoright{\raisebox{-0.5\height}{\begin{tabular}{@{}c@{}}\includegraphics[height=3.0cm]{syracuse_ai_institute.pdf}\\[1.5ex]\includegraphics[height=2.9cm]{leibniz_lab.png}\end{tabular}}}
 
 % The two designs in the (N, D) plane, from the grids of the paper's Appendix F.1 (grid:ncgrid, grid:tpp):
 % sizes N (M parameters), CO ratios k, NC token counts D (M tokens). Holdout: the N = 55.5M row, the
 % k = 6 (CO) or D = 300.4M (NC) column, and the three largest sizes at k >= 6.2 (CO) or D >= 325.4M (NC).
 \newcommand{\designplane}{%
-\begin{tikzpicture}[x=0.36cm, y=0.0328cm, font=\normalsize]
+\begin{tikzpicture}[x=0.36cm, y=0.0215cm, font=\normalsize]
   \def\trainN{5.0,10.1,14.4,19.4,22.8,28.8,32.5,35.4,40.3,47.9}
   \def\allN{5.0,10.1,14.4,19.4,22.8,28.8,32.5,35.4,40.3,47.9,55.5,63.9,68.1,76.5}
   \def\bigN{63.9,68.1,76.5}
@@ -102,16 +102,16 @@
 % Values are 100 / kappa of the printed kappa (27, 18, 12, 17, 7.5, 48, 12, 29, 7.8, 59, 94 pass; 180, 170, 290,
 % 120, 200, 170, 330, 3.2e4, 210, 380 fail). Single-ratio designs (V_1 = 0) are off the scale. x = log10.
 \newcommand{\thresholdstrip}{%
-\begin{tikzpicture}[x=5.6cm, y=2.6cm, font=\normalsize]
-  \fill[black!6] (-2.7,-0.5) rectangle (0,2.8); \fill[green!50!black!10] (0,-0.5) rectangle (1.3,2.8);
+\begin{tikzpicture}[x=5.6cm, y=4.4cm, font=\normalsize]
+  \fill[black!6] (-2.7,-0.5) rectangle (0,2.8); \fill[green!50!black!10] (0,-0.5) rectangle (1.55,2.8);
   \node[font=\small\bfseries, text=black!70] at (-1.35,2.6) {fails}; \node[font=\small\bfseries, text=green!40!black] at (0.65,2.6) {passes};
   \foreach \e/\l in {-2/{10^{-2}}, -1/{10^{-1}}, 0/{1}, 1/{10}} {
     \draw[gray!40] (\e,-0.5) -- (\e,2.8); \node[below] at (\e,-0.5) {$\l$}; }
-  \draw[thick] (-2.7,-0.5) rectangle (1.3,2.8);
+  \draw[thick] (-2.7,-0.5) rectangle (1.55,2.8);
   \draw[black, line width=2.5pt] (0,-0.5) -- (0,2.8);
   \node[anchor=east] at (-2.75,2.2) {11 pass};
   \node[anchor=east] at (-2.75,1.4) {13 fail (10 shown)};
-  \node[anchor=east] at (-2.75,0.6) {our \CO{}};
+  \node[anchor=east] at (-2.75,0.6) {our \CO{} fan};
   \node[anchor=east] at (-2.75,-0.15) {recipe};
   \foreach \v in {3.704,5.556,8.333,5.882,13.33,2.083,8.333,3.448,12.82,1.695,1.064} { \fill[black!75] ({log10(\v)},2.2) circle[radius=9pt]; }
   \foreach \v in {0.5556,0.5882,0.3448,0.8333,0.5,0.5882,0.303,0.003125,0.4762,0.2632} { \draw[black!75, line width=2pt] ({log10(\v)},1.4) circle[radius=8pt]; }
@@ -162,10 +162,30 @@
 
 
 
-\begin{block}{Below the threshold, and the stakes}
-  Against budget-matched \CO{} below the threshold, \NC{} wins \textbf{68.5\%} (Chinchilla), \textbf{57.4\%}
-  (Droppo-Elibol), \textbf{80.6\%} (Kaplan); CIs exclude 50\%. On Wikipedia, \CO{} and \NC{}
-  Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
+
+
+\begin{block}{One ray is ill-conditioned}
+  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla, i.i.d.\ Gaussian noise, at least 5 sizes)}
+  On one ray, as $\varepsilon \to 0$:
+  \begin{columns}[c]
+    \begin{column}{0.4\linewidth}
+      \[ \kappa_{A,B} = \Theta(\varepsilon^{-2}) \]
+      \[ \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}) \]
+    \end{column}
+    \begin{column}{0.58\linewidth}
+      \centering
+      \begin{tabular}{@{}lccc@{}}
+        \toprule
+        Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
+        \midrule
+        Chinchilla & 0.06 & 17 & 278 \\
+        Kaplan & 0.20 & 5\textsuperscript{$\dagger$} & 25 \\
+        Droppo-Elibol & 0.18-0.80 & 1.3-5.6\textsuperscript{$\dagger$} & 1.6-32 \\
+        \bottomrule
+      \end{tabular}
+    \end{column}
+  \end{columns}
+  {\small \textsuperscript{$\dagger$}Schur floor, no reduced model.}
 \end{block}
 
 \end{column}
@@ -178,24 +198,7 @@
 
 
 
-\begin{block}{One ray is ill-conditioned}
-  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla, i.i.d.\ Gaussian noise, at least 5 sizes)}
-  On one ray, as $\varepsilon \to 0$:
-  \[ \kappa_{A,B} = \Theta(\varepsilon^{-2}), \qquad
-     \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}). \]
-  \begin{center}
-  \begin{tabular}{@{}lccc@{}}
-    \toprule
-    Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
-    \midrule
-    Chinchilla & 0.06 & 17 & 278 \\
-    Kaplan & 0.20 & 5\textsuperscript{$\dagger$} & 25 \\
-    Droppo-Elibol & 0.18-0.80 & 1.3-5.6\textsuperscript{$\dagger$} & 1.6-32 \\
-    \bottomrule
-  \end{tabular}\par
-  {\small \textsuperscript{$\dagger$}Schur floor, no reduced model.}
-  \end{center}
-\end{block}
+
 
 \begin{alertblock}{TPP-diversity threshold}
   \statement{Proposition 1} Chinchilla and unsaturated repeated-data (Kaplan, Droppo-Elibol: a heuristic).
@@ -204,7 +207,7 @@
      - \Bigl( \frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-\beta_{\mathrm{eff}}} \Bigr)^{2}}_{V_K}
      \;\geq\;
      \underbrace{\frac{\bigl( K + \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} \bigr)^{2}}{K^{2}\, \kappa_{\mathrm{target}}}}_{\tau_K}. \]
-  Checkable before training.
+  Checkable before training. One ray never passes: $V_1 = 0 < \tau_1$.
 \end{alertblock}
 
 \begin{block}{The threshold on published designs}
@@ -213,7 +216,7 @@
   \raggedright
   Of 24 published designs at $\kappa_{\mathrm{target}} = 100$, 11 pass and 13 fail, 3 at one ratio
   ($V_1 = 0$, off the scale); all 6 collinear ones fail.\par
-  {\small Two passes need equal per-ratio weight; five designs use $\beta_{\mathrm{eff}} = 0.28$.}
+  {\small Two passes need equal per-ratio weight; five print no exponent, so $\beta_{\mathrm{eff}} = 0.28$ is used.}
 \end{block}
 
 
@@ -232,6 +235,16 @@
   (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, as $\varepsilon \to 0$:
   \medskip
   \[ \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr]. \]
+  For $K \geq 2$ the ordering is shown empirically; Lemma 7 gives a sufficient margin.
+\end{block}
+
+\begin{block}{Design recipe}
+  \begin{enumerate}\setlength{\itemsep}{0.3em}
+    \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
+    \item Train on its two end ratios, runs split evenly, log-uniform in $N$.
+    \item Check the exact $\kappa_{A,B}$ before training.
+  \end{enumerate}\vspace{-0.3em}
+  $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
 \end{block}
 
 \end{column}
@@ -285,13 +298,12 @@
 
 
 
-\begin{block}{Design recipe}
-  \begin{enumerate}\setlength{\itemsep}{0.3em}
-    \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
-    \item Train on its two end ratios, runs split evenly, log-uniform in $N$.
-    \item Check the exact $\kappa_{A,B}$ before training.
-  \end{enumerate}\vspace{-0.3em}
-  $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
+
+
+\begin{block}{Below the threshold, and the stakes}
+  Against budget-matched \CO{} below the threshold, \NC{} wins \textbf{68.5\%} (Chinchilla), \textbf{57.4\%}
+  (Droppo-Elibol), \textbf{80.6\%} (Kaplan); CIs exclude 50\%. On Wikipedia, \CO{} and \NC{}
+  Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
 \end{block}
 
 \begin{alertblock}{Takeaways}

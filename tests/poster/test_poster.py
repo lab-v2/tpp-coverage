@@ -33,12 +33,12 @@ ALLOWED_FONT = re.compile(
     r"LatinModernMath)"
 )
 MATH_FONT = re.compile(r"LatinModernMath|LMMath|CMMI|Cmmi")
-BLOCK_TITLE_PT = 41.2  # pdftotext height of a block title word (Raleway, \large at scale 1.18)
+BLOCK_TITLE_PT = 41.2  # fallback block-title height; normally read off the TL;DR title
 # Gaps run from a block's last text line to the next block title, so a tinted block's inner padding
 # (about 0.4 cm) and a figure's bottom margin are inside them; 0.55 cm around the median allows that
 # and nothing more (a 0.9 cm \vspace pad fails).
 MAX_GAP_DEVIATION_CM = 0.55
-MAX_WORDS = 750  # the reference posters carry 500-800 words; the round-1 review set 750
+MAX_WORDS = 800  # the reference posters carry 500-800 words; raised from 750 in round 7
 
 
 def _run(*cmd: str) -> str:
@@ -178,9 +178,12 @@ def block_title_tops(words: list, tex: str) -> list[tuple[int, float, float]]:
         plain = [t for t in re.sub(r"[\\{}$]", " ", plain).split() if t not in ("CO", "NC")]
         firsts.add(plain[0] if plain else "")  # CO/NC also label the R^2 panel's lines
     width = A0_LANDSCAPE_PT[0]
+    # The title size is read off the first block's title ("TL;DR"), so a body-scale change follows.
+    sizes = [w[3] - w[1] for w in words if w[4] == "TL;DR"]
+    title_pt = sizes[0] if sizes else BLOCK_TITLE_PT
     out = set()
     for w in words:
-        if w[4] in firsts and abs((w[3] - w[1]) - BLOCK_TITLE_PT) < 0.3:
+        if w[4] in firsts and abs((w[3] - w[1]) - title_pt) < 0.3:
             out.add((int(w[0] // (width / 3)), round(w[1], 1), round(w[3], 1)))
     return sorted(out)
 
@@ -228,6 +231,34 @@ def gap_problems(gaps: list[list[float]]) -> list[str]:
         for g in col
         if abs(g - median) > MAX_GAP_DEVIATION_CM
     ]
+
+
+def strip_label_problems(words: list, tex: str) -> list[str]:
+    """Every text on the threshold strip's recipe row lies inside the strip's frame.
+
+    The frame's data extent comes from the source (its `\\draw[thick] (x0, .) rectangle (x1, .)`); its
+    page position from the tick labels "1" and "10", which sit at log10 = 0 and 1.
+    """
+    strip = tex[tex.index("\\newcommand{\\thresholdstrip}") :]
+    m = re.search(r"\\draw\[thick\] \((-?[\d.]+),[^)]*\) rectangle \(([\d.]+),", strip)
+    if not m:
+        return ["no strip frame in the source"]
+    x0, x1 = float(m[1]), float(m[2])
+    width = A0_LANDSCAPE_PT[0]
+    col = [w for w in words if width / 3 <= w[0] < 2 * width / 3]
+    # The strip's row label "recipe" (body size), not the "Design recipe" block title.
+    recipe = [w for w in col if w[4] == "recipe" and w[3] - w[1] < 0.8 * BLOCK_TITLE_PT]
+    for r in recipe:
+        ticks = [w for w in col if 0 < w[1] - r[3] < 120 and w[4] in ("1", "10")]
+        one = [w for w in ticks if w[4] == "1"]
+        ten = [w for w in ticks if w[4] == "10"]
+        if one and ten:
+            ten = [max(ten, key=lambda w: w[0])]  # 10^1; the others are the bases of 10^-2, 10^-1
+            c1, c10 = (one[0][0] + one[0][2]) / 2, (ten[0][0] + ten[0][2]) / 2
+            left, right = c1 + x0 * (c10 - c1), c1 + x1 * (c10 - c1)
+            row = [w for w in col if abs(w[1] - r[1]) < 30 and w is not r]
+            return [f"{w[4]!r} outside the strip frame" for w in row if w[2] > right or w[0] < left]
+    return ["strip tick labels or recipe row not found"]
 
 
 def tick_problems(words: list) -> list[str]:
@@ -352,6 +383,17 @@ def test_planted_broken_rule(tmp_path: Path) -> None:
         json.dumps(titles[1]),
     )
     assert rule_coverage(tmp_path / "p.png", [titles[1]], 1.0)[0] < 0.95
+
+
+def test_strip_labels_inside_frame() -> None:
+    assert strip_label_problems(bbox_words(PDF), TEX.read_text()) == []
+
+
+def test_planted_label_outside_frame() -> None:
+    tex = TEX.read_text()
+    narrow = re.sub(r"(\\draw\[thick\] \(-?[\d.]+,[^)]*\) rectangle \()([\d.]+)", r"\g<1>1.1", tex)
+    assert narrow != tex
+    assert strip_label_problems(bbox_words(PDF), narrow)
 
 
 def test_tick_labels_print_at_24_pt() -> None:

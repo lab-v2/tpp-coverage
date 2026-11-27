@@ -366,9 +366,10 @@ def draw_isoflop_panel(
         mappable = ScalarMappable(norm=Normalize(0, n_budgets), cmap=ListedColormap(list(colors)))
         cbar = ax.figure.colorbar(mappable, ax=ax, orientation="vertical", pad=0.02, fraction=0.04)
         cbar.set_label(r"$\log_{10} C$", fontsize=fontsize, labelpad=6)
-        idx = sorted({0, n_budgets // 3, (2 * n_budgets) // 3, n_budgets - 1})
-        cbar.set_ticks([i + 0.5 for i in idx])
-        cbar.set_ticklabels([f"{log_c[i]:.1f}" for i in idx])
+        # Even ticks (every 0.5 in log10 C) placed by interpolation on the discrete budget scale.
+        even = np.arange(np.ceil(log_c[0] * 2) / 2, log_c[-1] + 1e-9, 0.5)
+        cbar.set_ticks(np.interp(even, log_c, np.arange(n_budgets) + 0.5))
+        cbar.set_ticklabels([f"{v:.1f}" for v in even])
         cbar.ax.tick_params(labelsize=fontsize - 4)
         # Only the design styles and the holdout points, outside the axes; the caption explains the
         # residual bars.
