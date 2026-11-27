@@ -24,12 +24,10 @@ LOGOS = {"neurips", "syracuse_ai_institute", "leibniz_lab"}
 EM_DASH = re.compile("\u2014|---")
 MAX_HEADER_FRACTION = 0.17  # header rule above 17% of the height (reference posters: 12-17%)
 MAX_COLUMN_SPREAD_CM = 1.0  # the three column bottoms within 1 cm
-MIN_TICK_PT = 24.0  # printed size of the figures' tick labels
-TICK_WORDS = {"0.0", "0.2", "0.4", "0.5", "0.6", "0.8", "1.0", "16.0", "16.6", "16.9", "17.4"}
 PT_PER_CM = 72 / 2.54
-# The owner asked for genuine LaTeX math: every font is Lato, Raleway or Computer / Latin Modern.
+# The owner asked for a poster that looks like LaTeX: every font is Computer / Latin Modern.
 ALLOWED_FONT = re.compile(
-    r"^(Lato|Raleway|CM(MI|MIB|SY|EX|R|BX|SS)[0-9]+|Cm(mi|r|sy|ex)[0-9]+|MSBM10|MSAM10|LMRoman|LMMath|"
+    r"^(CM(MI|MIB|SY|EX|R|BX|SS)[0-9]+|Cm(mi|r|sy|ex)[0-9]+|MSBM10|MSAM10|LMRoman|LMSans|LMMath|"
     r"LatinModernMath)"
 )
 MATH_FONT = re.compile(r"LatinModernMath|LMMath|CMMI|Cmmi")
@@ -172,18 +170,28 @@ def block_gaps(words: list, width: float) -> list[list[float]]:
 def block_title_tops(words: list, tex: str) -> list[tuple[int, float, float]]:
     """(column, yMin, yMax) of each block title: words at the title size whose text starts a title in the source."""
     heads = re.findall(r"\\begin\{(?:alert)?block\}\{((?:[^{}]|\{[^{}]*\})*)\}", tex)
-    firsts = set()
+    firsts = {}
     for h in heads:
         plain = re.sub(r"\\(CO|NC)\{\}", r"\1", h)
-        plain = [t for t in re.sub(r"[\\{}$]", " ", plain).split() if t not in ("CO", "NC")]
-        firsts.add(plain[0] if plain else "")  # CO/NC also label the R^2 panel's lines
+        plain = re.sub(r"[\\{}$]", " ", plain).split()
+        # A title is a row holding exactly its words (the TL;DR repeats one title's words mid-line).
+        if plain:
+            firsts[plain[0]] = plain
     width = A0_LANDSCAPE_PT[0]
     # The title size is read off the first block's title ("TL;DR"), so a body-scale change follows.
     sizes = [w[3] - w[1] for w in words if w[4] == "TL;DR"]
     title_pt = sizes[0] if sizes else BLOCK_TITLE_PT
     out = set()
     for w in words:
-        if w[4] in firsts and abs((w[3] - w[1]) - title_pt) < 0.3:
+        if w[4] not in firsts or abs((w[3] - w[1]) - title_pt) >= 0.3:
+            continue
+        want = firsts[w[4]]
+        col = int(w[0] // (width / 3))
+        row = sorted(
+            (v for v in words if abs(v[1] - w[1]) < 1 and int(v[0] // (width / 3)) == col),
+            key=lambda v: v[0],
+        )
+        if [v[4] for v in row] == want:
             out.add((int(w[0] // (width / 3)), round(w[1], 1), round(w[3], 1)))
     return sorted(out)
 
@@ -231,43 +239,6 @@ def gap_problems(gaps: list[list[float]]) -> list[str]:
         for g in col
         if abs(g - median) > MAX_GAP_DEVIATION_CM
     ]
-
-
-def strip_label_problems(words: list, tex: str) -> list[str]:
-    """Every text on the threshold strip's recipe row lies inside the strip's frame.
-
-    The frame's data extent comes from the source (its `\\draw[thick] (x0, .) rectangle (x1, .)`); its
-    page position from the tick labels "1" and "10", which sit at log10 = 0 and 1.
-    """
-    strip = tex[tex.index("\\newcommand{\\thresholdstrip}") :]
-    m = re.search(r"\\draw\[thick\] \((-?[\d.]+),[^)]*\) rectangle \(([\d.]+),", strip)
-    if not m:
-        return ["no strip frame in the source"]
-    x0, x1 = float(m[1]), float(m[2])
-    width = A0_LANDSCAPE_PT[0]
-    col = [w for w in words if width / 3 <= w[0] < 2 * width / 3]
-    # The strip's row label "recipe" (body size), not the "Design recipe" block title.
-    recipe = [w for w in col if w[4] == "recipe" and w[3] - w[1] < 0.8 * BLOCK_TITLE_PT]
-    for r in recipe:
-        ticks = [w for w in col if 0 < w[1] - r[3] < 120 and w[4] in ("1", "10")]
-        one = [w for w in ticks if w[4] == "1"]
-        ten = [w for w in ticks if w[4] == "10"]
-        if one and ten:
-            ten = [max(ten, key=lambda w: w[0])]  # 10^1; the others are the bases of 10^-2, 10^-1
-            c1, c10 = (one[0][0] + one[0][2]) / 2, (ten[0][0] + ten[0][2]) / 2
-            left, right = c1 + x0 * (c10 - c1), c1 + x1 * (c10 - c1)
-            row = [w for w in col if abs(w[1] - r[1]) < 30 and w is not r]
-            return [f"{w[4]!r} outside the strip frame" for w in row if w[2] > right or w[0] < left]
-    return ["strip tick labels or recipe row not found"]
-
-
-def tick_problems(words: list) -> list[str]:
-    """Tick labels of the two data panels (pdftotext reports a word's font size as its height)."""
-    ticks = [w for w in words if w[4] in TICK_WORDS]
-    if len(ticks) < 8:
-        return [f"only {len(ticks)} tick labels found"]
-    small = [f"{w[4]} at {w[3] - w[1]:.1f} pt" for w in ticks if w[3] - w[1] < MIN_TICK_PT]
-    return small
 
 
 def header_fraction(png: Path) -> float:
@@ -330,7 +301,7 @@ def test_no_em_dash_in_sources() -> None:
         assert em_dash_problems(tex.read_text()) == [], tex.name
 
 
-def test_latex_math_fonts_only() -> None:
+def test_latex_fonts_only() -> None:
     assert math_font_problems(_run("pdffonts", str(PDF))) == []
     for fig in sorted((POSTER / "figures").glob("*.pdf")):
         assert math_font_problems(_run("pdffonts", str(fig)), need_math=False) == [], fig.name
@@ -383,21 +354,6 @@ def test_planted_broken_rule(tmp_path: Path) -> None:
         json.dumps(titles[1]),
     )
     assert rule_coverage(tmp_path / "p.png", [titles[1]], 1.0)[0] < 0.95
-
-
-def test_strip_labels_inside_frame() -> None:
-    assert strip_label_problems(bbox_words(PDF), TEX.read_text()) == []
-
-
-def test_planted_label_outside_frame() -> None:
-    tex = TEX.read_text()
-    narrow = re.sub(r"(\\draw\[thick\] \(-?[\d.]+,[^)]*\) rectangle \()([\d.]+)", r"\g<1>1.1", tex)
-    assert narrow != tex
-    assert strip_label_problems(bbox_words(PDF), narrow)
-
-
-def test_tick_labels_print_at_24_pt() -> None:
-    assert tick_problems(bbox_words(PDF)) == []
 
 
 def test_header_under_17_percent(tmp_path: Path) -> None:
@@ -460,7 +416,7 @@ def test_planted_too_many_words() -> None:
     assert not word_count_problems("word " * MAX_WORDS)
 
 
-def test_planted_column_spread_and_ticks() -> None:
+def test_planted_column_spread() -> None:
     words = bbox_words(PDF)
     w, h = A0_LANDSCAPE_PT
     lowest = max((x for x in words if x[0] < w / 3 and x[3] < h * 0.95), key=lambda x: x[3])
@@ -469,11 +425,6 @@ def test_planted_column_spread_and_ticks() -> None:
     ]
     others = [x for x in raised if not (x[0] < w / 3 and x[3] > lowest[3] - 2 * PT_PER_CM)]
     assert column_spread_problems(others, w, h)
-    shrunk = [
-        (a, b, c, b + 16.0, t) if t in TICK_WORDS else (a, b, c, d, t) for a, b, c, d, t in words
-    ]
-    assert tick_problems(shrunk)
-    assert tick_problems([x for x in words if x[4] not in TICK_WORDS])
 
 
 def test_planted_tall_header(tmp_path: Path) -> None:
@@ -501,12 +452,14 @@ def test_planted_tall_header(tmp_path: Path) -> None:
 
 def test_planted_math_fonts() -> None:
     head = "name type encoding emb sub uni object ID\n---- ---- ---- --- --- --- ---------\n"
+    lm = "ABCDEF+LMRoman10-Regular-Identity-H CID Type 0C Identity-H yes yes yes 5 0\n"
     lato = "ABCDEF+Lato-Regular CID TrueType Identity-H yes yes yes 5 0\n"
     math = "ABCDEF+LatinModernMath-Regular-Identity-H CID Type 0C Identity-H yes yes yes 6 0\n"
-    assert not math_font_problems(head + lato + math)
-    assert math_font_problems(head + lato)  # math faked in the text font
+    assert not math_font_problems(head + lm + math)
+    assert math_font_problems(head + lm)  # no math font
+    assert math_font_problems(head + lato + math)  # a non-LaTeX text font
     assert math_font_problems(
-        head + lato + math + "ABCDEF+FiraMath-Regular CID Type 0C Identity-H yes yes yes 7 0\n"
+        head + lm + math + "ABCDEF+FiraMath-Regular CID Type 0C Identity-H yes yes yes 7 0\n"
     )
     assert math_font_problems(
         head + "ABCDEF+DejaVuSans CID TrueType Identity-H yes yes yes 8 0\n", need_math=False
@@ -533,55 +486,7 @@ def test_planted_heading_math() -> None:
 
 # --- figure shape, figure text inside the canvas, header centring --------------------------------
 
-FIG_ASPECT = (1.0, 1.2)  # width / height of each data panel (near-square)
 MAX_LOGO_OFFSET_CM = 0.5
-
-
-def aspect_problems(pdfinfo: str, name: str) -> list[str]:
-    size = re.search(r"^Page size:\s+([\d.]+) x ([\d.]+) pts", pdfinfo, re.M)
-    if not size:
-        return [f"{name}: no page size"]
-    ratio = float(size[1]) / float(size[2])
-    lo, hi = FIG_ASPECT
-    return [] if lo <= ratio <= hi else [f"{name}: width / height {ratio:.2f} outside [{lo}, {hi}]"]
-
-
-def canvas_problems(words: list, width: float, height: float, name: str) -> list[str]:
-    """Every text element of a figure lies wholly inside its canvas (none clipped at an edge)."""
-    return [
-        f"{name}: {w[4]!r} at {[round(v) for v in w[:4]]} leaves the {width:.0f} x {height:.0f} canvas"
-        for w in words
-        if w[0] < 0 or w[1] < 0 or w[2] > width or w[3] > height
-    ]
-
-
-def _page_size(pdf: Path) -> tuple[float, float]:
-    m = re.search(r"^Page size:\s+([\d.]+) x ([\d.]+) pts", _run("pdfinfo", str(pdf)), re.M)
-    assert m, pdf
-    return float(m[1]), float(m[2])
-
-
-def test_panels_are_near_square() -> None:
-    figs = sorted((POSTER / "figures").glob("*.pdf"))
-    assert figs
-    for fig in figs:
-        assert aspect_problems(_run("pdfinfo", str(fig)), fig.name) == []
-
-
-def test_figure_text_inside_canvas() -> None:
-    for fig in sorted((POSTER / "figures").glob("*.pdf")):
-        assert canvas_problems(bbox_words(fig), *_page_size(fig), fig.name) == []
-
-
-def test_planted_figure_shape_and_clipped_text() -> None:
-    assert aspect_problems("Page size:       648 x 979.2 pts\n", "portrait")  # round 7's panels
-    fig = sorted((POSTER / "figures").glob("*.pdf"))[0]
-    w, h = _page_size(fig)
-    words = bbox_words(fig)
-    assert words
-    moved = [(w - 10, *words[0][1:3], words[0][3], words[0][4])] + words[1:]
-    moved[0] = (w - 10, words[0][1], w + 30, words[0][3], words[0][4])
-    assert canvas_problems(moved, w, h, fig.name)
 
 
 def logo_offsets(png: Path, words: list) -> tuple[float, float]:
@@ -652,3 +557,81 @@ def test_planted_high_logo(tmp_path: Path) -> None:
     )
     left, _ = logo_offsets(tmp_path / "p.png", bbox_words(PDF))
     assert abs(left) > MAX_LOGO_OFFSET_CM
+
+
+# --- the paper's figures, copied byte for byte; no overlapping text -------------------------------
+
+# The two figures the owner chose: the paper's Figure 1 (a) and (c), as `src/updated_figures/` of the
+# paper's LaTeX source ships them (`\includegraphics` in its empirical section). Pinned by content.
+PAPER_FIGURES = {
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "66492114894318b154b9ff9d45a750ed3cea8cd01bd267bee5d123db6306648a",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "050c1b48ce5c310e2d30fc437aa6139cce5509bd2115026fd8763443e732f9f7",
+}
+MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
+
+
+def figure_problems(folder: Path, tex: str) -> list[str]:
+    import hashlib
+
+    files = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in folder.glob("*.pdf")}
+    used = set(re.findall(r"\\includegraphics(?:\[[^\]]*\])?\{(01_[^}]+)\}", tex))
+    problems = [f"{n}: not the paper's file" for n, h in files.items() if PAPER_FIGURES.get(n) != h]
+    if set(files) != set(PAPER_FIGURES):
+        problems.append(f"figures/ holds {sorted(files)}, expected {sorted(PAPER_FIGURES)}")
+    if used != set(PAPER_FIGURES):
+        problems.append(f"the poster shows {sorted(used)}")
+    if "tikzpicture" in tex:
+        problems.append("a TikZ figure: the poster shows only the paper's figures")
+    return problems
+
+
+def overlap_problems(words: list) -> list[str]:
+    """Pairs of word boxes (pdftotext) that cover each other: overlapping text, legends or labels."""
+    # pdftotext boxes run from the font's ascender to its descender; keep the upper 75% (the ink of
+    # most glyphs) and skip the extensible math braces, whose box spans the indices they group.
+    boxes = sorted(
+        (
+            (w[0], w[1], w[2], w[3] - 0.25 * (w[3] - w[1]), w[4])
+            for w in words
+            if "\u23df" not in w[4]
+        ),
+        key=lambda w: w[0],
+    )
+    problems = []
+    for i, a in enumerate(boxes):
+        for b in boxes[i + 1 :]:
+            if b[0] >= a[2]:
+                break
+            ix = min(a[2], b[2]) - max(a[0], b[0])
+            iy = min(a[3], b[3]) - max(a[1], b[1])
+            if ix <= 0 or iy <= 0:
+                continue
+            small = min((a[2] - a[0]) * (a[3] - a[1]), (b[2] - b[0]) * (b[3] - b[1]))
+            if small > 0 and ix * iy / small > MIN_OVERLAP:
+                problems.append(f"{a[4]!r} and {b[4]!r} overlap at {[round(v) for v in a[:2]]}")
+    return problems
+
+
+def test_figures_are_the_papers() -> None:
+    assert figure_problems(POSTER / "figures", TEX.read_text()) == []
+
+
+def test_planted_made_up_figure(tmp_path: Path) -> None:
+    for name in PAPER_FIGURES:
+        (tmp_path / name).write_bytes((POSTER / "figures" / name).read_bytes())
+    assert not figure_problems(tmp_path, TEX.read_text())
+    (tmp_path / "01_isoflop_Red_Pajama_Kaplan_First.pdf").write_bytes(b"%PDF-1.4 redrawn")
+    assert figure_problems(tmp_path, TEX.read_text())
+    assert figure_problems(
+        POSTER / "figures", TEX.read_text() + "\\begin{tikzpicture}\\end{tikzpicture}"
+    )
+
+
+def test_no_overlapping_text() -> None:
+    assert overlap_problems(bbox_words(PDF)) == []
+
+
+def test_planted_overlapping_text() -> None:
+    words = bbox_words(PDF)
+    a = words[len(words) // 2]
+    assert overlap_problems(words + [(a[0] + 2, a[1] + 2, a[2] + 2, a[3] + 2, "planted")])

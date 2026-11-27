@@ -146,15 +146,12 @@ def draw_isoflop_panel(
     holdout_mode: str = "final",
     style_legends_fn: Callable | None = None,
     debug: bool = False,
-    budget_colorbar: bool = False,
 ) -> None:
     """Draw isoFLOP curves; with ``holdout_data``, the curve set is the n_H induced budgets
     C_i = 6 N_i D_i (one per kept holdout point, after the highest-D-per-unique-N filter),
     so each residual lands exactly on its own induced curve.
     ``style_legends_fn`` is an optional callback ``(ax) -> None`` that callers use to
     harmonize legend frames across panels.
-    ``budget_colorbar`` (opt-in, the poster style) labels the budgets with a colorbar of
-    log10 C instead of the per-budget legend; the default draws the paper's legend.
     """
     _DESIGN_ABBREV = {"Non-Colinear": "NC", "Colinear": "CO"}
     design_cfg = {
@@ -357,41 +354,6 @@ def draw_isoflop_panel(
         budget_labels.append(txt)
 
     main_leg = ax.get_legend()
-
-    if budget_colorbar:
-        from matplotlib.cm import ScalarMappable
-        from matplotlib.colors import ListedColormap, Normalize
-
-        log_c = np.log10(np.asarray(flop_budgets, dtype=float))
-        mappable = ScalarMappable(norm=Normalize(0, n_budgets), cmap=ListedColormap(list(colors)))
-        cbar = ax.figure.colorbar(mappable, ax=ax, orientation="vertical", pad=0.02, fraction=0.04)
-        cbar.set_label(r"$\log_{10} C$", fontsize=fontsize, labelpad=8)
-        # Even ticks (every 0.5 in log10 C) placed by interpolation on the discrete budget scale.
-        even = np.arange(np.ceil(log_c[0] * 2) / 2, log_c[-1] + 1e-9, 0.5)
-        cbar.set_ticks(np.interp(even, log_c, np.arange(n_budgets) + 0.5))
-        cbar.set_ticklabels([f"{v:.1f}" for v in even])
-        cbar.ax.tick_params(labelsize=fontsize - 4)
-        # Only the design styles and the holdout points, outside the axes; the caption explains the
-        # residual bars.
-        if main_leg is not None:
-            main_leg.remove()
-        keep = {"CO", "NC", "Holdout"}
-        handles, labels = ax.get_legend_handles_labels()
-        pairs = [(h, lab) for h, lab in zip(handles, labels) if lab in keep]
-        ax.legend(
-            [h for h, _ in pairs],
-            [lab for _, lab in pairs],
-            loc="lower center",
-            bbox_to_anchor=(0.5, 1.0),
-            ncol=len(pairs),
-            columnspacing=0.8,
-            handlelength=1.6,
-            fontsize=legend_fontsize,
-            frameon=False,
-        )
-        if style_legends_fn is not None:
-            style_legends_fn(ax)
-        return
 
     ax.legend(
         budget_proxies,

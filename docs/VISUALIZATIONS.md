@@ -24,10 +24,6 @@ FIG1_DATASET=Wikipedia FIG1_LAW=Chinchilla FIG1_MODE=First FIG1_PREFIX=custom_ \
 
 Figures go to `full_coverage_results/figures/` as PDF and PNG.
 
-`FIG1_STYLE=poster` (opt-in; the default `paper` is unchanged) draws the panels for the poster: white
-background, Lato text, Type 42 fonts, print-size ticks and a colorbar for the isoFLOP budgets. `make -C poster
-figures TPP_DATA_ROOT=<root>` runs it for the poster's two panels.
-
 The notebooks need the `notebooks` extra; start Jupyter in their folder:
 
 ```bash

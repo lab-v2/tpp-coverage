@@ -310,32 +310,6 @@ DATASET_NAME = os.environ.get("FIG1_DATASET", "Red Pajama")
 LAW_NAME = os.environ.get("FIG1_LAW", "Kaplan")
 MODE_NAME = os.environ.get("FIG1_MODE", "First")
 OUT_PREFIX = os.environ.get("FIG1_PREFIX", "01_")
-# FIG1_STYLE=poster (opt-in) draws the poster's panels: white background, Lato, Type 42 fonts,
-# print-size ticks and an isoFLOP colorbar. The default, "paper", leaves every figure as it was.
-FIG1_STYLE = os.environ.get("FIG1_STYLE", "paper")
-POSTER = FIG1_STYLE == "poster"
-if POSTER:
-    from panel_style import (
-        POSTER_AXIS_LABEL_FS,
-        POSTER_LEGEND_FS,
-        POSTER_LINE_WIDTH,
-        POSTER_MARKER_SIZE,
-        POSTER_TICK_LABEL_FS,
-        poster_rcparams,
-        style_ticks_poster,
-    )
-
-    matplotlib.rcParams.update(poster_rcparams())
-    AXIS_LABEL_FS, TICK_LABEL_FS, LEGEND_FS = (
-        POSTER_AXIS_LABEL_FS,
-        POSTER_TICK_LABEL_FS,
-        POSTER_LEGEND_FS,
-    )
-    LINE_WIDTH, MARKER_SIZE = POSTER_LINE_WIDTH, POSTER_MARKER_SIZE
-    # One fixed axes box for both 2-D panels, saved without a tight crop, so the pair matches.
-    POSTER_AXES_RECT = [0.18, 0.17, 0.54, 0.78]
-    PANEL_H = 8.0  # with PANEL_W = 9 a near-square figure (width / height 1.125)
-    POSTER_SAVE = dict(bbox_inches=None, transparent=True)  # no white margin over block rules
 
 HOLDOUT_COL = "r2_unified"
 HOLDOUT_KEY = "Unified"  # for surface plot
@@ -753,67 +727,13 @@ style_ticks_2d(ax_conv)
 # Darken the errorbars seed_variance drew at #333333/alpha=0.7 so they
 # read clearly against the new GRID_BG_COLOR (#D8D8D8) background.
 _darken_errorbars(ax_conv)
-if POSTER:
-    style_ticks_poster(ax_conv)
-    ax_conv.set_position(POSTER_AXES_RECT)
-    # Direct labels at the line ends instead of a legend; y ticks every 0.2.
-    from matplotlib.ticker import MultipleLocator
-
-    ax_conv.yaxis.set_major_locator(MultipleLocator(0.2))
-    if ax_conv.get_legend() is not None:
-        ax_conv.get_legend().remove()
-    for _line in ax_conv.get_lines():
-        _name = {"Colinear": "CO", "Non-Colinear": "NC"}.get(_line.get_label(), _line.get_label())
-        if _name in ("CO", "NC") and len(_line.get_xdata()):
-            _x, _y = _line.get_xdata()[-1], _line.get_ydata()[-1]
-            ax_conv.annotate(
-                _name,
-                (_x, _y),
-                xytext=(14, 0),
-                textcoords="offset points",
-                ha="left",
-                va="center",
-                color=_line.get_color(),
-                fontsize=AXIS_LABEL_FS,
-                fontweight="bold",
-            )
-    ax_conv.set_xlabel("TPP coverage", fontsize=AXIS_LABEL_FS)
-    ax_conv.set_xlim(-0.03, 1.03)
-    # The direct labels sit outside the frame, right of the line ends.
-    for _t in ax_conv.texts:
-        _t.set_clip_on(False)
-        _t.set_annotation_clip(False)
-    ax_conv.set_xticks([0.0, 0.5, 1.0])
-    # The poster's exact CO / NC colours (matplotlib C0 and C3), as in its TikZ figures and text.
-    _POSTER_DESIGN = {
-        "CO": "#1F77B4",
-        "Colinear": "#1F77B4",
-        "NC": "#D62728",
-        "Non-Colinear": "#D62728",
-    }
-    for _line in ax_conv.get_lines():
-        _c = _POSTER_DESIGN.get(_line.get_label())
-        if _c:
-            _line.set_color(_c)
-            _line.set_markerfacecolor(_c)
-            _line.set_markeredgecolor(_c)
-    _leg = ax_conv.get_legend()
-    if _leg is not None:
-        for _h, _t in zip(_leg.legend_handles, _leg.get_texts()):
-            _c = _POSTER_DESIGN.get(_t.get_text())
-            if _c:
-                _h.set_color(_c)
 # Forces white face, black edge of width SPINE_LW, alpha=LEGEND_ALPHA on the
 # convergence legend regardless of how plot_convergence_with_errorbars built it
 _style_all_legends(ax_conv)
 
 for ext in ["pdf", "png"]:
     out = os.path.join(FIG_DIR, f"{OUT_PREFIX}convergence_{base_tag}.{ext}")
-    fig_conv.savefig(
-        out,
-        dpi=DPI,
-        **(POSTER_SAVE if POSTER else dict(bbox_inches="tight", pad_inches=SAVE_PAD_2D)),
-    )
+    fig_conv.savefig(out, dpi=DPI, bbox_inches="tight", pad_inches=SAVE_PAD_2D)
     print(f"Saved: {out}")
 plt.show()
 plt.close(fig_conv)
@@ -850,45 +770,20 @@ _draw_isoflop_generic(
     x_lim=(None, 1e8),
     show_optimal=SHOW_OPTIMAL,
     fontsize=AXIS_LABEL_FS,
-    legend_fontsize=LEGEND_FS if POSTER else LEGEND_FS - 4,
-    legend_loc="upper right" if POSTER else "lower left",
+    legend_fontsize=LEGEND_FS - 4,
+    legend_loc="lower left",
     line_width=LINE_WIDTH,
     holdout_mode=MODE_NAME.lower(),
     style_legends_fn=_style_all_legends,
-    budget_colorbar=POSTER,
 )
 style_ticks_2d(ax_iso)
-if POSTER:
-    style_ticks_poster(ax_iso)
-    # Symbols as math (Computer Modern), 1.15 times the text size to match Lato's x-height.
-    ax_iso.set_xlabel(r"$N$", fontsize=AXIS_LABEL_FS * 1.15)
-    # Same axes box as the R^2 panel; the colorbar a thin bar to its right.
-    ax_iso.set_position(POSTER_AXES_RECT)
-    # The caption names the styles (CO dashed, NC solid, holdout dots): no legend over the title.
-    if ax_iso.get_legend() is not None:
-        ax_iso.get_legend().remove()
-    for _coll in ax_iso.collections:
-        _coll.set_sizes([220])  # holdout dots about 8 pt across in print
-    for _line in ax_iso.get_lines():
-        _c = _line.get_color()
-        if isinstance(_c, str) and _c == "green":  # CO residual bars: grey, not a third hue
-            _line.set_color("#808080")
-    _cax = [a for a in fig_iso.axes if a is not ax_iso]
-    if _cax:
-        _x0, _y0, _w, _h = POSTER_AXES_RECT
-        _cax[0].set_aspect("auto")
-        _cax[0].set_position([_x0 + _w + 0.02, _y0, 0.03, _h])
 # _draw_isoflop_generic already calls _style_all_legends; this is a belt-and-
 # suspenders second pass in case anything got reattached.
 _style_all_legends(ax_iso)
 
 for ext in ["pdf", "png"]:
     out = os.path.join(FIG_DIR, f"{OUT_PREFIX}isoflop_{base_tag}.{ext}")
-    fig_iso.savefig(
-        out,
-        dpi=DPI,
-        **(POSTER_SAVE if POSTER else dict(bbox_inches="tight", pad_inches=SAVE_PAD_2D)),
-    )
+    fig_iso.savefig(out, dpi=DPI, bbox_inches="tight", pad_inches=SAVE_PAD_2D)
     print(f"Saved: {out}")
 plt.show()
 plt.close(fig_iso)
