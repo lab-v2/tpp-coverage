@@ -100,6 +100,7 @@ Every folder below has one job; a linked folder has its own README.
 | [`cluster/`](cluster/README.md) | A larger Wikipedia stratum (to 380.6M parameters) trained on the paper's protocol |
 | [`docs/`](docs/README.md) | Step-by-step guides: downloading, training, analysis, figures, n-gram KL, the public-checkpoint tests, and the known behaviours |
 | [`slides/`](slides/README.md) | The five-minute NeurIPS 2026 talk (Beamer source and PDF) |
+| [`poster/`](poster/README.md) | The NeurIPS 2026 poster, A0 landscape (beamerposter source and PDF) |
 | [`website/`](website/README.md) | The project page at [lab-v2.github.io/tpp-coverage](https://lab-v2.github.io/tpp-coverage/) |
 | [`tests/`](tests/README.md) | The pytest suite, one folder per component |
 | `.github/` | CI on the project's own runners: tests, pre-commit hooks, `ruff check .`, the privacy scan and the merge rule |
