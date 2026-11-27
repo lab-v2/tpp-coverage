@@ -317,8 +317,26 @@ def test_latex_fonts_only() -> None:
         assert math_font_problems(_run("pdffonts", str(fig)), need_math=False) == [], fig.name
 
 
+def poster_words() -> list:
+    """The poster's own words: the text inside the paper's figures (embedded TrueType since the
+    figures were re-rendered) is the figures' own, so it is left out. The figure band runs from the
+    band's block title to the caption line ("Left:")."""
+    words = bbox_words(PDF)
+    width = A0_LANDSCAPE_PT[0]
+    title = [
+        w
+        for w in words
+        if w[4] == "Kaplan" and w[0] > width / 3 and w[3] - w[1] > 0.8 * BLOCK_TITLE_PT
+    ]
+    caption = [w for w in words if w[4] == "Left:"]
+    if not title or not caption:
+        return words
+    top, bottom = title[0][3], caption[0][1]
+    return [w for w in words if not (w[0] > width / 3 and top < w[1] and w[3] < bottom)]
+
+
 def test_at_most_800_words() -> None:
-    assert word_count_problems(_run("pdftotext", str(PDF), "-")) == []
+    assert word_count_problems(" ".join(w[4] for w in poster_words())) == []
 
 
 def test_column_bottoms_within_1_cm() -> None:
@@ -421,7 +439,7 @@ def test_planted_wrong_qr(tmp_path: Path, payload: str) -> None:
 
 
 def test_planted_too_many_words() -> None:
-    text = _run("pdftotext", str(PDF), "-")
+    text = " ".join(w[4] for w in poster_words())
     assert word_count_problems(text + " extra" * (MAX_WORDS + 1 - len(text.split())))
     assert not word_count_problems("word " * MAX_WORDS)
 
@@ -576,8 +594,8 @@ def test_planted_high_logo(tmp_path: Path) -> None:
 # The two figures the owner chose: the paper's Figure 1 (a) and (c), as `src/updated_figures/` of the
 # paper's LaTeX source ships them (`\includegraphics` in its empirical section). Pinned by content.
 PAPER_FIGURES = {
-    "01_surface_Red_Pajama_Kaplan_First.pdf": "66492114894318b154b9ff9d45a750ed3cea8cd01bd267bee5d123db6306648a",
-    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "050c1b48ce5c310e2d30fc437aa6139cce5509bd2115026fd8763443e732f9f7",
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "1d37617fa550549ded5c2a5cee0392489e873a00f777ebd9e028155da78542f5",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "e6cb243c456e2ea5c7cbc2a5fc3ef74cf515583a615c04fb987e975e67f97ffd",
 }
 MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
 
@@ -651,7 +669,10 @@ def test_planted_overlapping_text() -> None:
 
 # --- figure size and one body size (round 10) ------------------------------------------------------
 
-MIN_FIG_SCALE = 1.6  # each paper figure is set at least 1.6 times its natural width
+# Each paper figure is set at least this many times its natural width. The re-rendered figures
+# (legends outside the axes) are larger at natural size than the earlier ones; at 1.13x the surface
+# figure prints 35 cm wide and the isoFLOP figure fills the band's height.
+MIN_FIG_SCALE = 1.13
 CAPTION_MIN_PT = 26.0  # pdftotext height of caption text
 TEXT_WORD = re.compile(r"^[A-Za-z][A-Za-z,.;:'()-]*$")
 
@@ -704,12 +725,12 @@ def test_figures_set_large() -> None:
 
 
 def test_planted_small_figure() -> None:
-    tex = TEX.read_text().replace("width=35.2cm]{01_surface", "width=24cm]{01_surface")
+    tex = TEX.read_text().replace("width=35.0cm]{01_surface", "width=24cm]{01_surface")
     assert figure_scale_problems(tex, POSTER / "figures")
 
 
 def test_one_body_size() -> None:
-    assert body_size_problems(bbox_words(PDF), TEX.read_text()) == []
+    assert body_size_problems(poster_words(), TEX.read_text()) == []
 
 
 def test_planted_off_size_text() -> None:
@@ -722,3 +743,32 @@ def test_planted_off_size_text() -> None:
         for a, b, c, d, t in words
     ]
     assert body_size_problems(bigger, tex)
+
+
+def paper_copy_problems(poster_dir: Path, paper_dir: Path) -> list[str]:
+    import hashlib
+
+    digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()  # noqa: E731
+    return [
+        f"{name}: poster copy differs from the paper's"
+        for name in PAPER_FIGURES
+        if not (paper_dir / name).is_file() or digest(poster_dir / name) != digest(paper_dir / name)
+    ]
+
+
+def test_figures_equal_the_paper_repos() -> None:
+    """With TPP_PAPER_FIGURES=<the paper source's src/updated_figures>, the copies are byte-identical."""
+    import os
+
+    paper = os.environ.get("TPP_PAPER_FIGURES")
+    if not paper:
+        pytest.skip("TPP_PAPER_FIGURES not set (the paper's LaTeX source is a separate repository)")
+    assert paper_copy_problems(POSTER / "figures", Path(paper)) == []
+
+
+def test_planted_paper_copy_mismatch(tmp_path: Path) -> None:
+    for name in PAPER_FIGURES:
+        (tmp_path / name).write_bytes((POSTER / "figures" / name).read_bytes())
+    assert not paper_copy_problems(POSTER / "figures", tmp_path)
+    (tmp_path / "01_surface_Red_Pajama_Kaplan_First.pdf").write_bytes(b"%PDF old render")
+    assert paper_copy_problems(POSTER / "figures", tmp_path)

@@ -39,8 +39,6 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-matplotlib.rcParams["mathtext.fontset"] = "stix"
-matplotlib.rcParams["font.family"] = "STIXGeneral"
 
 # ── Paths (script lives in src/tpp_analysis/visualizations/, repo root 3 levels up) ──
 PROJECT_ROOT = os.path.abspath(os.path.join(_HERE, "..", "..", ".."))
@@ -110,6 +108,16 @@ from surface_helpers import (
     _draw_boundary_edges_occlusion,
 )
 
+# Computer Modern text and math, set after the project imports (scaling_laws and
+# incremental_coverage set STIX on import) (matplotlib's bundled cmr10 / cm fonts), embedded as TrueType
+# (pdf.fonttype 42): the paper's own typeface, and no Type 3 fonts in the PDF.
+matplotlib.rcParams["font.family"] = "serif"
+matplotlib.rcParams["font.serif"] = ["cmr10"]
+matplotlib.rcParams["mathtext.fontset"] = "cm"
+matplotlib.rcParams["axes.formatter.use_mathtext"] = True
+matplotlib.rcParams["axes.unicode_minus"] = False
+matplotlib.rcParams["pdf.fonttype"] = 42
+matplotlib.rcParams["ps.fonttype"] = 42
 print("Imports OK")
 
 
@@ -500,8 +508,8 @@ _draw_boundary_edges_occlusion(
     z_lim,
 )
 
-ax_surf.plot([], [], [], color=CO_COLOR, lw=6, alpha=0.8, label=f"CO (R²={co_r2:.3f})")
-ax_surf.plot([], [], [], color=NC_COLOR, lw=6, alpha=0.8, label=f"NC (R²={nc_r2:.3f})")
+ax_surf.plot([], [], [], color=CO_COLOR, lw=6, alpha=0.8, label=f"CO ($R^2$ = {co_r2:.3f})")
+ax_surf.plot([], [], [], color=NC_COLOR, lw=6, alpha=0.8, label=f"NC ($R^2$ = {nc_r2:.3f})")
 
 for h_label, (Nh, Dh, Lh) in prepped.items():
     sty = _holdout_style(h_label)
@@ -606,7 +614,14 @@ ax_surf.yaxis.set_major_formatter(FixedOrderFormatter(oom=8, fmt="%d"))
 ax_surf.invert_yaxis()
 ax_surf.set_zlim(z_lo, z_hi)
 ax_surf.view_init(elev=SIDE_ELEV, azim=SIDE_AZIM)
-ax_surf.legend(fontsize=LEGEND_FS, loc="upper left", framealpha=LEGEND_ALPHA)
+# Legend above the axes, outside the data.
+ax_surf.legend(
+    fontsize=LEGEND_FS,
+    loc="lower center",
+    bbox_to_anchor=(0.5, 0.97),
+    ncol=3,
+    framealpha=LEGEND_ALPHA,
+)
 style_ticks_3d(ax_surf)
 _style_all_legends(ax_surf)
 
@@ -775,6 +790,7 @@ _draw_isoflop_generic(
     line_width=LINE_WIDTH,
     holdout_mode=MODE_NAME.lower(),
     style_legends_fn=_style_all_legends,
+    legends_outside=True,
 )
 style_ticks_2d(ax_iso)
 # _draw_isoflop_generic already calls _style_all_legends; this is a belt-and-

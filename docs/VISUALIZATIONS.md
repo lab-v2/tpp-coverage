@@ -9,7 +9,7 @@ repository root (`extracted_losses/`, `full_coverage_results/`, `seed_variance_r
 
 | Script or notebook | Produces |
 |---|---|
-| `figure1_panels.py` | the three panels of Figure 1 (surface, convergence, isoFLOP) for one combination |
+| `figure1_panels.py` | the three panels of Figure 1 (surface, convergence, isoFLOP) for one combination, in Computer Modern (TrueType) with the surface and isoFLOP legends outside the axes |
 | `run_appendix_figures.sh` | Figure 1 and the 16 appendix three-panel figures (calls `figure1_panels.py`) |
 | `visuals.ipynb` | the main-text figures and the top-ranked three-panel figures |
 | `special_viz_notebook_bf16_v2.ipynb` | the BF16 appendix figures |
