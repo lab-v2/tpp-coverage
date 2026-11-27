@@ -640,13 +640,14 @@ def table_spans(pdf: Path = PDF) -> list[Rect]:
     bars = sorted(
         tuple(round(v * CM, 2) for v in (d["rect"].x0, d["rect"].y0, d["rect"].x1, d["rect"].y1))
         for d in page.get_drawings()
-        if d["rect"].height * CM < 0.1
+        if d["rect"].height * CM < 0.15
         and 5 < d["rect"].width * CM < 40
         and d["rect"].y0 * CM > BODY_TOP
+        and not EDGES[2] <= d["rect"].x0 * CM < EDGES[3]  # C2 holds figures, not tables
     )
     out: list[Rect] = []
     for b in bars:
-        if out and abs(out[-1][0] - b[0]) < 0.05 and b[1] - out[-1][3] < 4.0:
+        if out and abs(out[-1][0] - b[0]) < 0.05 and b[1] - out[-1][3] < 6.0:
             out[-1] = (out[-1][0], out[-1][1], out[-1][2], b[1])
         else:
             out.append(b)
@@ -806,3 +807,200 @@ def test_planted_m5_gates() -> None:
         (14.67, 19.9, 34.67, 21.0, 29.9, "LatinModernMath-Regular", "x"),
     ]
     assert display_gap_problems([card], disp, [seg])
+
+
+# --- review M6: figure-slot voids, line pitch, orphans, row ends, equal gaps -----------------------
+
+BLOCK_GAP_MIN = 0.4  # segment gaps above this separate paragraphs or blocks, not lines
+EQUAL_GAP_TOL = 0.15
+
+
+def largest_empty_rect(empty) -> tuple[int, int]:
+    """(width, height) in pixels of the largest-area all-True axis-aligned rectangle (histogram method)."""
+    import numpy as np
+
+    h = np.zeros(empty.shape[1], dtype=int)
+    best = (0, 0, 0)
+    for row in empty:
+        h = np.where(row, h + 1, 0)
+        stack: list[tuple[int, int]] = []
+        for x in range(len(h) + 1):
+            cur = h[x] if x < len(h) else 0
+            start = x
+            while stack and stack[-1][1] >= cur:
+                start, hh = stack.pop()
+                if (x - start) * hh > best[0]:
+                    best = ((x - start) * hh, x - start, hh)
+            stack.append((start, cur))
+    return best[1], best[2]
+
+
+def slot_void_problems(img, card: Rect, inks: list, dpi: float) -> list[str]:  # R3 (b), M6
+    """The largest empty rectangle inside the figure slots (the card's text width, from the first
+    figure's ink top to the last one's ink bottom) must not be 3 x 3 cm or more."""
+    import numpy as np
+
+    per_cm = dpi / 2.54
+    x0, x1 = int((card[0] + PAD) * per_cm), int((card[2] - PAD) * per_cm)
+    y0, y1 = int(inks[0][1] * per_cm), int(inks[-1][3] * per_cm)
+    sub = img[y0:y1, x0:x1].astype(int)
+    bg = img[int((card[1] + 0.3) * per_cm), int((card[0] + 0.3) * per_cm)].astype(int)
+    w, h = largest_empty_rect(np.abs(sub - bg).sum(axis=2) < 24)
+    if w / per_cm >= EMPTY_CM and h / per_cm >= EMPTY_CM:
+        return [f"figure slot void {w / per_cm:.1f} x {h / per_cm:.1f} cm"]
+    return []
+
+
+def body_baselines(pdf: Path = PDF) -> list[tuple[float, float, int, str]]:
+    """Body lines (29.9 pt Latin Modern main span): (x0, baseline, word count, text) in cm."""
+    page = fitz.open(pdf)[0]
+    words = page.get_text("words")
+    out = []
+    for b in page.get_text("dict")["blocks"]:
+        for ln in b.get("lines", []):
+            spans = [s for s in ln["spans"] if s["text"].strip()]
+            if not spans:
+                continue
+            main = max(spans, key=lambda s: len(s["text"]))
+            if abs(main["size"] - 29.9) > 0.5 or not main["font"].startswith("LM"):
+                continue
+            bx = fitz.Rect(ln["bbox"])
+            n = sum(
+                1 for w in words if bx.contains(fitz.Point((w[0] + w[2]) / 2, (w[1] + w[3]) / 2))
+            )
+            text = "".join(s["text"] for s in spans)
+            out.append((bx.x0 * CM, main["origin"][1] * CM, n, text))
+    return out
+
+
+def pitch_problems(cs: list[Rect], lines: list, tol: float = 0.05) -> list[str]:  # M3-4
+    """Consecutive body lines starting at one x in a card are 1.30 apart (one paragraph) or 1.55
+    apart (a paragraph or item break), +- 0.05; 2.0 or more is a display or block between them."""
+    out = []
+    for c in cs:
+        mine = sorted(
+            (ln for ln in lines if c[0] <= ln[0] < c[2] and c[1] <= ln[1] < c[3]),
+            key=lambda ln: ln[1],
+        )
+        for a, b in zip(mine, mine[1:]):
+            d = b[1] - a[1]
+            if abs(a[0] - b[0]) > 0.1 or d >= 2.0:
+                continue
+            if min(abs(d - 1.30), abs(d - 1.55)) > tol:
+                out.append(f"pitch {d:.2f} at {b[1]:.2f}: {b[3][:25]!r}")
+    return out
+
+
+def orphan_problems(cs: list[Rect], lines: list) -> list[str]:  # M3-5
+    """No one-word line ends a paragraph or bullet: a one-word line 1.30 under a line of its paragraph."""
+    out = []
+    for c in cs:
+        mine = sorted(
+            (ln for ln in lines if c[0] <= ln[0] < c[2] and c[1] <= ln[1] < c[3]),
+            key=lambda ln: ln[1],
+        )
+        for a, b in zip(mine, mine[1:]):
+            if b[2] == 1 and abs(b[1] - a[1] - 1.30) <= 0.1:
+                out.append(f"one-word last line {b[3]!r} at {b[1]:.2f}")
+    return out
+
+
+def row_end_problems(
+    cs: list[Rect], rows: list[tuple[float, float, float]], tol: float = 0.20
+) -> list[str]:  # M3-9
+    """Each side-by-side row or table (x0, x1, y) ends at both text edges or is centred on its card."""
+    out = []
+    for x0, x1, y in rows:
+        c = next(c for c in cs if c[0] <= x0 < c[2] and c[1] <= y < c[3])
+        left, right = c[0] + PAD, c[2] - PAD
+        flush = abs(x0 - left) <= tol and abs(x1 - right) <= tol
+        if not flush and abs((x0 + x1) / 2 - (c[0] + c[2]) / 2) > tol:
+            out.append(f"row {x0:.2f}-{x1:.2f} at {y:.2f} neither flush nor centred")
+    return out
+
+
+def side_rows(pdf: Path = PDF) -> list[tuple[float, float, float]]:
+    """The tables (booktabs extents) inside cards, the kappa row as box plus table."""
+    box, _ = kappa_row(pdf)
+    out = []
+    for t in table_spans(pdf):
+        if t[0] < 46 and abs(t[1] - box[1]) < 1.0:  # the kappa table: one row with its box
+            out.append((min(box[0], t[0]), max(box[2], t[2]), t[1]))
+        elif t[2] - t[0] < 40:
+            out.append((t[0], t[2], t[1]))
+    return out
+
+
+def equal_gap_problems(cs: list[Rect], segs: list, tables: list[Rect]) -> list[str]:  # M6
+    """Paragraph and block gaps inside a card (segment gaps over BLOCK_GAP_MIN, after the title,
+    outside tables) are equal within EQUAL_GAP_TOL. Declared exceptions: the hero card's two spare
+    gaps (gated equal by hero_gap_problems) and the figure card (its gaps are the figure gates')."""
+    out = []
+    for c, seg in zip(cs, segs):
+        if abs(c[0] - EDGES[2]) < 0.01:
+            continue
+        pairs = list(zip(seg[1:], seg[2:]))
+        gaps = [
+            b[0] - a[1]
+            for a, b in pairs
+            if b[0] - a[1] > BLOCK_GAP_MIN
+            and not any(
+                t[0] - 0.2 < c[2] and t[1] - 0.3 <= a[1] and b[0] <= t[3] + 1.2
+                for t in tables
+                if c[0] <= t[0] < c[2]
+            )
+        ]
+        if c[0] > 90 and c[1] < BODY_TOP + 0.1:
+            gaps = sorted(gaps)[:-2]
+        if gaps and max(gaps) - min(gaps) > EQUAL_GAP_TOL:
+            out.append(f"card {c[:2]}: block gaps {[round(g, 2) for g in gaps]}")
+    return out
+
+
+def test_figure_slot_void() -> None:
+    fig = next(c for c in cards() if abs(c[0] - EDGES[2]) < 0.01)
+    img = render(PDF, 20)
+    assert slot_void_problems(img, fig, figure_inks(render(PDF, 50), fig, 50), 20) == []
+
+
+def test_line_pitch() -> None:
+    assert pitch_problems(cards(), body_baselines()) == []
+
+
+def test_no_one_word_last_lines() -> None:
+    assert orphan_problems(cards(), body_baselines()) == []
+
+
+def test_rows_flush_or_centred() -> None:
+    assert row_end_problems(cards(), side_rows()) == []
+
+
+def test_equal_gaps_inside_cards() -> None:
+    cs = cards()
+    assert equal_gap_problems(cs, card_segments(render(PDF, 100), cs, 100), table_spans()) == []
+
+
+def test_planted_m6_gates() -> None:
+    import numpy as np
+
+    card = (48.33, 15.2, 91.67, 83.6)
+    px = 20 / 2.54
+    img = np.full((int(90 * px), int(140 * px), 3), 243, dtype=np.uint8)
+    img[int(18 * px) : int(48 * px), int(56 * px) : int(90.8 * px)] = (
+        0  # Fig 1a, 6.6 cm short at the left
+    )
+    img[int(49 * px) : int(78 * px), int(49.2 * px) : int(90.8 * px)] = 0
+    assert slot_void_problems(
+        img, card, [(49.1, 18, 90.8, 48), (49.1, 49, 90.8, 78)], 20
+    )  # the M6 void
+    c1 = (3.0, 15.2, 46.33, 30.0)
+    assert pitch_problems([c1], [(3.8, 20.0, 5, "a"), (3.8, 21.83, 5, "b")])  # Theorem 1 at M2
+    assert not pitch_problems([c1], [(3.8, 20.0, 5, "a"), (3.8, 21.30, 5, "b")])
+    assert orphan_problems([c1], [(3.8, 20.0, 8, "full line"), (3.8, 21.30, 1, "margin.")])
+    assert not orphan_problems(
+        [c1], [(3.8, 20.0, 8, "full line"), (3.8, 21.30, 2, "sufficient margin.")]
+    )
+    assert row_end_problems([c1], [(3.8, 42.74, 25.0)])  # the M2 kappa row: flush left, 2.8 short
+    assert not row_end_problems([c1], [(9.75, 39.58, 25.0)])  # centred on the card
+    segs = [[(15.6, 16.8), (17.5, 18.4), (18.96, 19.9), (21.0, 22.0)]]  # gaps 0.56, then 1.10
+    assert equal_gap_problems([c1], segs, [])
