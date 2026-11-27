@@ -22,6 +22,7 @@ URL = "https://lab-v2.github.io/tpp-coverage/"
 A0_LANDSCAPE_PT = (3370.39, 2383.94)  # 118.9 x 84.1 cm
 LOGOS = {"neurips", "syracuse_ai_institute", "leibniz_lab"}
 EM_DASH = re.compile("\u2014|---")
+MAX_WORDS = 750  # the reference posters carry 500-800 words; the round-1 review set 750
 
 
 def _run(*cmd: str) -> str:
@@ -93,6 +94,12 @@ def em_dash_problems(text: str) -> list[str]:
     ]
 
 
+def word_count_problems(text: str) -> list[str]:
+    """Words as pdftotext prints them (whitespace-separated), header and footer included."""
+    n = len(text.split())
+    return [] if n <= MAX_WORDS else [f"{n} words, more than {MAX_WORDS}"]
+
+
 def decode_qr(png: Path) -> list[str]:
     script = (
         "import sys, zxingcpp; from PIL import Image; "
@@ -126,6 +133,10 @@ def test_title_and_authors_match_citation_cff() -> None:
 def test_no_em_dash_in_sources() -> None:
     for tex in POSTER.glob("*.tex"):
         assert em_dash_problems(tex.read_text()) == [], tex.name
+
+
+def test_at_most_750_words() -> None:
+    assert word_count_problems(_run("pdftotext", str(PDF), "-")) == []
 
 
 def test_qr_code_decodes_to_project_page(tmp_path: Path) -> None:
@@ -175,3 +186,9 @@ def test_planted_wrong_qr(tmp_path: Path, payload: str) -> None:
     png = tmp_path / "qr.png"
     _run("uvx", "--quiet", "segno", "--scale", "4", "--output", str(png), payload)
     assert decode_qr(png) == [payload] != [URL]
+
+
+def test_planted_too_many_words() -> None:
+    text = _run("pdftotext", str(PDF), "-")
+    assert word_count_problems(text + " extra" * (MAX_WORDS + 1 - len(text.split())))
+    assert not word_count_problems("word " * MAX_WORDS)
