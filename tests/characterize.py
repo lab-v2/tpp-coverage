@@ -284,6 +284,9 @@ class FigureCapture:
         import matplotlib.pyplot as plt
 
         plt._get_backend_mod()  # resolve the backend first: resolving it rebinds plt.show
+        # A figure an earlier test left open is not this block's: on a shared xdist worker it was
+        # read as an extra panel ("length 4 != 3" in test_figure1_panels, 2026-11-26).
+        plt.close("all")
         self.plt, self.figures = plt, []
         self._show, self._close = plt.show, plt.close
         plt.show, plt.close = self._on_show, self._on_close

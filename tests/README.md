@@ -31,7 +31,7 @@ The characterization tests (`tpp_analysis/**/test_characterize_*.py`, helpers in
 `characterize.py`) run the analysis modules on the released inputs (pinned to one HuggingFace
 revision) and compare their tables, CSVs, fits and figure data with the base commit's outputs,
 frozen in `frozen/` beside each test. They pin behaviour for refactors; `TPP_FREEZE=1` refreezes
-them, on the base commit only. Figures are compared by their data (including every line's and collection's zorder and alpha), never by image bytes.
+them, on the base commit only. Figures are compared by their data (including every line's and collection's zorder and alpha), never by image bytes. `test_characterize.py` pins the helpers themselves: a figure an earlier test left open is never read as one of the block's.
 
 The `training_models/` ones compare what the code returns and writes with the
 base commit's outputs, frozen in `frozen/` beside each test (helpers in `characterize.py`;

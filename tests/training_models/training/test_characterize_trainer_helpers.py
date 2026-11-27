@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 import argparse
 import importlib
 import json
+import os
 import random
 import re
 import sys
@@ -123,6 +124,21 @@ def read_tree(root: Path) -> dict[str, object]:
     return {k: (stamped(v) if isinstance(v, str) else v) for k, v in out.items()}
 
 
+def checkpoint_epoch(path: Path) -> int:
+    """The epoch a checkpoint's file name records (`..._epoch3_...`)."""
+    return int(re.search(r"_epoch(\d+)_", path.name)[1])
+
+
+def test_the_last_checkpoint_is_chosen_by_epoch_not_mtime(tmp_path: Path) -> None:
+    names = [f"{PREFIX}_epoch{e}_bs4_seq8_wd0.3_time0.00h_completedAt1.pt" for e in (2, 3)]
+    paths = [tmp_path / n for n in names]
+    for p in paths:
+        p.write_bytes(b"")
+        os.utime(p, ns=(1, 1))  # two saves inside one mtime tick
+    assert max(paths, key=lambda p: p.stat().st_mtime) == paths[0]  # the old key: epoch 2
+    assert max(paths, key=checkpoint_epoch) == paths[1]
+
+
 def test_checkpoint_and_metrics_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -158,7 +174,9 @@ def test_checkpoint_and_metrics_files(
     check_frozen(FROZEN / "saved_files.json", {"files": read_tree(tmp_path), "log": log})
 
     # What the resume path reads back from those files.
-    last = max((tmp_path / "saved_checkpoints").glob("*.pt"), key=lambda p: p.stat().st_mtime)
+    # The newest by epoch in its name: two saves within one mtime tick tied, and max() then
+    # returned the epoch-2 checkpoint (2026-11-26).
+    last = max((tmp_path / "saved_checkpoints").glob("*.pt"), key=checkpoint_epoch)
     view = {
         "epoch_tokens": list(trainer.set_current_epoch_initial_tokens(str(last), rank=0)),
         "valid": trainer._validate_checkpoint(str(last)),
