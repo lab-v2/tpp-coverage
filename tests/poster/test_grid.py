@@ -697,3 +697,112 @@ def display_gap_problems(
                 if gap is not None and abs(gap - DISPLAY_GAP) > DISPLAY_TOL and gap < 3.0:
                     out.append(f"card {c[:2]}: display at {y:.2f}: {gap:.2f} cm {side}")
     return out
+
+
+def baseline_rows(pdf: Path = PDF, top: float = 85.8) -> list[list[tuple[float, float]]]:
+    """Footer lines as (x0, main-span baseline), grouped into rows of nearby baselines."""
+    page = fitz.open(pdf)[0]
+    pts = []
+    for b in page.get_text("dict")["blocks"]:
+        for ln in b.get("lines", []):
+            spans = [s for s in ln["spans"] if s["text"].strip()]
+            if spans:
+                main = max(spans, key=lambda s: len(s["text"]))
+                if main["origin"][1] * CM > top:
+                    pts.append((main["origin"][0] * CM, main["origin"][1] * CM))
+    rows: list[list[tuple[float, float]]] = []
+    for p in sorted(pts, key=lambda p: p[1]):
+        if rows and p[1] - rows[-1][0][1] < 0.4:
+            rows[-1].append(p)
+        else:
+            rows.append([p])
+    return rows
+
+
+def footer_baseline_problems(rows: list) -> list[str]:  # M5: every footer line on shared baselines
+    return [
+        f"footer row at {r[0][1]:.2f}: baselines spread {max(p[1] for p in r) - min(p[1] for p in r):.2f}"
+        for r in rows
+        if max(p[1] for p in r) - min(p[1] for p in r) > 0.05
+    ]
+
+
+def hero_gap_problems(gaps: list[float], tol: float = 0.05) -> list[str]:  # M5: the two hero gaps
+    big = sorted(gaps)[-2:]
+    return [] if len(big) == 2 and big[1] - big[0] <= tol else [f"hero gaps {big}"]
+
+
+def row_edge_problems(box: Rect, table: tuple[float, float], tol: float = 0.15) -> list[str]:  # M5
+    """A box and the table beside it share their top and bottom."""
+    return [
+        f"box {box[1]:.2f}-{box[3]:.2f} vs table {table[0]:.2f}-{table[1]:.2f}"
+        for _ in [0]
+        if abs(box[1] - table[0]) > tol or abs(box[3] - table[1]) > tol
+    ]
+
+
+def kappa_row(pdf: Path = PDF) -> tuple[Rect, tuple[float, float]]:
+    """The kappa box fill and its table's top rule to note-ink bottom (cm)."""
+    import numpy as np
+
+    page = fitz.open(pdf)[0]
+    box = next(
+        tuple(v * CM for v in (d["rect"].x0, d["rect"].y0, d["rect"].x1, d["rect"].y1))
+        for d in page.get_drawings()
+        if d.get("fill")
+        and abs(d["fill"][2] - 1.0) < 0.01
+        and 5 < d["rect"].width * CM < 20
+        and d["rect"].x0 * CM < 46
+    )
+    t = next(t for t in table_spans(pdf) if t[0] < 46 and t[1] > BODY_TOP)
+    img, per_cm = render(pdf, 100), 100 / 2.54
+    sub = img[
+        int(t[3] * per_cm) : int((box[3] + 1.0) * per_cm), int(t[0] * per_cm) : int(t[2] * per_cm)
+    ].astype(int)
+    bg = sub[-1, -1]
+    rows = np.nonzero((np.abs(sub - bg).sum(axis=2) > 40).any(axis=1))[0]
+    run = [
+        r for i, r in enumerate(rows) if i == 0 or r - rows[i - 1] <= 3
+    ]  # the note, under the rule
+    return box, (t[1], t[3] + run[-1] / per_cm)
+
+
+def test_display_gaps() -> None:
+    cs = cards()
+    segs = card_segments(render(PDF, 100), cs, 100)
+    assert display_gap_problems(cs, text_lines(), segs, table_spans()) == []
+
+
+def test_hero_gaps_equal() -> None:
+    cs = cards()
+    hero = next(c for c in cs if c[0] > 90 and c[1] < BODY_TOP + 0.1)
+    seg = card_segments(render(PDF, 100), [hero], 100)[0]
+    assert hero_gap_problems([b[0] - a[1] for a, b in zip(seg, seg[1:])]) == []
+
+
+def test_footer_baselines_shared() -> None:
+    assert footer_baseline_problems(baseline_rows()) == []
+
+
+def test_kappa_box_and_table_share_edges() -> None:
+    assert row_edge_problems(*kappa_row()) == []
+
+
+def test_planted_m5_gates() -> None:
+    assert footer_baseline_problems([[(3.0, 87.62), (121.0, 87.27)]])
+    assert not footer_baseline_problems([[(3.0, 87.62), (121.0, 87.58)]])
+    assert hero_gap_problems([0.3, 2.28, 2.10])
+    assert row_edge_problems((9.7, 60.2, 24.8, 66.3), (60.2, 65.6))  # the M4 box ran 0.7 low
+    assert not row_edge_problems((9.7, 60.2, 24.8, 66.3), (60.22, 66.2))
+    seg = [
+        (15.6, 16.8),
+        (17.5, 18.4),
+        (19.9, 21.0),
+        (21.3, 22.0),
+    ]  # a display 1.5 cm below its text
+    card = (3.0, 15.2, 46.33, 23.0)
+    disp = [
+        (10.0, 15.6, 30.0, 16.8, 43.8, "LMRoman10-Bold", "Title"),
+        (14.67, 19.9, 34.67, 21.0, 29.9, "LatinModernMath-Regular", "x"),
+    ]
+    assert display_gap_problems([card], disp, [seg])

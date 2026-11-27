@@ -143,9 +143,12 @@
   One ray pins down $\psi$, not $A$ and $B$: a ``sloppy'' model. Gap $\varepsilon := |\alpha - \beta|$.
 \end{card}\cardgap
 \begin{card}{Gauss-Newton conditioning}
-  \opencorr{-1.26}
-  \[ S(\symbf{\theta}) = \tfrac{1}{2} \lVert \symbfup{r}(\symbf{\theta}) \rVert^2, \quad
-     J_{ij} = \frac{\partial r_i}{\partial \theta_j}, \quad (J^\top J)\, \Delta\symbf{\theta} = -J^\top \symbfup{r} \]
+  \opencorr{-1.26}\belowdisplayskip=\dimexpr\dispskip-0.16cm\relax \belowdisplayshortskip=\belowdisplayskip% its second line sits on the line grid
+  \[ \begin{gathered} S(\symbf{\theta}) = \tfrac{1}{2} \lVert \symbfup{r}(\symbf{\theta}) \rVert^2, \quad
+     J_{ij} = \frac{\partial r_i}{\partial \theta_j} \\[0.4cm]
+     (J^\top J)\, \Delta\symbf{\theta} = -J^\top \symbfup{r} \end{gathered} \]
+  % (One display of two lines, the normal equations on the second: C1 is full, and two stacked
+  % displays would put both their skips between them.)
   Scale pair: $\kappa_{A,B} := \kappa\bigl((J^\top J)_{A,B}\bigr)$. On a ray, up to sign, $j_A = N^{-\alpha}$ and
   $j_B = k^{-\beta} N^{-\beta}$: nearly parallel for small $\varepsilon$.
 \end{card}\cardgap
@@ -164,11 +167,11 @@
   \end{tabular}}%
   \sbox{\kappaeq}{\Sthree$\displaystyle \begin{aligned} \kappa_{A,B} &= \Theta(\varepsilon^{-2}) \\
        \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} &= \Omega(\varepsilon^{-1}) \end{aligned}$}%
-  \setlength{\kappah}{\dimexpr\ht\kappaeq+\dp\kappaeq+1.2cm\relax}%
-  \ifdim\dimexpr\ht\kappatab+\dp\kappatab\relax>\kappah \setlength{\kappah}{\dimexpr\ht\kappatab+\dp\kappatab\relax}\fi
+  % One height for both: the table's, from its top rule to the note's baseline strut.
+  \setlength{\kappah}{\dimexpr\ht\kappatab+\dp\kappatab-\kappanote\relax}%
   \par\smallskip{\centering\setlength{\fboxsep}{0pt}%
   \colorbox{lightblue}{\parbox[c][\kappah][c]{\dimexpr\wd\kappaeq+2.4cm\relax}{\centering\usebox{\kappaeq}}}\hspace{2cm}%
-  \parbox[c][\kappah][b]{\wd\kappatab}{\usebox{\kappatab}\par\vskip-\kappanote}\par}
+  \parbox[c][\kappah][s]{\wd\kappatab}{\vfill\usebox{\kappatab}\par\vskip-\kappanote}\par}
 \end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
 \begin{alertcard}[last]{TPP-diversity threshold}
   \statement{Proposition 1} Chinchilla and unsaturated repeated-data (Kaplan, Droppo-Elibol: a heuristic).

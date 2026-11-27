@@ -94,16 +94,18 @@ def test_figure1_poster_style_draws_the_paper_data(
 
 
 def legend_problems(fig, window_in=None, pad_cm: float = 0.2) -> list[str]:
-    """R6 / M4-1: every legend frame lies inside its own axes and at least pad_cm inside the saved
-    area (the whole canvas, or the crop window `window_in` in inches), so its frame is closed."""
+    """R6 / M4-1 / M5: every legend is at least pad_cm inside the saved area (the canvas, or the
+    crop window `window_in` in inches), so its frame is closed, and clear of the plot by pad_cm: a
+    2-D legend at least pad_cm inside its axes frame; a 3-D legend (whose axes rect is not a
+    frame) over no other ink within pad_cm, on a render with the legend hidden."""
+    import numpy as np
     from matplotlib.transforms import Bbox
 
     fig.canvas.draw()
     dpi = fig.dpi
-    if window_in is None:
-        area = fig.bbox
-    else:
-        area = Bbox.from_extents(*(v * dpi for v in window_in.extents))
+    area = (
+        fig.bbox if window_in is None else Bbox.from_extents(*(v * dpi for v in window_in.extents))
+    )
     pad = pad_cm / 2.54 * dpi
     out = []
     for ax in fig.axes:
@@ -111,19 +113,36 @@ def legend_problems(fig, window_in=None, pad_cm: float = 0.2) -> list[str]:
         if leg is None:
             continue
         b = leg.get_window_extent()
+        grown = Bbox.from_extents(b.x0 - pad, b.y0 - pad, b.x1 + pad, b.y1 + pad)
         if not (
-            b.x0 >= ax.bbox.x0 and b.x1 <= ax.bbox.x1 and b.y0 >= ax.bbox.y0 and b.y1 <= ax.bbox.y1
-        ):
-            out.append(f"legend outside its axes: {b.extents} vs {ax.bbox.extents}")
-        if not (
-            b.x0 >= area.x0 + pad
-            and b.x1 <= area.x1 - pad
-            and b.y0 >= area.y0 + pad
-            and b.y1 <= area.y1 - pad
+            grown.x0 >= area.x0
+            and grown.x1 <= area.x1
+            and grown.y0 >= area.y0
+            and grown.y1 <= area.y1
         ):
             out.append(
                 f"legend within {pad_cm} cm of the saved edge: {b.extents} vs {area.extents}"
             )
+        if ax.name != "3d":
+            f = ax.bbox
+            if not (
+                grown.x0 >= f.x0 and grown.x1 <= f.x1 and grown.y0 >= f.y0 and grown.y1 <= f.y1
+            ):
+                out.append(
+                    f"legend within {pad_cm} cm of its axes frame: {b.extents} vs {f.extents}"
+                )
+            continue
+        leg.set_visible(False)
+        fig.canvas.draw()
+        rgba = np.asarray(fig.canvas.buffer_rgba())
+        leg.set_visible(True)
+        h = rgba.shape[0]
+        x0, x1 = int(max(grown.x0, 0)), int(min(grown.x1, rgba.shape[1]))
+        y0, y1 = int(max(h - grown.y1, 0)), int(min(h - grown.y0, h))
+        patch = rgba[y0:y1, x0:x1, :3].astype(int)
+        face = (np.array(fig.get_facecolor()[:3]) * 255).astype(int)
+        if (np.abs(patch - face).sum(axis=2) > 30).any():
+            out.append(f"3-D legend within {pad_cm} cm of plot ink at {b.extents}")
     return out
 
 
@@ -162,10 +181,14 @@ def test_planted_legend_outside() -> None:
     ax.plot([0, 1], [0, 1], label="a")
     ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1.0))  # beside the axes
     assert legend_problems(fig)
-    ax.legend(loc="upper left", borderaxespad=0)  # its frame on the axes edge: no 0.2 cm pad
-    assert legend_problems(
-        fig, window_in=ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-    )
+    ax.legend(loc="upper left", borderaxespad=0)  # on the axes frame: no 0.2 cm clearance
+    assert legend_problems(fig)
     ax.legend(loc="center")
     assert not legend_problems(fig)
+    fig3 = plt.figure(figsize=(6, 5))
+    ax3 = fig3.add_subplot(111, projection="3d")
+    ax3.plot([0, 1], [0, 1], [0, 1], label="a")
+    ax3.legend(loc="center")  # over the 3-D box
+    assert any("3-D" in p for p in legend_problems(fig3))
     plt.close(fig)
+    plt.close(fig3)
