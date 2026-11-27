@@ -29,7 +29,7 @@
     {
       "rule": "mixed-dir",
       "path": "large_scale/figures",
-      "measure": 12,
+      "measure": 11,
       "reason": "pre-existing loose-file folders of the camera-ready release, untouched by the slides and project-page change"
     },
     {
