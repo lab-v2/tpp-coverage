@@ -207,17 +207,27 @@
   \begin{columns}[t,onlytextwidth]% the numbers share the block's left edge
     \begin{column}{0.46\linewidth}
       \raggedright
-      {\fontsize{88}{92}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
+      {\fontsize{114}{118}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
       FP32: 1,460/1,500
     \end{column}
     \begin{column}{0.46\linewidth}
       \raggedright
-      {\fontsize{88}{92}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
+      {\fontsize{114}{118}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
       BF16, Wikipedia: 296/300
     \end{column}
   \end{columns}
-  \medskip
-  $\sim$1,900 LLaMA-style models, 5.04-76.5M parameters, 4 laws $\times$ 5 corpora; holdout $R^2$: \CO{} 0.837, \NC{} 0.932. Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
+  \bigskip
+  \begin{columns}[t,onlytextwidth]% key numbers, 2 x 2
+    \begin{column}{0.46\linewidth}\raggedright
+      {\Large\bfseries $\sim$1,900}\par LLaMA-style models\par\medskip
+      {\Large\bfseries 4 $\times$ 5}\par laws $\times$ corpora
+    \end{column}
+    \begin{column}{0.46\linewidth}\raggedright
+      {\Large\bfseries 5.04-76.5M}\par parameters\par\medskip
+      {\Large\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{} / \NC{}
+    \end{column}
+  \end{columns}\medskip
+  Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
 \end{block}
 
 \begin{alertblock}{Takeaways}
