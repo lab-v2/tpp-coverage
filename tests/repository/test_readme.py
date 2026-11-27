@@ -108,23 +108,34 @@ def test_diagram_is_an_image_rendered_from_its_source() -> None:
     assert stamp == hashlib.sha256(DIAGRAM.encode()).hexdigest(), "re-run images/pipeline/render.sh"
 
 
-def badges_without_logo(readme: str) -> list[str]:
-    """Each shields.io badge's label that carries no logo (owner, 2026-11-26: every badge has one)."""
-    out = []
-    for src in re.findall(r'src="(https://img\.shields\.io/[^"]+)"', readme):
-        if "/endpoint?" in src:  # the badge's own JSON sets its logo (Ruff's does)
-            continue
-        if not re.search(r"[?&](amp;)?logo=", src):
-            out.append(src.split("/badge/")[-1].split("-")[0])
+def badges_without_logo(readme: str, repo=REPO) -> list[str]:
+    """Each README badge that carries no logo (owner, 2026-11-26: every badge has one).
+
+    The badges are shields.io renders committed under images/badges/rendered/ (images/badges/fetch.sh): GitHub's
+    image proxy answered HTTP 504 for every shields.io badge with a logo. A shields.io link in
+    the README is itself a defect, and so is a badge SVG with no embedded logo image.
+    """
+    out = [src for src in re.findall(r'src="(https://img\.shields\.io/[^"]+)"', readme)]
+    for src in re.findall(r'src="(images/badges/[^"]+\.svg)"', readme):
+        if "<image" not in (repo / src).read_text():
+            out.append(src)
     return out
 
 
 def test_every_badge_has_a_logo() -> None:
-    assert re.findall(r'src="https://img\.shields\.io/', README), "no badges found"
+    assert len(re.findall(r'src="images/badges/', README)) == 8, "expected the 8 local badges"
     assert badges_without_logo(README) == []
 
 
-def test_a_badge_without_a_logo_is_caught() -> None:
-    planted = README.replace("?logo=python&amp;logoColor=white", "", 1)
-    assert planted != README, "planted change no longer applies"
-    assert badges_without_logo(planted) == ["python"]
+def test_a_badge_without_a_logo_or_from_shields_is_caught(tmp_path) -> None:
+    remote = README.replace(
+        "images/badges/rendered/python.svg", "https://img.shields.io/badge/python-3.10-blue.svg", 1
+    )
+    assert remote != README, "planted change no longer applies"
+    assert badges_without_logo(remote) == ["https://img.shields.io/badge/python-3.10-blue.svg"]
+    bare = tmp_path / "images" / "badges" / "rendered"
+    bare.mkdir(parents=True)
+    for f in (REPO / "images" / "badges" / "rendered").glob("*.svg"):
+        text = f.read_text()
+        (bare / f.name).write_text(re.sub(r"<image[^>]*>", "", text) if f.stem == "uv" else text)
+    assert badges_without_logo(README, tmp_path) == ["images/badges/rendered/uv.svg"]
