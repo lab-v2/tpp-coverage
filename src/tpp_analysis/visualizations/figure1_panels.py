@@ -332,6 +332,10 @@ if POSTER:
         POSTER_LEGEND_FS,
     )
     LINE_WIDTH, MARKER_SIZE = POSTER_LINE_WIDTH, POSTER_MARKER_SIZE
+    # One fixed axes box for both 2-D panels, saved without a tight crop, so the pair matches.
+    POSTER_AXES_RECT = [0.19, 0.16, 0.62, 0.70]
+    PANEL_H = 7.5  # shorter than the paper's square panels, to fit the poster column
+    POSTER_SAVE = dict(bbox_inches=None)
 
 HOLDOUT_COL = "r2_unified"
 HOLDOUT_KEY = "Unified"  # for surface plot
@@ -751,6 +755,7 @@ style_ticks_2d(ax_conv)
 _darken_errorbars(ax_conv)
 if POSTER:
     style_ticks_poster(ax_conv)
+    ax_conv.set_position(POSTER_AXES_RECT)
     ax_conv.set_xlabel("TPP coverage", fontsize=AXIS_LABEL_FS)
     # The poster's exact CO / NC colours (matplotlib C0 and C3), as in its TikZ figures and text.
     _POSTER_DESIGN = {
@@ -777,7 +782,11 @@ _style_all_legends(ax_conv)
 
 for ext in ["pdf", "png"]:
     out = os.path.join(FIG_DIR, f"{OUT_PREFIX}convergence_{base_tag}.{ext}")
-    fig_conv.savefig(out, dpi=DPI, bbox_inches="tight", pad_inches=SAVE_PAD_2D)
+    fig_conv.savefig(
+        out,
+        dpi=DPI,
+        **(POSTER_SAVE if POSTER else dict(bbox_inches="tight", pad_inches=SAVE_PAD_2D)),
+    )
     print(f"Saved: {out}")
 plt.show()
 plt.close(fig_conv)
@@ -826,13 +835,23 @@ if POSTER:
     style_ticks_poster(ax_iso)
     # Symbols as math (Computer Modern), 1.15 times the text size to match Lato's x-height.
     ax_iso.set_xlabel(r"$N$", fontsize=AXIS_LABEL_FS * 1.15)
+    # Same axes box as the R^2 panel; the colorbar a thin bar to its right.
+    ax_iso.set_position(POSTER_AXES_RECT)
+    _cax = [a for a in fig_iso.axes if a is not ax_iso]
+    if _cax:
+        _x0, _y0, _w, _h = POSTER_AXES_RECT
+        _cax[0].set_position([_x0 + _w + 0.02, _y0, 0.025, _h])
 # _draw_isoflop_generic already calls _style_all_legends; this is a belt-and-
 # suspenders second pass in case anything got reattached.
 _style_all_legends(ax_iso)
 
 for ext in ["pdf", "png"]:
     out = os.path.join(FIG_DIR, f"{OUT_PREFIX}isoflop_{base_tag}.{ext}")
-    fig_iso.savefig(out, dpi=DPI, bbox_inches="tight", pad_inches=SAVE_PAD_2D)
+    fig_iso.savefig(
+        out,
+        dpi=DPI,
+        **(POSTER_SAVE if POSTER else dict(bbox_inches="tight", pad_inches=SAVE_PAD_2D)),
+    )
     print(f"Saved: {out}")
 plt.show()
 plt.close(fig_iso)
