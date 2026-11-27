@@ -19,5 +19,5 @@ plotting code: `make figures TPP_DATA_ROOT=<root>`, where `<root>` holds the rel
 `full_coverage_results/` and `seed_variance_results/` (`download_and_extract.py --results-only`). The
 QR code of the project page sits in the header, under the NeurIPS logo. `tests/poster/` checks the page size, the fonts,
 the three logos, the QR code, the title and authors against `CITATION.cff`, the absence of em dashes, at
-most 800 words, LaTeX math fonts only (Lato, Raleway, CM/LM, in the poster and its figures), a header under 17% of the height, column bottoms within 1 cm (balanced by content, block gaps within 0.55 cm of the median), no math in bold heads, block title rules unbroken, threshold-strip labels inside its frame, and tick labels of at least
+most 800 words, LaTeX math fonts only (Lato, Raleway, CM/LM, in the poster and its figures), a header under 17% of the height, column bottoms within 1 cm (balanced by content, block gaps within 0.55 cm of the median), no math in bold heads, block title rules unbroken, threshold-strip labels inside its frame, near-square data panels with all their text inside the canvas, logo groups centred on the title block within 0.5 cm, and tick labels of at least
 24 pt.
