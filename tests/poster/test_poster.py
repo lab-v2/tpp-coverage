@@ -892,10 +892,32 @@ def overfull_problems(log: str) -> list[str]:
     return [line.strip() for line in log.splitlines() if line.startswith("Overfull \\vbox")]
 
 
+STAMP = POSTER / "build_stamp.txt"  # written by `make`, committed: PDF sha256 and overfull count
+
+
+def stamp_problems(stamp: str, pdf_sha: str) -> list[str]:
+    fields = dict(line.split(" ", 1) for line in stamp.splitlines() if " " in line)
+    problems = []
+    if fields.get("pdf_sha256") != pdf_sha:
+        problems.append("build_stamp.txt is not from the committed PDF (run make)")
+    if fields.get("overfull_vbox", "").strip() != "0":
+        problems.append(f"{fields.get('overfull_vbox')} overfull vbox in the build")
+    return problems
+
+
 def test_no_overfull_vbox() -> None:
+    import hashlib
+
+    assert stamp_problems(STAMP.read_text(), hashlib.sha256(PDF.read_bytes()).hexdigest()) == []
     log = POSTER / "build" / "tpp_neurips2026_poster.log"
-    assert log.exists(), "build the poster first (make)"
-    assert overfull_problems(log.read_text(errors="replace")) == []
+    if log.exists():  # a local build: its log is checked too
+        assert overfull_problems(log.read_text(errors="replace")) == []
+
+
+def test_planted_bad_stamp() -> None:
+    assert stamp_problems("pdf_sha256 abc\noverfull_vbox 0\n", "def")
+    assert stamp_problems("pdf_sha256 abc\noverfull_vbox 2\n", "abc")
+    assert not stamp_problems("pdf_sha256 abc\noverfull_vbox 0\n", "abc")
 
 
 def test_planted_overfull_vbox() -> None:

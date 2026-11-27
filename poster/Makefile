@@ -11,6 +11,9 @@ export TEXINPUTS := $(CURDIR)/theme//:$(CURDIR)/build/assets//:$(CURDIR)/figures
 $(NAME).pdf: $(NAME).tex $(LOGOS) build/assets/qr_project_page.pdf $(wildcard theme/*.sty) $(wildcard figures/*.pdf)
 	latexmk -xelatex -interaction=nonstopmode -halt-on-error -outdir=build $<
 	cp build/$@ $@
+	# Committed stamp: the PDF's sha256 and its overfull \vbox count, so a checkout without TeX
+	# can verify the committed PDF (tests/poster reads it).
+	printf 'pdf_sha256 %s\noverfull_vbox %s\n' "$$(sha256sum $@ | cut -d' ' -f1)" "$$(grep -c '^Overfull \\vbox' build/$(NAME).log || true)" > build_stamp.txt
 	rm -f build/$(NAME)_virtual.png build/$(NAME)_thumbnail.png && $(MAKE) --no-print-directory -o $(NAME).pdf png
 
 build/assets/%.pdf: ../images/%.svg

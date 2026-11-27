@@ -17,7 +17,7 @@ from the paper's `src/updated_figures/` (rendered by `src/tpp_analysis/visualiza
 sits in the header, beside the NeurIPS logo. `tests/poster/` checks the page size, the fonts (Latin
 Modern or Computer Modern only), the three logos, the QR code, the title and authors against
 `CITATION.cff`, the absence of em dashes, at most 800 words, a header under 17% of the height, the
-top-zone column bottoms within 1 cm, block gaps within a 0.8 cm band, the gap between the zones at most 3.5 cm with no `\vspace`, no overfull `\vbox` in the build log, no math in bold heads, block title rules
+top-zone column bottoms within 1 cm, block gaps within a 0.8 cm band, the gap between the zones at most 3.5 cm with no `\vspace`, no overfull `\vbox` (the committed `build_stamp.txt` holds the PDF sha256 and overfull count that `make` wrote), no math in bold heads, block title rules
 unbroken, logo groups centred on the title block within 0.5 cm, the figures being the paper's files (by
 SHA-256), set at least 0.75 times their natural width (rendered at paper print size), every figure word printing at least 24 pt, and no TikZ figure, one body text size (captions at
 least 26 pt), no overlapping text, and (with `TPP_PAPER_FIGURES=<paper src/updated_figures>`) the copies equal the paper's; the virtual PNG must be a render of the current PDF.
