@@ -41,10 +41,10 @@
 \setbeamertemplate{itemize items}[circle]
 \setlength{\leftmargini}{1.2em}
 
-% Three columns: 4 x sep + 3 x col = paper width.
+% Top zone: 4 x sep + (0.67 + 1.36 + 0.98) x col = paper width (the evidence row spans 3 cols + 2 seps).
 \newlength{\sepwidth}
 \newlength{\colwidth}
-\setlength{\sepwidth}{0.025\paperwidth}
+\setlength{\sepwidth}{0.02425\paperwidth}
 \setlength{\colwidth}{0.3\paperwidth}
 \newcommand{\separatorcolumn}{\begin{column}{\sepwidth}\end{column}}
 \newcommand{\statement}[1]{{\usebeamercolor[fg]{block title}\bfseries #1.}\ }
@@ -70,7 +70,7 @@
 \separatorcolumn
 
 % ==== column 1
-\begin{column}{0.80\colwidth}
+\begin{column}{0.67\colwidth}
 
 \begin{alertblock}{TL;DR}
   \RaggedRight
@@ -95,6 +95,15 @@
   One ray pins down $\psi$, not $A$ and $B$: a ``sloppy'' model. Gap $\varepsilon := |\alpha - \beta|$.
 \end{block}
 
+
+
+\end{column}
+\separatorcolumn
+
+% ==== column 2
+\begin{column}{1.36\colwidth}
+
+
 \begin{block}{Gauss-Newton conditioning}
   \RaggedRight
   \[ S(\symbf{\theta}) = \tfrac{1}{2} \lVert \symbfup{r}(\symbf{\theta}) \rVert^2, \quad
@@ -103,21 +112,20 @@
   $j_B = k^{-\beta} N^{-\beta}$: nearly parallel for small $\varepsilon$.
 \end{block}
 
-\end{column}
-\separatorcolumn
-
-% ==== column 2
-\begin{column}{1.50\colwidth}
-
 \begin{block}{One ray is ill-conditioned}
   \RaggedRight
   \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, as $\varepsilon \to 0$ (Corollary 2: Gaussian noise, at least 5 sizes):\par\smallskip
-  \centering
-  \colorbox{lightblue}{\begin{minipage}{0.8\linewidth}\centering\large
+  \begin{columns}[c,onlytextwidth]
+    \begin{column}{0.56\linewidth}
+      \centering
+      \colorbox{lightblue}{\begin{minipage}{0.95\linewidth}\centering\large
     \[ \kappa_{A,B} = \Theta(\varepsilon^{-2}), \qquad
        \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}) \]
-  \end{minipage}}\par\medskip
-  \begin{tabular}{@{}l@{\hspace{1.2em}}r@{\hspace{1.2em}}r@{\hspace{1.2em}}r@{}}
+  \end{minipage}}
+    \end{column}
+    \begin{column}{0.42\linewidth}
+      \centering
+      \begin{tabular}{@{}l@{\hspace{1.2em}}r@{\hspace{1.2em}}r@{\hspace{1.2em}}r@{}}
     \toprule
     Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
     \midrule
@@ -125,6 +133,8 @@
     Kaplan & 0.20 & 5\textsuperscript{$\dagger$} & 25 \\
     \bottomrule
   \end{tabular}\quad {\small \textsuperscript{$\dagger$}Schur floor.}
+    \end{column}
+  \end{columns}
 \end{block}
 
 \begin{alertblock}{TPP-diversity threshold}
@@ -138,27 +148,12 @@
   One ray never passes: $V_1 = 0 < \tau_1$.\par\smallskip
 \end{alertblock}
 
-\begin{block}{The threshold on published designs}
-  \RaggedRight
-  \centering
-  \begin{tabular}{@{}lrrr@{}}
-    \toprule
-    Design & $K$ & $R = k_K / k_1$ & $V_K / \tau_K$ \\
-    \midrule
-    Hoffmann et al.\ (2022) & 151 & $9.5 \times 10^3$ & \textbf{5.55} \\
-    Bhagia et al.\ (2025) & 4 & 10 & 0.47 \\
-    Magnusson et al.\ (2025) & 1 & 1 & 0.00 \\
-    \bottomrule
-  \end{tabular}\par
-  \raggedright
-  At $\kappa_{\mathrm{target}} = 100$: 11 of 24 pass ($\geq 1$), 13 fail (all 6 collinear); our \CO{} fan: 0.40.
-\end{block}
 
 \end{column}
 \separatorcolumn
 
 % ==== column 3
-\begin{column}{0.70\colwidth}
+\begin{column}{0.98\colwidth}
 
 \begin{block}{Holdout prediction}
   \RaggedRight
@@ -179,14 +174,22 @@
   $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
 \end{block}
 
-\begin{alertblock}{Takeaways}
+
+\begin{block}{The threshold on published designs}
   \RaggedRight
-  \begin{itemize}
-    \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
-    \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
-  \end{itemize}
-  \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
-\end{alertblock}
+  \centering
+  \begin{tabular}{@{}lrrr@{}}
+    \toprule
+    Design & $K$ & $R = k_K / k_1$ & $V_K / \tau_K$ \\
+    \midrule
+    Hoffmann et al.\ (2022) & 151 & $9.5 \times 10^3$ & \textbf{5.55} \\
+    Bhagia et al.\ (2025) & 4 & 10 & 0.47 \\
+    Magnusson et al.\ (2025) & 1 & 1 & 0.00 \\
+    \bottomrule
+  \end{tabular}\par
+  \raggedright
+  At $\kappa_{\mathrm{target}} = 100$: 11 of 24 pass ($\geq 1$), 13 fail (all 6 collinear); our \CO{} fan: 0.40.
+\end{block}
 
 \end{column}
 \separatorcolumn
@@ -203,12 +206,12 @@
   \vspace*{1.15cm}% at least 1 cm between the title rule and the numbers
   \begin{columns}[t]
     \begin{column}{0.46\linewidth}
-      \centering
+      \raggedright
       {\fontsize{88}{92}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
       FP32: 1,460/1,500
     \end{column}
     \begin{column}{0.46\linewidth}
-      \centering
+      \raggedright
       {\fontsize{88}{92}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
       BF16, Wikipedia: 296/300
     \end{column}
@@ -216,6 +219,15 @@
   \medskip
   $\sim$1,900 LLaMA-style models, 5.04-76.5M parameters, 4 laws $\times$ 5 corpora; holdout $R^2$: \CO{} 0.837, \NC{} 0.932. Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
 \end{block}
+
+\begin{alertblock}{Takeaways}
+  \RaggedRight
+  \begin{itemize}
+    \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
+    \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
+  \end{itemize}
+  \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
+\end{alertblock}
 
 \end{column}
 \begin{column}{0.71\linewidth}
@@ -225,11 +237,11 @@
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.56\linewidth}
       \centering
-      \includegraphics[width=33.5cm]{01_surface_Red_Pajama_Kaplan_First.pdf}
+      \includegraphics[width=42.0cm]{01_surface_Red_Pajama_Kaplan_First.pdf}
     \end{column}
     \begin{column}{0.42\linewidth}
       \centering
-      \includegraphics[width=26.0cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}
+      \includegraphics[width=32.5cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}
     \end{column}
   \end{columns}
   {\fontsize{27}{32}\selectfont Left: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Right: induced isoFLOP curves. Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.}
