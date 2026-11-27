@@ -54,9 +54,14 @@
   Soumajyoti Sarkar\textsuperscript{2,$*$} \quad Venkata Gandikota\textsuperscript{1} \quad Paulo Shakarian\textsuperscript{1}}
 \institute{\textsuperscript{1}Syracuse University \qquad \textsuperscript{2}Amazon AGI Foundations}
 
-\footercontent{\href{https://lab-v2.github.io/tpp-coverage/}{lab-v2.github.io/tpp-coverage} \hfill
+\footercontent{\parbox{\dimexpr\paperwidth-2\sepwidth\relax}{%
+  \href{https://lab-v2.github.io/tpp-coverage/}{lab-v2.github.io/tpp-coverage} \hfill
   \textsuperscript{$\|$}Equal contribution. \quad \textsuperscript{$*$}This work does not relate to the author's position at Amazon. \hfill
-  NeurIPS 2026, Sydney \hfill \href{https://arxiv.org/abs/2605.08541}{arXiv:2605.08541}}
+  NeurIPS 2026, Sydney \hfill \href{https://arxiv.org/abs/2605.08541}{arXiv:2605.08541}\par\smallskip
+  % Funding: the paper's own acknowledgement sentence (src/ack.tex); references: the works the poster names.
+  {\fontsize{27}{32}\selectfont This research was funded by ARO grant W911NF-24-1-0007. \hfill
+  References: Kaplan et al.\ (2020), arXiv:2001.08361; Droppo and Elibol (2021), Interspeech; Hoffmann et al.\ (2022), NeurIPS;
+  Bhagia et al.\ (2025), COLM; Magnusson et al.\ (2025), ICML.}}}
 
 % Header corners: the labelled QR code of the project page beside the NeurIPS logo (4.0 cm, left); the
 % Syracuse AI Institute (3.0 cm) over the Leibniz Lab (2.9 cm: its 1024 x 348 px PNG at 300 ppi; no
@@ -254,9 +259,8 @@
       \includegraphics[width=45.0cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}
     \end{column}
   \end{columns}
-  % The caption starts at Fig. 1a's left edge: the figure is centred in its half, and its first
-  % printed mark (the "N" label) sits 2.85 cm inside its PDF canvas.
-  {\leftskip=\dimexpr(0.49\linewidth-44cm)/2+2.85cm\relax\fontsize{27}{32}\selectfont Left: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Right: induced isoFLOP curves. Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.\par}
+  % The caption starts at the block's left edge, like every other text in the evidence row.
+  {\fontsize{27}{32}\selectfont Left: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Right: induced isoFLOP curves. Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.\par}
 \end{block}
 
 \end{column}

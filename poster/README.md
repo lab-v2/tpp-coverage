@@ -24,7 +24,7 @@ is unchanged (its PDFs' content streams are identical). `figures/` holds:
 | `01_surface_...pdf` | `FIG1_STYLE=poster FIG1_TEXT_SCALE=0.31` | 44 cm | 27.2-32.0 pt | one column, right of the 3-D box |
 | `01_isoflop_...pdf` | `FIG1_STYLE=poster FIG1_TEXT_SCALE=0.33` | 45 cm | 26.0-29.8 pt | one column, right of the colorbar |
 
-Each figure is centred in its half of the figure block; the caption starts at Fig. 1a's left edge.
+Each figure is centred in its half of the figure block; the caption starts at the block's left edge.
 The poster renders are made by `src/tpp_analysis/visualizations/figure1_panels.py` (poster-only
 branches: text and gaps times `FIG1_TEXT_SCALE`, legends beside the plots) and kept in `figures/`,
 pinned by SHA-256 in `tests/poster/test_poster.py`; the owner approved this on 2026-11-27.
@@ -77,3 +77,16 @@ takes what is left. Measured with xelatex (body 28.8 pt, scale 1.16):
 
 At 41.2 / 33 cm the surface's 3-D box prints about 18.8 cm wide and the isoFLOP axes about 16.7 cm
 (axes share of the natural canvas width: 399 / 873 and 442 / 874 pt).
+
+## Print-ready build
+
+The footer carries the paper's funding sentence verbatim (`src/ack.tex`: "This research was funded by
+ARO grant W911NF-24-1-0007.") and a one-line reference list for the works the poster names (Kaplan et
+al. 2020, Droppo and Elibol 2021, Hoffmann et al. 2022, Bhagia et al. 2025, Magnusson et al. 2025, from
+the paper's `.bib`). Proofread on 2026-11-27 against the paper's `src/neurips2026_conference.tex`: title,
+the five authors in the OpenReview order, the equal-contribution and Amazon marks, both affiliations,
+and all 50 numbers in the poster source (each found verbatim in the paper's `.tex` sources).
+
+Final PDF (round 22): `tpp_neurips2026_poster.pdf`, sha256
+`e9be1107d87ed6827614f94beb386df103f1f84a1c6df41b16b68199c72424df`, 795 words; virtual PNG 4480 x 2880 px,
+1,507,928 bytes; thumbnail 320 x 206 px, 37,785 bytes (`build_stamp.txt`, gated in `tests/poster/`).
