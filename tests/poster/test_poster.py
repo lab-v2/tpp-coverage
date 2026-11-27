@@ -529,3 +529,126 @@ def test_planted_heading_math() -> None:
     tex = TEX.read_text()
     assert heading_math_problems(tex.replace("at least 5 sizes", "$n \\geq 5$ sizes"))
     assert heading_math_problems("\\begin{block}{Two designs in the $(N, D)$ plane}")
+
+
+# --- figure shape, figure text inside the canvas, header centring --------------------------------
+
+FIG_ASPECT = (1.0, 1.2)  # width / height of each data panel (near-square)
+MAX_LOGO_OFFSET_CM = 0.5
+
+
+def aspect_problems(pdfinfo: str, name: str) -> list[str]:
+    size = re.search(r"^Page size:\s+([\d.]+) x ([\d.]+) pts", pdfinfo, re.M)
+    if not size:
+        return [f"{name}: no page size"]
+    ratio = float(size[1]) / float(size[2])
+    lo, hi = FIG_ASPECT
+    return [] if lo <= ratio <= hi else [f"{name}: width / height {ratio:.2f} outside [{lo}, {hi}]"]
+
+
+def canvas_problems(words: list, width: float, height: float, name: str) -> list[str]:
+    """Every text element of a figure lies wholly inside its canvas (none clipped at an edge)."""
+    return [
+        f"{name}: {w[4]!r} at {[round(v) for v in w[:4]]} leaves the {width:.0f} x {height:.0f} canvas"
+        for w in words
+        if w[0] < 0 or w[1] < 0 or w[2] > width or w[3] > height
+    ]
+
+
+def _page_size(pdf: Path) -> tuple[float, float]:
+    m = re.search(r"^Page size:\s+([\d.]+) x ([\d.]+) pts", _run("pdfinfo", str(pdf)), re.M)
+    assert m, pdf
+    return float(m[1]), float(m[2])
+
+
+def test_panels_are_near_square() -> None:
+    figs = sorted((POSTER / "figures").glob("*.pdf"))
+    assert figs
+    for fig in figs:
+        assert aspect_problems(_run("pdfinfo", str(fig)), fig.name) == []
+
+
+def test_figure_text_inside_canvas() -> None:
+    for fig in sorted((POSTER / "figures").glob("*.pdf")):
+        assert canvas_problems(bbox_words(fig), *_page_size(fig), fig.name) == []
+
+
+def test_planted_figure_shape_and_clipped_text() -> None:
+    assert aspect_problems("Page size:       648 x 979.2 pts\n", "portrait")  # round 7's panels
+    fig = sorted((POSTER / "figures").glob("*.pdf"))[0]
+    w, h = _page_size(fig)
+    words = bbox_words(fig)
+    assert words
+    moved = [(w - 10, *words[0][1:3], words[0][3], words[0][4])] + words[1:]
+    moved[0] = (w - 10, words[0][1], w + 30, words[0][3], words[0][4])
+    assert canvas_problems(moved, w, h, fig.name)
+
+
+def logo_offsets(png: Path, words: list) -> tuple[float, float]:
+    """Vertical offsets (cm) of the left and right logo groups' ink centres from the title block's centre."""
+    script = (
+        "import sys, json; from PIL import Image\n"
+        "im = Image.open(sys.argv[1]).convert('L'); px = im.load(); a = json.loads(sys.argv[2])\n"
+        "rule = next(y for y in range(30, im.height // 2) if sum(px[x, y] < 150 for x in range(0, im.width, 4)) > 0.2 * im.width)\n"
+        "def ink(xa, xb):\n"
+        "    ys = [y for y in range(rule - 5) if any(px[x, y] < 200 for x in range(int(xa), int(xb), 2))]\n"
+        "    return (min(ys) + max(ys)) / 2\n"
+        "print(json.dumps([ink(0, a[0] - 20), ink(a[1] + 20, im.width), rule]))"
+    )
+    width = A0_LANDSCAPE_PT[0]
+    import json
+
+    head = [
+        w
+        for w in words
+        if w[3] < 0.17 * A0_LANDSCAPE_PT[1] and 0.15 * width < w[0] and w[2] < 0.85 * width
+    ]
+    x0, x1 = min(w[0] for w in head), max(w[2] for w in head)
+    out = _run(
+        "uv",
+        "run",
+        "--quiet",
+        "--no-project",
+        "--with",
+        "pillow",
+        "python",
+        "-I",
+        "-c",
+        script,
+        str(png),
+        json.dumps([x0, x1]),
+    )
+    left, right, _ = json.loads(out)
+    centre = (min(w[1] for w in head) + max(w[3] for w in head)) / 2
+    return (left - centre) / PT_PER_CM, (right - centre) / PT_PER_CM
+
+
+def test_logo_groups_centred_on_title(tmp_path: Path) -> None:
+    _run("pdftoppm", "-png", "-r", "72", "-singlefile", str(PDF), str(tmp_path / "p"))
+    left, right = logo_offsets(tmp_path / "p.png", bbox_words(PDF))
+    assert abs(left) <= MAX_LOGO_OFFSET_CM and abs(right) <= MAX_LOGO_OFFSET_CM, (left, right)
+
+
+def test_planted_high_logo(tmp_path: Path) -> None:
+    _run("pdftoppm", "-png", "-r", "72", "-singlefile", str(PDF), str(tmp_path / "p"))
+    script = (
+        "import sys; from PIL import Image\n"
+        "im = Image.open(sys.argv[1]).convert('RGB'); w = im.width\n"
+        "box = (0, 0, int(0.19 * w), int(0.155 * im.height)); crop = im.crop(box)\n"
+        "im.paste((255, 255, 255), box); im.paste(crop, (0, -60)); im.save(sys.argv[1])"
+    )
+    _run(
+        "uv",
+        "run",
+        "--quiet",
+        "--no-project",
+        "--with",
+        "pillow",
+        "python",
+        "-I",
+        "-c",
+        script,
+        str(tmp_path / "p.png"),
+    )
+    left, _ = logo_offsets(tmp_path / "p.png", bbox_words(PDF))
+    assert abs(left) > MAX_LOGO_OFFSET_CM

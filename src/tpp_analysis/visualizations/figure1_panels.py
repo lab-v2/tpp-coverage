@@ -333,8 +333,8 @@ if POSTER:
     )
     LINE_WIDTH, MARKER_SIZE = POSTER_LINE_WIDTH, POSTER_MARKER_SIZE
     # One fixed axes box for both 2-D panels, saved without a tight crop, so the pair matches.
-    POSTER_AXES_RECT = [0.17, 0.12, 0.6, 0.82]
-    PANEL_H = 13.6  # near-square axes, the poster's evidence pair
+    POSTER_AXES_RECT = [0.18, 0.17, 0.54, 0.78]
+    PANEL_H = 8.0  # with PANEL_W = 9 a near-square figure (width / height 1.125)
     POSTER_SAVE = dict(bbox_inches=None, transparent=True)  # no white margin over block rules
 
 HOLDOUT_COL = "r2_unified"
@@ -778,7 +778,11 @@ if POSTER:
                 fontweight="bold",
             )
     ax_conv.set_xlabel("TPP coverage", fontsize=AXIS_LABEL_FS)
-    ax_conv.set_xlim(right=1.22)  # room for the direct labels right of the line ends
+    ax_conv.set_xlim(-0.03, 1.03)
+    # The direct labels sit outside the frame, right of the line ends.
+    for _t in ax_conv.texts:
+        _t.set_clip_on(False)
+        _t.set_annotation_clip(False)
     ax_conv.set_xticks([0.0, 0.5, 1.0])
     # The poster's exact CO / NC colours (matplotlib C0 and C3), as in its TikZ figures and text.
     _POSTER_DESIGN = {

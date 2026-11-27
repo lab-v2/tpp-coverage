@@ -365,7 +365,7 @@ def draw_isoflop_panel(
         log_c = np.log10(np.asarray(flop_budgets, dtype=float))
         mappable = ScalarMappable(norm=Normalize(0, n_budgets), cmap=ListedColormap(list(colors)))
         cbar = ax.figure.colorbar(mappable, ax=ax, orientation="vertical", pad=0.02, fraction=0.04)
-        cbar.set_label(r"$\log_{10} C$", fontsize=fontsize, labelpad=6)
+        cbar.set_label(r"$\log_{10} C$", fontsize=fontsize, labelpad=8)
         # Even ticks (every 0.5 in log10 C) placed by interpolation on the discrete budget scale.
         even = np.arange(np.ceil(log_c[0] * 2) / 2, log_c[-1] + 1e-9, 0.5)
         cbar.set_ticks(np.interp(even, log_c, np.arange(n_budgets) + 0.5))
