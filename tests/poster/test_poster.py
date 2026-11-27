@@ -19,7 +19,7 @@ POSTER = REPO / "poster"
 PDF = POSTER / "tpp_neurips2026_poster.pdf"
 TEX = POSTER / "tpp_neurips2026_poster.tex"
 URL = "https://lab-v2.github.io/tpp-coverage/"
-A0_LANDSCAPE_PT = (3370.39, 2383.94)  # 118.9 x 84.1 cm
+PAGE_PT = (3968.5, 2551.18)  # 140 x 90 cm landscape, the NeurIPS maximum
 LOGOS = {"neurips", "syracuse_ai_institute", "leibniz_lab"}
 EM_DASH = re.compile("\u2014|---")
 MAX_HEADER_FRACTION = 0.17  # header rule above 17% of the height (reference posters: 12-17%)
@@ -53,8 +53,8 @@ def page_size_problems(pdfinfo: str) -> list[str]:
         return ["pdfinfo report has no page count or size"]
     problems = [] if pages[1] == "1" else [f"{pages[1]} pages, not 1"]
     w, h = float(size[1]), float(size[2])
-    if abs(w - A0_LANDSCAPE_PT[0]) > 1 or abs(h - A0_LANDSCAPE_PT[1]) > 1:
-        problems.append(f"page is {w} x {h} pt, not A0 landscape {A0_LANDSCAPE_PT}")
+    if abs(w - PAGE_PT[0]) > 1 or abs(h - PAGE_PT[1]) > 1:
+        problems.append(f"page is {w} x {h} pt, not 140 x 90 cm landscape {PAGE_PT}")
     return problems
 
 
@@ -139,12 +139,54 @@ def bbox_words(pdf: Path) -> list[tuple[float, float, float, float, str]]:
     return [(float(a), float(b), float(c), float(d), w) for a, b, c, d, w in re.findall(pat, html)]
 
 
+# --- layout: a top zone of three text columns, then the evidence row across the full width -------
+# Cells 0-2 are the top-zone columns (widths read off the source, as multiples of \colwidth); cell
+# 3 is the evidence row's banner and cell 4 its figure block.
+SEP_FRACTION, COL_FRACTION = 0.025, 0.3  # \sepwidth and \colwidth, as fractions of the paper width
+ROW_MARK = "% ==== the evidence row"
+
+
+def cell_edges(tex: str) -> list[tuple[float, float]]:
+    width = PAGE_PT[0]
+    sep, col = SEP_FRACTION * width, COL_FRACTION * width
+    top = tex[: tex.index(ROW_MARK)] if ROW_MARK in tex else tex
+    fractions = [float(f or 1) for f in re.findall(r"\\begin\{column\}\{([\d.]*)\\colwidth\}", top)]
+    edges, x = [], sep
+    for f in fractions:
+        edges.append((x, x + f * col))
+        x += f * col + sep
+    row = 3 * col + 2 * sep
+    banner = (
+        float(re.search(r"\\begin\{column\}\{([\d.]+)\\linewidth\}", tex[tex.index(ROW_MARK) :])[1])
+        if ROW_MARK in tex
+        else 0.27
+    )
+    edges += [(sep, sep + banner * row), (sep + banner * row, sep + row)]
+    return edges
+
+
+def row_top(words: list) -> float:
+    """yMin of the evidence row's figure-block title (its first word, "Kaplan", at title size)."""
+    tops = [w[1] for w in words if w[4] == "Kaplan" and w[3] - w[1] > 0.8 * BLOCK_TITLE_PT]
+    return min(tops) if tops else PAGE_PT[1]
+
+
+def cell_of(w, edges: list, top: float) -> int:
+    """The cell a word sits in: a top-zone column above the evidence row, a row cell below it."""
+    cells = range(3, 5) if w[1] >= top - 1 else range(3)
+    return min(
+        cells,
+        key=lambda c: 0 if edges[c][0] - 5 <= w[0] < edges[c][1] else 1 + abs(w[0] - edges[c][0]),
+    )
+
+
 def column_spread_problems(words: list, width: float, height: float) -> list[str]:
-    """The lowest word of each third of the page, between the header and the footer."""
-    body = [w for w in words if height * 0.2 < w[3] < height * 0.95]
+    """The lowest word of each top-zone column, above the evidence row: within MAX_COLUMN_SPREAD_CM."""
+    edges, top = cell_edges(TEX.read_text()), row_top(words)
+    body = [w for w in words if height * 0.2 < w[3] < top - 5]
     bottoms = []
     for c in range(3):
-        col = [w[3] for w in body if c * width / 3 <= w[0] < (c + 1) * width / 3]
+        col = [w[3] for w in body if cell_of(w, edges, top) == c]
         if not col:
             return [f"column {c + 1} has no text"]
         bottoms.append(max(col))
@@ -154,20 +196,23 @@ def column_spread_problems(words: list, width: float, height: float) -> list[str
 
 
 def block_gaps(words: list, width: float) -> list[list[float]]:
-    """Per column, the gaps (cm) between each block title and the text line above it."""
+    """Per top-zone column, the gaps (cm) between each block title and the text line above it."""
+    edges, row = cell_edges(TEX.read_text()), row_top(words)
     gaps = []
     for c in range(3):
         tops = sorted({y0 for cc, y0, _ in block_title_tops(words, TEX.read_text()) if cc == c})
         col_gaps = []
         for top in tops[1:]:
-            # A title on a band across columns (its line holds title-size words in two thirds)
-            # sits below the lower of the columns above it.
-            line = [w for w in words if abs(w[1] - top) < 1 and w[3] - w[1] > 0.8 * BLOCK_TITLE_PT]
-            thirds = {int(w[0] // (width / 3)) for w in line} | {c}
-            above = [w[3] for w in words if int(w[0] // (width / 3)) in thirds and w[3] < top - 1]
+            above = [w[3] for w in words if cell_of(w, edges, row) == c and w[3] < top - 1]
             col_gaps.append((top - max(above)) / PT_PER_CM)
         gaps.append(col_gaps)
     return gaps
+
+
+def zone_gap_cm(words: list) -> float:
+    """From the lowest top-zone text to the evidence row's titles (cm)."""
+    top = row_top(words)
+    return (top - max(w[3] for w in words if PAGE_PT[1] * 0.2 < w[3] < top - 1)) / PT_PER_CM
 
 
 def block_title_tops(words: list, tex: str) -> list[tuple[int, float, float]]:
@@ -180,7 +225,7 @@ def block_title_tops(words: list, tex: str) -> list[tuple[int, float, float]]:
         # A title is a row holding exactly its words (the TL;DR repeats one title's words mid-line).
         if plain:
             firsts.setdefault(plain[0], []).append(plain)
-    width = A0_LANDSCAPE_PT[0]
+    edges, top = cell_edges(tex), row_top(words)
     # The title size is read off the first block's title ("TL;DR"), so a body-scale change follows.
     sizes = [w[3] - w[1] for w in words if w[4] == "TL;DR"]
     title_pt = sizes[0] if sizes else BLOCK_TITLE_PT
@@ -201,7 +246,7 @@ def block_title_tops(words: list, tex: str) -> list[tuple[int, float, float]]:
             row.append(v)
         left = [v for v in words if abs(v[1] - w[1]) < 1 and 0 < w[0] - v[2] <= title_pt]
         if not left and [v[4] for v in row] in want:
-            out.add((int(w[0] // (width / 3)), round(w[1], 1), round(w[3], 1)))
+            out.add((cell_of(w, edges, top), round(w[1], 1), round(w[3], 1)))
     return sorted(out)
 
 
@@ -210,9 +255,9 @@ def rule_coverage(png: Path, titles: list[tuple[int, float, float]], scale: floa
     script = (
         "import sys, json; from PIL import Image\n"
         "im = Image.open(sys.argv[1]).convert('L'); px = im.load(); t = json.loads(sys.argv[2]); s = float(sys.argv[3])\n"
-        "w3 = im.width / 3; out = []\n"
-        "for c, y0, y1 in t:\n"
-        "    xa, xb = int(c * w3 + 0.075 * w3), int((c + 1) * w3 - 0.075 * w3)\n"
+        "out = []\n"
+        "for a, b, y0, y1 in t:\n"
+        "    xa, xb = int((a + 0.075 * (b - a)) * s), int((b - 0.075 * (b - a)) * s)\n"
         "    best = max(sum(px[x, y] < 120 for x in range(xa, xb)) for y in range(int(y1 * s), int((y1 + 45) * s)))\n"
         "    out.append(best / (xb - xa))\n"
         "print(json.dumps(out))"
@@ -231,7 +276,7 @@ def rule_coverage(png: Path, titles: list[tuple[int, float, float]], scale: floa
         "-c",
         script,
         str(png),
-        json.dumps(titles),
+        json.dumps([(*cell_edges(TEX.read_text())[c], y0, y1) for c, y0, y1 in titles]),
         str(scale),
     )
     return json.loads(out)
@@ -289,7 +334,7 @@ def decode_qr(png: Path) -> list[str]:
 # --- the poster passes ----------------------------------------------------------------------------
 
 
-def test_page_is_a0_landscape() -> None:
+def test_page_is_140_by_90_landscape() -> None:
     assert page_size_problems(_run("pdfinfo", str(PDF))) == []
 
 
@@ -322,17 +367,13 @@ def poster_words() -> list:
     figures were re-rendered) is the figures' own, so it is left out. The figure band runs from the
     band's block title to the caption line ("Left:")."""
     words = bbox_words(PDF)
-    width = A0_LANDSCAPE_PT[0]
-    title = [
-        w
-        for w in words
-        if w[4] == "Kaplan" and w[0] > width / 3 and w[3] - w[1] > 0.8 * BLOCK_TITLE_PT
-    ]
+    left = cell_edges(TEX.read_text())[4][0]
+    title = [w for w in words if w[4] == "Kaplan" and w[3] - w[1] > 0.8 * BLOCK_TITLE_PT]
     caption = [w for w in words if w[4] == "Left:"]
     if not title or not caption:
         return words
     top, bottom = title[0][3], caption[0][1]
-    return [w for w in words if not (w[0] > width / 3 and top < w[1] and w[3] < bottom)]
+    return [w for w in words if not (w[0] >= left - 5 and top < w[1] and w[3] < bottom)]
 
 
 def test_at_most_800_words() -> None:
@@ -340,20 +381,26 @@ def test_at_most_800_words() -> None:
 
 
 def test_column_bottoms_within_1_cm() -> None:
-    # Column 1 against the figure band that closes columns 2 and 3 (its caption is the lowest text).
-    words = poster_words()
-    width, height = A0_LANDSCAPE_PT
-    body = [w for w in words if 0.2 * height < w[3] < 0.955 * height]
-    left = max(w[3] for w in body if w[0] < width / 3)
-    right = max(w[3] for w in body if w[0] >= width / 3)
-    assert abs(left - right) / PT_PER_CM < MAX_COLUMN_SPREAD_CM, (
-        left / PT_PER_CM,
-        right / PT_PER_CM,
-    )
+    # The three top-zone columns end on one line above the evidence row.
+    assert column_spread_problems(bbox_words(PDF), *PAGE_PT) == []
+
+
+MAX_ZONE_GAP_CM = (
+    3.5  # lowest top-zone text to the evidence row's titles; 3.14 cm measured at 140 x 90
+)
+
+
+def test_zone_gap_bounded() -> None:
+    # No \\vspace between the zones: the gap is the columns' and blocks' own skip, bounded.
+    tex = TEX.read_text()
+    between = tex[tex.rindex("\\end{columns}", 0, tex.index(ROW_MARK)) : tex.index(ROW_MARK)]
+    assert "vspace" not in between
+    gap = zone_gap_cm(bbox_words(PDF))
+    assert MAX_GAP_DEVIATION_CM < gap <= MAX_ZONE_GAP_CM, gap
 
 
 def test_block_gaps_are_the_theme_gap() -> None:
-    assert gap_problems(block_gaps(bbox_words(PDF), A0_LANDSCAPE_PT[0])) == []
+    assert gap_problems(block_gaps(bbox_words(PDF), PAGE_PT[0])) == []
 
 
 def test_block_title_rules_are_unbroken(tmp_path: Path) -> None:
@@ -371,7 +418,7 @@ def test_planted_broken_rule(tmp_path: Path) -> None:
     script = (
         "import sys, json; from PIL import Image, ImageDraw\n"
         "im = Image.open(sys.argv[1]).convert('RGB'); c, y0, y1 = json.loads(sys.argv[2])\n"
-        "w3 = im.width / 3; ImageDraw.Draw(im).rectangle([c * w3 + 0.3 * w3, y1, c * w3 + 0.5 * w3, y1 + 45], fill='white')\n"
+        "a, b = json.loads(sys.argv[3]); ImageDraw.Draw(im).rectangle([a + 0.3 * (b - a), y1, a + 0.5 * (b - a), y1 + 45], fill='white')\n"
         "im.save(sys.argv[1])"
     )
     import json
@@ -389,6 +436,7 @@ def test_planted_broken_rule(tmp_path: Path) -> None:
         script,
         str(tmp_path / "p.png"),
         json.dumps(titles[1]),
+        json.dumps(cell_edges(TEX.read_text())[titles[1][0]]),
     )
     assert rule_coverage(tmp_path / "p.png", [titles[1]], 1.0)[0] < 0.95
 
@@ -407,8 +455,9 @@ def test_qr_code_decodes_to_project_page(tmp_path: Path) -> None:
 
 
 def test_planted_wrong_page_size() -> None:
-    assert page_size_problems("Pages:          1\nPage size:      2383.94 x 3370.39 pts (A0)\n")
-    assert page_size_problems("Pages:          2\nPage size:      3370.39 x 2383.94 pts (A0)\n")
+    assert page_size_problems("Pages:          1\nPage size:      3370.39 x 2383.94 pts (A0)\n")
+    assert page_size_problems("Pages:          1\nPage size:      2551.18 x 3968.5 pts\n")
+    assert page_size_problems("Pages:          2\nPage size:      3968.5 x 2551.18 pts\n")
 
 
 def test_planted_type3_and_unembedded_fonts() -> None:
@@ -455,12 +504,11 @@ def test_planted_too_many_words() -> None:
 
 def test_planted_column_spread() -> None:
     words = bbox_words(PDF)
-    w, h = A0_LANDSCAPE_PT
-    lowest = max((x for x in words if x[0] < w / 3 and x[3] < h * 0.95), key=lambda x: x[3])
-    raised = [
-        x if x is not lowest else (x[0], x[1], x[2], x[3] - 2 * PT_PER_CM, x[4]) for x in words
-    ]
-    others = [x for x in raised if not (x[0] < w / 3 and x[3] > lowest[3] - 2 * PT_PER_CM)]
+    w, h = PAGE_PT
+    edges, top = cell_edges(TEX.read_text()), row_top(words)
+    col1 = [x for x in words if cell_of(x, edges, top) == 0 and h * 0.2 < x[3] < top - 5]
+    cut = max(x[3] for x in col1) - 2 * PT_PER_CM  # column 1 ends 2 cm higher
+    others = [x for x in words if not (x in col1 and x[3] > cut)]
     assert column_spread_problems(others, w, h)
 
 
@@ -504,7 +552,7 @@ def test_planted_math_fonts() -> None:
 
 
 def test_planted_padded_gap() -> None:
-    gaps = block_gaps(bbox_words(PDF), A0_LANDSCAPE_PT[0])
+    gaps = block_gaps(bbox_words(PDF), PAGE_PT[0])
     padded = [list(col) for col in gaps]
     padded[0][1] += 0.9  # a \vspace{0.9cm} "column balance" pad, as round 4 had
     assert gap_problems(padded)
@@ -539,13 +587,11 @@ def logo_offsets(png: Path, words: list) -> tuple[float, float]:
         "    return (min(ys) + max(ys)) / 2\n"
         "print(json.dumps([ink(0, a[0] - 20), ink(a[1] + 20, im.width), rule]))"
     )
-    width = A0_LANDSCAPE_PT[0]
+    width = PAGE_PT[0]
     import json
 
     head = [
-        w
-        for w in words
-        if w[3] < 0.17 * A0_LANDSCAPE_PT[1] and 0.15 * width < w[0] and w[2] < 0.85 * width
+        w for w in words if w[3] < 0.17 * PAGE_PT[1] and 0.15 * width < w[0] and w[2] < 0.85 * width
     ]
     x0, x1 = min(w[0] for w in head), max(w[2] for w in head)
     out = _run(
@@ -706,12 +752,13 @@ def body_size_problems(words: list, tex: str) -> list[str]:
 
     Block titles, the header, the footer, the banner numbers and display math are not running text.
     """
-    width, height = A0_LANDSCAPE_PT
+    width, height = PAGE_PT
     titles = {round(y0) for _, y0, _ in block_title_tops(words, tex)}
+    edges, top = cell_edges(tex), row_top(words)
     rows: dict[tuple[int, int], list] = {}
     for w in words:
         if 0.2 * height < w[1] and w[3] < 0.955 * height:
-            rows.setdefault((int(w[0] // (width / 3)), round(w[1])), []).append(w)
+            rows.setdefault((cell_of(w, edges, top), round(w[1])), []).append(w)
     medians = []
     for (col, y), row in rows.items():
         plain = [w for w in row if TEXT_WORD.match(w[4])]
@@ -736,7 +783,7 @@ def test_figures_set_large() -> None:
 
 
 def test_planted_small_figure() -> None:
-    tex = TEX.read_text().replace("width=30.0cm]{01_surface", "width=15cm]{01_surface")
+    tex = TEX.read_text().replace("width=33.5cm]{01_surface", "width=15cm]{01_surface")
     assert figure_scale_problems(tex, POSTER / "figures")
 
 
@@ -747,7 +794,7 @@ def test_one_body_size() -> None:
 def test_planted_off_size_text() -> None:
     words = poster_words()
     tex = TEX.read_text()
-    y = next(round(w[1]) for w in words if w[4] == "Fixed")  # the TL;DR's first line
+    y = next(round(w[1]) for w in words if w[4] == "Train")  # the recipe's step 2
     bigger = [
         (a, b, c, b + 1.15 * (d - b), t) if round(b) == y else (a, b, c, d, t)
         for a, b, c, d, t in words
@@ -805,7 +852,7 @@ def test_figure_text_readable() -> None:
 
 
 def test_planted_unreadable_figure_text() -> None:
-    tex = TEX.read_text().replace("width=24.5cm]{01_isoflop", "width=12cm]{01_isoflop")
+    tex = TEX.read_text().replace("width=26.0cm]{01_isoflop", "width=12cm]{01_isoflop")
     assert figure_text_problems(tex, POSTER / "figures")
 
 
@@ -836,3 +883,21 @@ def test_planted_stale_png(tmp_path: Path) -> None:
     png.write_bytes(b"png")
     (tmp_path / "v.png.pdf-sha256").write_text("0" * 64)
     assert png_staleness(pdf, png)
+
+
+# --- the page holds everything: no overfull \vbox in the build log --------------------------------
+
+
+def overfull_problems(log: str) -> list[str]:
+    return [line.strip() for line in log.splitlines() if line.startswith("Overfull \\vbox")]
+
+
+def test_no_overfull_vbox() -> None:
+    log = POSTER / "build" / "tpp_neurips2026_poster.log"
+    assert log.exists(), "build the poster first (make)"
+    assert overfull_problems(log.read_text(errors="replace")) == []
+
+
+def test_planted_overfull_vbox() -> None:
+    assert overfull_problems("x\nOverfull \\vbox (48.74733pt too high) detected at line 244\n")
+    assert not overfull_problems("Overfull \\hbox (1.2pt too wide) in paragraph\n")

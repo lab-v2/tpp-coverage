@@ -1,9 +1,9 @@
 % NeurIPS 2026 poster: Tokens-per-Parameter Coverage Is Critical for Robust LLM Scaling Law Extrapolation.
-% Build: make (from this folder), with xelatex. A0 landscape (118.9 x 84.1 cm), inside the NeurIPS limit of
-% 140 x 90 cm. Theme: gemini (theme/, MIT). Logos come from ../images (SVG, converted by the Makefile);
+% Build: make (from this folder), with xelatex. 140 x 90 cm landscape, the NeurIPS maximum.
+% Theme: gemini (theme/, MIT). Logos come from ../images (SVG, converted by the Makefile);
 % figures from figures/ (the paper's Figure 1 (a) and (c), copied byte for byte). Every number and formula is the paper's.
 \documentclass[final]{beamer}
-\usepackage[size=custom,width=118.9,height=84.1,scale=1.16]{beamerposter}
+\usepackage[size=custom,width=140,height=90,scale=1.16]{beamerposter}
 \usetheme{gemini}
 \usecolortheme{gemini}
 \usepackage{amsmath,booktabs,graphicx,tikz}
@@ -70,7 +70,7 @@
 \separatorcolumn
 
 % ==== column 1
-\begin{column}{\colwidth}
+\begin{column}{0.80\colwidth}
 
 \begin{alertblock}{TL;DR}
   \RaggedRight
@@ -103,6 +103,12 @@
   $j_B = k^{-\beta} N^{-\beta}$: nearly parallel for small $\varepsilon$.
 \end{block}
 
+\end{column}
+\separatorcolumn
+
+% ==== column 2
+\begin{column}{1.50\colwidth}
+
 \begin{block}{One ray is ill-conditioned}
   \RaggedRight
   \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, as $\varepsilon \to 0$ (Corollary 2: Gaussian noise, at least 5 sizes):\par\smallskip
@@ -120,25 +126,6 @@
     \bottomrule
   \end{tabular}\quad {\small \textsuperscript{$\dagger$}Schur floor.}
 \end{block}
-
-
-
-\begin{alertblock}{Takeaways}
-  \RaggedRight
-  \begin{itemize}
-    \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
-    \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
-  \end{itemize}
-  \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
-\end{alertblock}
-
-\end{column}
-\separatorcolumn
-
-% ==== columns 2 and 3: text above, the paper's figures in a band below
-\begin{column}{\dimexpr2\colwidth+\sepwidth\relax}
-\begin{columns}[t,onlytextwidth]
-\begin{column}{\colwidth}
 
 \begin{alertblock}{TPP-diversity threshold}
   \RaggedRight
@@ -167,6 +154,21 @@
   At $\kappa_{\mathrm{target}} = 100$: 11 of 24 pass ($\geq 1$), 13 fail (all 6 collinear); our \CO{} fan: 0.40.
 \end{block}
 
+\end{column}
+\separatorcolumn
+
+% ==== column 3
+\begin{column}{0.70\colwidth}
+
+\begin{block}{Holdout prediction}
+  \RaggedRight
+  \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), i.i.d.\ Gaussian residuals of
+  variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
+  (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, as $\varepsilon \to 0$:
+  \[ \scalebox{1.7}{$\mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr].$} \]
+  For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient margin.
+\end{block}
+
 \begin{block}{Design recipe}
   \RaggedRight
   \begin{enumerate}
@@ -177,13 +179,24 @@
   $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
 \end{block}
 
-
-
-
+\begin{alertblock}{Takeaways}
+  \RaggedRight
+  \begin{itemize}
+    \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
+    \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
+  \end{itemize}
+  \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
+\end{alertblock}
 
 \end{column}
-\begin{column}{\sepwidth}\end{column}
-\begin{column}{\colwidth}
+\separatorcolumn
+\end{columns}%
+% ==== the evidence row: the banner, Fig. 1a and Fig. 1c across the full width
+\begin{columns}[t]
+\separatorcolumn
+\begin{column}{\dimexpr3\colwidth+2\sepwidth\relax}
+\begin{columns}[t,onlytextwidth]
+\begin{column}{0.27\linewidth}
 
 \begin{block}{\NC{} beats \CO{} on held-out runs}
   \RaggedRight
@@ -204,37 +217,26 @@
   $\sim$1,900 LLaMA-style models, 5.04-76.5M parameters, 4 laws $\times$ 5 corpora; holdout $R^2$: \CO{} 0.837, \NC{} 0.932. Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
 \end{block}
 
-\begin{block}{Holdout prediction}
-  \RaggedRight
-  \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), i.i.d.\ Gaussian residuals of
-  variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
-  (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, as $\varepsilon \to 0$:
-  \[ \scalebox{1.7}{$\mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr].$} \]
-  For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient margin.
-\end{block}
-
-
-
-
-
 \end{column}
-\end{columns}
+\begin{column}{0.71\linewidth}
 
 \begin{block}{Kaplan law on RedPajama, first epoch (paper Fig. 1a, 1c)}
   \RaggedRight
   \begin{columns}[T,onlytextwidth]
     \begin{column}{0.56\linewidth}
       \centering
-      \includegraphics[width=30.0cm]{01_surface_Red_Pajama_Kaplan_First.pdf}
+      \includegraphics[width=33.5cm]{01_surface_Red_Pajama_Kaplan_First.pdf}
     \end{column}
     \begin{column}{0.42\linewidth}
       \centering
-      \includegraphics[width=24.5cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}
+      \includegraphics[width=26.0cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}
     \end{column}
   \end{columns}
   {\fontsize{27}{32}\selectfont Left: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Right: induced isoFLOP curves. Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.}
 \end{block}
 
+\end{column}
+\end{columns}
 \end{column}
 \separatorcolumn
 \end{columns}
