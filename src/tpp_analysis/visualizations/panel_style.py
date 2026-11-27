@@ -8,6 +8,7 @@ panels (surface, convergence, isoFLOP) read at the same density.
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 from matplotlib.legend import Legend
@@ -175,3 +176,46 @@ def _darken_errorbars(
             collection.set_color(color)
             collection.set_alpha(alpha)
             collection.set_linewidth(linewidth)
+
+
+# Poster style: opt-in only (`FIG1_STYLE=poster` in figure1_panels.py). Nothing above calls it,
+# so the paper's figures are unchanged. A 9-inch panel prints about 15 cm wide on the A0 poster,
+# a factor of about 0.66, so 38 pt tick labels print at about 25 pt.
+POSTER_AXIS_LABEL_FS: int = 42
+POSTER_TICK_LABEL_FS: int = 38
+POSTER_LEGEND_FS: int = 34
+POSTER_LINE_WIDTH: float = 4.5
+POSTER_MARKER_SIZE: int = 13
+POSTER_FONT: str = "Lato"
+POSTER_GRID_COLOR: str = "#d0d0d0"
+
+
+def poster_rcparams() -> dict[str, object]:
+    """Matplotlib settings of the poster style: Lato text, Computer Modern math, Type 42 fonts.
+
+    Registers the system's Lato files first: matplotlib's font cache may predate them.
+    """
+    from matplotlib import font_manager
+
+    for path in font_manager.findSystemFonts():
+        if os.path.basename(path).startswith(f"{POSTER_FONT}-"):
+            font_manager.fontManager.addfont(path)
+    return {
+        "font.family": POSTER_FONT,
+        "mathtext.fontset": "cm",  # Computer Modern, as the poster's own mathematics
+        "pdf.fonttype": 42,
+        "ps.fonttype": 42,
+        "axes.unicode_minus": False,
+    }
+
+
+def style_ticks_poster(ax: Axes) -> None:
+    """The poster look over ``style_ticks_2d``: white background, light grid, larger ticks."""
+    ax.set_facecolor("white")
+    ax.grid(True, which="major", color=POSTER_GRID_COLOR, linewidth=1.5, zorder=0)
+    ax.tick_params(axis="both", which="major", labelsize=POSTER_TICK_LABEL_FS, length=14, width=2.5)
+    ax.tick_params(axis="both", which="minor", labelsize=POSTER_TICK_LABEL_FS - 6)
+    for spine in ax.spines.values():
+        spine.set_linewidth(2.5)
+    ax.xaxis.label.set_size(POSTER_AXIS_LABEL_FS)
+    ax.yaxis.label.set_size(POSTER_AXIS_LABEL_FS)

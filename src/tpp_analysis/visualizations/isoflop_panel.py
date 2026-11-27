@@ -146,12 +146,15 @@ def draw_isoflop_panel(
     holdout_mode: str = "final",
     style_legends_fn: Callable | None = None,
     debug: bool = False,
+    budget_colorbar: bool = False,
 ) -> None:
     """Draw isoFLOP curves; with ``holdout_data``, the curve set is the n_H induced budgets
     C_i = 6 N_i D_i (one per kept holdout point, after the highest-D-per-unique-N filter),
     so each residual lands exactly on its own induced curve.
     ``style_legends_fn`` is an optional callback ``(ax) -> None`` that callers use to
     harmonize legend frames across panels.
+    ``budget_colorbar`` (opt-in, the poster style) labels the budgets with a colorbar of
+    log10 C instead of the per-budget legend; the default draws the paper's legend.
     """
     _DESIGN_ABBREV = {"Non-Colinear": "NC", "Colinear": "CO"}
     design_cfg = {
@@ -354,6 +357,22 @@ def draw_isoflop_panel(
         budget_labels.append(txt)
 
     main_leg = ax.get_legend()
+
+    if budget_colorbar:
+        from matplotlib.cm import ScalarMappable
+        from matplotlib.colors import ListedColormap, Normalize
+
+        log_c = np.log10(np.asarray(flop_budgets, dtype=float))
+        mappable = ScalarMappable(norm=Normalize(0, n_budgets), cmap=ListedColormap(list(colors)))
+        cbar = ax.figure.colorbar(mappable, ax=ax, pad=0.02, fraction=0.05)
+        cbar.set_label(r"$\log_{10} C$, with $C = 6ND$", fontsize=fontsize)
+        idx = sorted({0, n_budgets // 3, (2 * n_budgets) // 3, n_budgets - 1})
+        cbar.set_ticks([i + 0.5 for i in idx])
+        cbar.set_ticklabels([f"{log_c[i]:.1f}" for i in idx])
+        cbar.ax.tick_params(labelsize=fontsize - 4)
+        if style_legends_fn is not None:
+            style_legends_fn(ax)
+        return
 
     ax.legend(
         budget_proxies,

@@ -310,6 +310,28 @@ DATASET_NAME = os.environ.get("FIG1_DATASET", "Red Pajama")
 LAW_NAME = os.environ.get("FIG1_LAW", "Kaplan")
 MODE_NAME = os.environ.get("FIG1_MODE", "First")
 OUT_PREFIX = os.environ.get("FIG1_PREFIX", "01_")
+# FIG1_STYLE=poster (opt-in) draws the poster's panels: white background, Lato, Type 42 fonts,
+# print-size ticks and an isoFLOP colorbar. The default, "paper", leaves every figure as it was.
+FIG1_STYLE = os.environ.get("FIG1_STYLE", "paper")
+POSTER = FIG1_STYLE == "poster"
+if POSTER:
+    from panel_style import (
+        POSTER_AXIS_LABEL_FS,
+        POSTER_LEGEND_FS,
+        POSTER_LINE_WIDTH,
+        POSTER_MARKER_SIZE,
+        POSTER_TICK_LABEL_FS,
+        poster_rcparams,
+        style_ticks_poster,
+    )
+
+    matplotlib.rcParams.update(poster_rcparams())
+    AXIS_LABEL_FS, TICK_LABEL_FS, LEGEND_FS = (
+        POSTER_AXIS_LABEL_FS,
+        POSTER_TICK_LABEL_FS,
+        POSTER_LEGEND_FS,
+    )
+    LINE_WIDTH, MARKER_SIZE = POSTER_LINE_WIDTH, POSTER_MARKER_SIZE
 
 HOLDOUT_COL = "r2_unified"
 HOLDOUT_KEY = "Unified"  # for surface plot
@@ -727,6 +749,8 @@ style_ticks_2d(ax_conv)
 # Darken the errorbars seed_variance drew at #333333/alpha=0.7 so they
 # read clearly against the new GRID_BG_COLOR (#D8D8D8) background.
 _darken_errorbars(ax_conv)
+if POSTER:
+    style_ticks_poster(ax_conv)
 # Forces white face, black edge of width SPINE_LW, alpha=LEGEND_ALPHA on the
 # convergence legend regardless of how plot_convergence_with_errorbars built it
 _style_all_legends(ax_conv)
@@ -770,13 +794,16 @@ _draw_isoflop_generic(
     x_lim=(None, 1e8),
     show_optimal=SHOW_OPTIMAL,
     fontsize=AXIS_LABEL_FS,
-    legend_fontsize=LEGEND_FS - 4,
-    legend_loc="lower left",
+    legend_fontsize=LEGEND_FS - 8 if POSTER else LEGEND_FS - 4,
+    legend_loc="upper right" if POSTER else "lower left",
     line_width=LINE_WIDTH,
     holdout_mode=MODE_NAME.lower(),
     style_legends_fn=_style_all_legends,
+    budget_colorbar=POSTER,
 )
 style_ticks_2d(ax_iso)
+if POSTER:
+    style_ticks_poster(ax_iso)
 # _draw_isoflop_generic already calls _style_all_legends; this is a belt-and-
 # suspenders second pass in case anything got reattached.
 _style_all_legends(ax_iso)
