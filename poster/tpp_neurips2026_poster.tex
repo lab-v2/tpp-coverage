@@ -12,6 +12,27 @@
 % Type scale: 110 (hero numbers), 90 (title), 44 (block titles, authors, key numbers, displays),
 % 30 (body), 24 (caption, footer).
 \documentclass[final]{beamer}
+% ==== Hand-tuned offsets, all in one place (each one is guarded by a gate in tests/poster/test_grid.py
+% that fails when a content edit makes it wrong; change the constant named after the card you edited).
+% Title to body (gate: title-to-body 0.70 +- 0.15): a card that opens with a list, a display or a table
+% starts with that element's own skip; \opencorr{<offset>} takes it back.
+\newcommand{\tuneDesigns}{-0.42cm}       % CO and NC designs: itemize topsep
+\newcommand{\tuneLaw}{-1.41cm}           % The law and one ray: the opening display's skip
+\newcommand{\tuneGaussNewton}{-1.26cm}   % Gauss-Newton conditioning: the opening display's skip
+\newcommand{\tunePublished}{0.19cm}      % The threshold on published designs: the table's top rule
+\newcommand{\tuneRecipe}{-0.49cm}        % Design recipe: enumerate topsep
+\newcommand{\tuneTakeaways}{-0.47cm}     % Takeaways: itemize topsep
+% Gaps inside a card (gate: equal gaps within 0.15): a list's bottom skip before the next paragraph.
+\newcommand{\tuneRecipeListEnd}{-0.25cm} % Design recipe: enumerate end to the k example
+\newcommand{\tuneTakeawaysListEnd}{-0.48cm} % Takeaways: itemize end to Limitations
+% Display gaps (gate: display ink 0.50 +- 0.15 from its neighbours).
+\newcommand{\tuneBodyDisplays}{-0.25cm}  % body-size displays sit on the line grid (The law and one ray)
+\newcommand{\tuneGaussNewtonBelow}{-0.16cm} % Gauss-Newton: the display's second line is on the grid
+% Column balance: both tables' row spacing; C1's and C3's spare height shrinks as it grows.
+\newcommand{\tableStretch}{1.25}
+% Kappa row (gate: box and table share top and bottom within 0.15).
+\newcommand{\tuneKappaNote}{0.42cm}       % the strut under the table's Schur-floor note
+
 \usepackage[size=custom,width=140,height=90,scale=1.2083]{beamerposter}
 \usetheme{gemini}
 \usecolortheme{gemini}
@@ -61,7 +82,7 @@
 \newlength{\dispskip}\setlength{\dispskip}{0.52cm}% one display skip, poster-wide
 % A body-size display sits on the line grid (baselineskip), a 44 pt one does not (lineskip): the
 % body-size ones take 0.25 cm less skip, so every display's ink is 0.5 cm from its neighbours.
-\newcommand{\bodydisplays}{\abovedisplayskip=\dimexpr\dispskip-0.25cm\relax \belowdisplayskip=\abovedisplayskip
+\newcommand{\bodydisplays}{\abovedisplayskip=\dimexpr\dispskip+\tuneBodyDisplays\relax \belowdisplayskip=\abovedisplayskip
   \abovedisplayshortskip=\abovedisplayskip \belowdisplayshortskip=\abovedisplayskip}
 \newcommand{\cardhead}[1]{\Sfour\abovedisplayskip=\dispskip \belowdisplayskip=\dispskip
   \abovedisplayshortskip=\dispskip \belowdisplayshortskip=\dispskip\parskip=0.25em{\centering\Sthree\bfseries\color{darkblue}#1\par}\vskip0.2em\RaggedRight}
@@ -70,7 +91,7 @@
 % Title to body: a card opening with a list, a display or a table starts with that element's own
 % skip (topsep, abovedisplayskip, the table's top rule); \opencorr{<cm>} takes it back so every card's
 % body ink starts 0.70 cm below its title's ink (tests/poster/test_grid.py measures it).
-\newcommand{\opencorr}[1]{\vskip#1cm\relax}
+\newcommand{\opencorr}[1]{\vskip#1\relax}
 % The 1.00 cm between stacked cards.
 \newcommand{\cardgap}{\par\vskip1cm}
 % The hero card's two internal gaps: a base gap plus C3's spare height, split equally;
@@ -90,7 +111,7 @@
 \newsavebox{\kappatab}\newsavebox{\kappaeq}\newlength{\kappah}
 % The table's last row carries a strut below the note's baseline; taking it back puts the note's
 % ink on the box's bottom edge.
-\newlength{\kappanote}\setlength{\kappanote}{0.3cm}
+\newlength{\kappanote}\setlength{\kappanote}{\tuneKappaNote}
 \newlength{\restheight}
 \newcommand{\measurestack}[1]{\setlength{\restheight}{\dimexpr\bodyheight-\ht#1-\dp#1-1cm\relax}}
 
@@ -129,21 +150,21 @@
   runs in \textcolor{accent}{\textbf{97.3\%}}.
 \end{alertcard}\cardgap
 \begin{card}{\CO{} (collinear) and \NC{} (non-collinear) designs}
-  \opencorr{-0.42}
+  \opencorr{\tuneDesigns}
   \begin{itemize}
     \item \textbf{\CO{}:} every run at $D = kN$, 12 ratios from $k = 1$ to $5$: a fan of rays.
     \item \textbf{\NC{}:} the 10 smallest sizes crossed with 12 dataset sizes, so $k = D/N$ varies freely; both are scored on the same held-out runs.
   \end{itemize}
 \end{card}\cardgap
 \begin{card}{The law and one ray}
-  \opencorr{-1.41}\bodydisplays
+  \opencorr{\tuneLaw}\bodydisplays
   \[ L(N, D) = A N^{-\alpha} + B D^{-\beta} + E \]
   On a ray $D = kN$ with $\beta = \alpha$, the reduced model is
   \[ L(N; \psi, \alpha, E) = \psi N^{-\alpha} + E, \qquad \psi := A + B k^{-\alpha}. \]
   One ray pins down $\psi$, not $A$ and $B$: a ``sloppy'' model. Gap $\varepsilon := |\alpha - \beta|$.
 \end{card}\cardgap
 \begin{card}{Gauss-Newton conditioning}
-  \opencorr{-1.26}\belowdisplayskip=\dimexpr\dispskip-0.16cm\relax \belowdisplayshortskip=\belowdisplayskip% its second line sits on the line grid
+  \opencorr{\tuneGaussNewton}\belowdisplayskip=\dimexpr\dispskip+\tuneGaussNewtonBelow\relax \belowdisplayshortskip=\belowdisplayskip% its second line sits on the line grid
   \[ \begin{gathered} S(\symbf{\theta}) = \tfrac{1}{2} \lVert \symbfup{r}(\symbf{\theta}) \rVert^2, \quad
      J_{ij} = \frac{\partial r_i}{\partial \theta_j} \\[0.4cm]
      (J^\top J)\, \Delta\symbf{\theta} = -J^\top \symbfup{r} \end{gathered} \]
@@ -156,7 +177,7 @@
   \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, \mbox{as $\varepsilon \to 0$} (Corollary 2: Gaussian noise, at least 5 sizes):\par\smallskip
   % The kappa result (44 pt) in its box and the table as one centred unit of one height, so their
   % tops and bottoms align; one aligned pair of "=".
-  \sbox{\kappatab}{\begin{tabular}{@{}l@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{}}
+  \sbox{\kappatab}{\renewcommand{\arraystretch}{\tableStretch}\begin{tabular}{@{}l@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{}}
     \toprule
     Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
     \midrule
@@ -224,8 +245,8 @@
   For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient~margin.
 \end{card}\cardgap
 \begin{card}{The threshold on published designs}
-  \opencorr{0.19}
-  {\centering\begin{tabular}{@{}lrrr@{}}
+  \opencorr{\tunePublished}
+  {\centering\renewcommand{\arraystretch}{\tableStretch}\begin{tabular}{@{}lrrr@{}}
     \toprule
     Design & $K$ & $R = k_K / k_1$ & $V_K / \tau_K$ \\
     \midrule
@@ -237,20 +258,20 @@
   At $\kappa_{\mathrm{target}} = 100$: 11 of 24 pass ($\geq 1$), 13 fail (all 6 collinear); our \CO{} fan: 0.40.
 \end{card}\cardgap
 \begin{card}{Design recipe}
-  \opencorr{-0.49}
+  \opencorr{\tuneRecipe}
   \begin{enumerate}
     \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
     \item Train on the two end ratios, runs split evenly, log-uniform \mbox{in $N$.}
     \item Check the exact $\kappa_{A,B}$ before training.
-  \end{enumerate}
+  \end{enumerate}\vskip\tuneRecipeListEnd
   $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
 \end{card}\cardgap
 \begin{alertcard}{Takeaways}
-  \opencorr{-0.47}
+  \opencorr{\tuneTakeaways}
   \begin{itemize}
     \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling~law.
     \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
-  \end{itemize}
+  \end{itemize}\vskip\tuneTakeawaysListEnd
   \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
 \end{alertcard}
 }%

@@ -15,9 +15,10 @@ The poster shows only the paper's own figures, Figure 1 (a), the loss surface, a
 induced isoFLOP curves (Kaplan law on RedPajama, first epoch), as poster renders from the paper's own
 code and the same released data. `src/tpp_analysis/visualizations/figure1_panels.py` with
 `FIG1_STYLE=poster` draws each panel at its printed size, 41.733 x 30.18 cm (one column's text
-width; the 3-D panel is drawn on a canvas 1.12 times that and saved as the printed-size window
+width; the 3-D panel is drawn on a canvas 1.33 times that and saved as the printed-size window
 around its ink, with the paper's 3-D view), with a transparent canvas, ticks at 23.9 pt, axis labels and legends at 29.9 pt, and the
-legends inside the axes and at least 0.2 cm inside the saved figure (Fig. 1a in one column in the empty top-left corner, clear of the 3-D box by at least 0.2 cm;
+legends inside the axes and at least 0.2 cm inside the saved figure (Fig. 1a in one column in the empty bottom-right corner, right of the D label, clear of the 3-D box
+by at least 0.2 cm;
 Fig. 1c upper right, inside its axes frame). The poster sets them at scale 1.00.
 The paper style is unchanged; `tests/tpp_analysis/visualizations/test_characterize_figure1_panels.py`
 proves both styles draw the same data. Regenerate with `TPP_DATA_ROOT=<released data root>
@@ -54,4 +55,8 @@ x = 70, column bottoms, 1.00 card gaps, rules, the type scale, card slack under 
 area in a card, no orphan lines, the 0.80 text inset, header and footer margins, and one-line block
 titles, the 0.70 cm title-to-body gap, equal column ink bottoms, the footer on the grid with one
 first baseline, and the hero sub-grid; `tests/tpp_analysis/visualizations/` checks that the poster
-legends sit inside their axes. Every gate has a planted failure.
+legends sit inside their axes. The figure slots hold no empty 3 x 3 cm rectangle; body lines keep a 1.30 cm pitch (1.55 at a
+paragraph or item break); no paragraph ends on a one-word line; tables and the kappa row end at both text
+edges or are centred; block gaps inside a card are equal within 0.15 cm (except the hero card's two
+spare gaps). The hand-tuned offsets these gates guard are collected at the top of the `.tex`.
+Every gate has a planted failure.

@@ -128,7 +128,6 @@ TEXT_SCALE = (
     else 1
 )
 _panel_style.TEXT_SCALE = TEXT_SCALE
-POSTER_SURF_LEGEND_X = float(os.environ.get("FIG1_SURF_LEGEND_X", "0.0089"))  # poster render only
 # The poster keeps legend text at its 24 pt floor: legends shrink less than the rest.
 AXIS_LABEL_FS, TICK_LABEL_FS = 62 * TEXT_SCALE, 54 * TEXT_SCALE
 LEGEND_FS = 48 * TEXT_SCALE * (1 if TEXT_SCALE == 1 else 1.45)
@@ -142,13 +141,30 @@ POSTER_SURF_BOX = [float(v) for v in os.environ.get("FIG1_SURF_BOX", "0.0,0.0,0.
 # canvas POSTER_SURF_GROW times the printed size (text sizes are absolute, so they do not grow) and
 # saves the printed-size window centred at POSTER_SURF_CENTRE (canvas fractions) around the ink. The
 # 3-D view itself (projection, zoom, aspect) is the paper's, so the drawn data are identical.
-POSTER_SURF_GROW = float(os.environ.get("FIG1_SURF_GROW", "1.12"))
-POSTER_SURF_LEGEND_Y = float(os.environ.get("FIG1_SURF_LEGEND_Y", "0.9746"))
+POSTER_SURF_GROW = float(os.environ.get("FIG1_SURF_GROW", "1.33"))
 POSTER_SURF_CENTRE = [
-    float(v) for v in os.environ.get("FIG1_SURF_CENTRE", "0.4506,0.5347").split(",")
+    float(v) for v in os.environ.get("FIG1_SURF_CENTRE", "0.515,0.470").split(",")
 ]
 POSTER_FIG_H = 30.18  # cm: the C2 card's height shared by the two panels
 POSTER_FIGSIZE = (41.733 / 2.54, POSTER_FIG_H / 2.54)
+# The 3-D legend's corner sits POSTER_SURF_LEGEND_PAD cm inside the saved window's corner
+# POSTER_SURF_LEGEND_LOC (matplotlib loc name), in POSTER_SURF_LEGEND_NCOL columns.
+POSTER_SURF_LEGEND_LOC = os.environ.get("FIG1_SURF_LEGEND_LOC", "lower right")
+POSTER_SURF_LEGEND_NCOL = int(os.environ.get("FIG1_SURF_LEGEND_NCOL", "1"))
+POSTER_SURF_LEGEND_PAD = float(os.environ.get("FIG1_SURF_LEGEND_PAD", "0.22"))
+
+
+def poster_surf_legend_anchor() -> tuple[float, float]:
+    """The legend anchor in canvas fractions: the window corner named by POSTER_SURF_LEGEND_LOC,
+    moved POSTER_SURF_LEGEND_PAD cm inwards."""
+    (cx, cy), g, half = POSTER_SURF_CENTRE, POSTER_SURF_GROW, 0.5 / POSTER_SURF_GROW
+    dx = POSTER_SURF_LEGEND_PAD / (41.733 * g)
+    dy = POSTER_SURF_LEGEND_PAD / (POSTER_FIG_H * g)
+    x = cx - half + dx if "left" in POSTER_SURF_LEGEND_LOC else cx + half - dx
+    y = cy + half - dy if "upper" in POSTER_SURF_LEGEND_LOC else cy - half + dy
+    return x, y
+
+
 if POSTER:
     AXIS_LABEL_FS, TICK_LABEL_FS, LEGEND_FS = 29.9, 23.9, 29.9
 _panel_style.AXIS_LABEL_FS, _panel_style.TICK_LABEL_FS = AXIS_LABEL_FS, TICK_LABEL_FS
@@ -673,14 +689,15 @@ ax_surf.legend(
     [_h[i] for i in _keep],
     [_l[i] for i in _keep],
     fontsize=LEGEND_FS * (1 if POSTER else 0.8),
-    # The poster render puts the legend in the panel's empty top-left corner, above the 3-D box's
-    # back edge, 0.22 cm inside the saved window (figure coordinates).
-    loc="upper center" if not POSTER else "upper left",
-    bbox_to_anchor=(0.5, -0.31) if not POSTER else (POSTER_SURF_LEGEND_X, POSTER_SURF_LEGEND_Y),
+    # The poster render puts the legend in an empty corner of the saved window, clear of the 3-D box
+    # (figure coordinates; tests/tpp_analysis/visualizations checks the clearance).
+    loc="upper center" if not POSTER else POSTER_SURF_LEGEND_LOC,
+    bbox_to_anchor=(0.5, -0.31) if not POSTER else poster_surf_legend_anchor(),
     bbox_transform=fig_surf.transFigure if POSTER else None,
-    ncol=2 if not POSTER else 1,
+    ncol=2 if not POSTER else POSTER_SURF_LEGEND_NCOL,
     columnspacing=0.8,
-    handlelength=1.4,
+    handlelength=1.4 if not POSTER else 0.9,
+    handletextpad=0.8 if not POSTER else 0.4,
     framealpha=LEGEND_ALPHA,
 )
 style_ticks_3d(ax_surf)
@@ -851,8 +868,8 @@ fig_iso = plt.figure(
     layout="constrained" if POSTER else None,
 )
 ax_iso = fig_iso.add_subplot(111)
-if POSTER:  # 0.05 cm free above the isoFLOP panel: the gap under the 3-D panel stacked above it
-    fig_iso.get_layout_engine().set(rect=(0, 0, 1, 1 - 0.05 / POSTER_FIG_H))
+if POSTER:  # 0.45 cm free above the isoFLOP panel: the gap under the 3-D panel stacked above it
+    fig_iso.get_layout_engine().set(rect=(0, 0, 1, 1 - 0.45 / POSTER_FIG_H))
 
 iso_fits = [
     r
