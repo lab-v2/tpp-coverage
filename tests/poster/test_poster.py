@@ -603,8 +603,8 @@ def test_planted_high_logo(tmp_path: Path) -> None:
 # The two figures the owner chose: the paper's Figure 1 (a) and (c), as `src/updated_figures/` of the
 # paper's LaTeX source ships them (`\includegraphics` in its empirical section). Pinned by content.
 PAPER_FIGURES = {
-    "01_surface_Red_Pajama_Kaplan_First.pdf": "a9ef51e10715658e8dbcf7fdcd9c4b4a0706e674cdafada23532124176ed3aba",
-    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "c5ac967918ccbfc4631e8a27bb98332ec64ff4a9cdc51e54fc18fc8c815920de",
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "2217020e8cb58efb68fec860ad92edb2f8dbb5f20526dbcd0a4ccd2434789082",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "b76790e3da8eedc9c54f655c687c91e44262fcc053fd2022b908090b6b810ccd",
 }
 MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
 
@@ -736,7 +736,7 @@ def test_figures_set_large() -> None:
 
 
 def test_planted_small_figure() -> None:
-    tex = TEX.read_text().replace("width=27.0cm]{01_surface", "width=15cm]{01_surface")
+    tex = TEX.read_text().replace("width=30.0cm]{01_surface", "width=15cm]{01_surface")
     assert figure_scale_problems(tex, POSTER / "figures")
 
 
@@ -805,5 +805,5 @@ def test_figure_text_readable() -> None:
 
 
 def test_planted_unreadable_figure_text() -> None:
-    tex = TEX.read_text().replace("width=23.0cm]{01_isoflop", "width=12cm]{01_isoflop")
+    tex = TEX.read_text().replace("width=24.5cm]{01_isoflop", "width=12cm]{01_isoflop")
     assert figure_text_problems(tex, POSTER / "figures")

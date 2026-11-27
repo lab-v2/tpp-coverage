@@ -365,12 +365,12 @@ def draw_isoflop_panel(
 
         log_c = np.log10(np.asarray(flop_budgets, dtype=float))
         mappable = ScalarMappable(norm=Normalize(0, n_budgets), cmap=ListedColormap(list(colors)))
-        cbar = ax.figure.colorbar(mappable, ax=ax, pad=0.03, fraction=0.05)
+        cbar = ax.figure.colorbar(mappable, ax=ax, pad=0.07, fraction=0.05)
         even = np.arange(np.ceil(log_c[0] * 2) / 2, log_c[-1] + 1e-9, 0.5)
         cbar.set_ticks(np.interp(even, log_c, np.arange(n_budgets) + 0.5))
         cbar.set_ticklabels([f"{v:.1f}" for v in even])
-        cbar.ax.tick_params(labelsize=fontsize - 4)
-        cbar.set_label(r"$\log_{10} C$", fontsize=fontsize)
+        cbar.ax.tick_params(labelsize=fontsize - 4, pad=12)
+        cbar.set_label(r"$\log_{10} C$", fontsize=fontsize, labelpad=28)
         if main_leg is not None:
             handles = main_leg.legend_handles
             labels = [t.get_text() for t in main_leg.get_texts()]
