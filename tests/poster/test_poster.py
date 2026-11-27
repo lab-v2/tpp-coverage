@@ -512,8 +512,8 @@ def test_planted_high_logo(tmp_path: Path) -> None:
 # The two figures the owner chose: the paper's Figure 1 (a) and (c), rendered poster-sized by
 # figure1_panels.py (FIG1_STYLE=poster; owner's decision of 2026-11-27). Pinned by content.
 PAPER_FIGURES = {
-    "01_surface_Red_Pajama_Kaplan_First.pdf": "cd847f508f5ca7f5903ef0a270a4f0ef507e944a5ff10b29bc8d2ac285582955",
-    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "1e4cfb4bb796f284ec32e1f4d09c84489de7b798a27265d5f3ae6637f6c831aa",
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "39982d8985529f4ffb656ffd7a8d006b8f010ede6c841c6bb117033c845c5995",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "3761e596a8b591a7f1d682de8ac16ba0045d3495275b591dc02f7ab4bb4de370",
 }
 MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
 
@@ -587,7 +587,7 @@ def test_planted_overlapping_text() -> None:
 
 # --- figure size and one body size (round 10; rule changed in makeover M2) ------------------------
 
-# The figures are rendered at their printed size (41.733 x 30.18 cm, figure1_panels.py
+# The figures are rendered at their printed size (41.733 x 30.41 cm, figure1_panels.py
 # FIG1_STYLE=poster) and set at scale 1.00 +- 1%, so their text prints at the size it was drawn:
 # every span on the poster's type scale (ticks 23.9 pt, labels and legends 29.9 pt), math scripts
 # at 0.7 or 0.5 of a scale size.
@@ -851,3 +851,62 @@ def test_planted_full_bleed_rule(tmp_path: Path) -> None:
     doc.save(tmp_path / "bleed.pdf")
     found = edge_ink_problems(tmp_path / "bleed.pdf")
     assert any(f.startswith("path") for f in found) and any(f.startswith("text") for f in found)
+
+
+# --- the two figures' axis labels sit equally far from their tick labels (review M7) -------------
+
+LABEL_GAP_CM, LABEL_GAP_TOL, LABEL_PAIR_TOL = 0.5, 0.2, 0.3
+
+
+def label_tick_gap(pdf: Path, side: str) -> float:
+    """Gap (cm) between the "Loss" axis label and its nearest tick labels: the 3-D z label sits
+    right of its ticks (side "right"), Fig 1c's y label left of them (side "left")."""
+    import pymupdf
+
+    page = pymupdf.open(pdf)[0]
+    spans = [
+        (s["text"].strip(), pymupdf.Rect(s["bbox"]))
+        for b in page.get_text("dict")["blocks"]
+        for ln in b.get("lines", [])
+        for s in ln["spans"]
+        if s["text"].strip()
+    ]
+    loss = next(r for t, r in spans if t == "Loss")
+    near = 7 * PT_PER_CM
+    if side == "right":
+        ticks = [r for t, r in spans if t.isdigit() and r.x1 <= loss.x0 and loss.x0 - r.x1 < near]
+        return (loss.x0 - max(r.x1 for r in ticks)) / PT_PER_CM
+    # The ticks beside the label (within 4 cm of its centre height), not the wider "10" at the top.
+    mid = (loss.y0 + loss.y1) / 2
+    ticks = [
+        r
+        for t, r in spans
+        if t.isdigit()
+        and r.x0 >= loss.x1
+        and r.x0 - loss.x1 < near
+        and abs((r.y0 + r.y1) / 2 - mid) < 4 * PT_PER_CM
+    ]
+    return (min(r.x0 for r in ticks) - loss.x1) / PT_PER_CM
+
+
+def label_gap_problems(gap_a: float, gap_c: float) -> list[str]:
+    out = [
+        f"{name} label {g:.2f} cm from its ticks, not {LABEL_GAP_CM} +- {LABEL_GAP_TOL}"
+        for name, g in (("Fig 1a", gap_a), ("Fig 1c", gap_c))
+        if abs(g - LABEL_GAP_CM) > LABEL_GAP_TOL
+    ]
+    if abs(gap_a - gap_c) > LABEL_PAIR_TOL:
+        out.append(f"label gaps differ: {gap_a:.2f} vs {gap_c:.2f}")
+    return out
+
+
+def test_axis_label_gaps_match() -> None:
+    folder = POSTER / "figures"
+    gap_a = label_tick_gap(folder / "01_surface_Red_Pajama_Kaplan_First.pdf", "right")
+    gap_c = label_tick_gap(folder / "01_isoflop_Red_Pajama_Kaplan_First.pdf", "left")
+    assert label_gap_problems(gap_a, gap_c) == []
+
+
+def test_planted_label_gap() -> None:
+    assert label_gap_problems(2.89, 0.52)  # the M7 3-D "Loss" label
+    assert not label_gap_problems(0.55, 0.52)

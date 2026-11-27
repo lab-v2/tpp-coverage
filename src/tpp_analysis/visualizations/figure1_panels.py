@@ -145,7 +145,7 @@ POSTER_SURF_GROW = float(os.environ.get("FIG1_SURF_GROW", "1.33"))
 POSTER_SURF_CENTRE = [
     float(v) for v in os.environ.get("FIG1_SURF_CENTRE", "0.515,0.470").split(",")
 ]
-POSTER_FIG_H = 30.18  # cm: the C2 card's height shared by the two panels
+POSTER_FIG_H = 30.41  # cm: the C2 card's height shared by the two panels
 POSTER_FIGSIZE = (41.733 / 2.54, POSTER_FIG_H / 2.54)
 # The 3-D legend's corner sits POSTER_SURF_LEGEND_PAD cm inside the saved window's corner
 # POSTER_SURF_LEGEND_LOC (matplotlib loc name), in POSTER_SURF_LEGEND_NCOL columns.
@@ -657,7 +657,9 @@ ax_surf.set_ylabel(
 # bbox_inches='tight' even with generous pad_inches.
 ax_surf.set_zlabel("")
 ax_surf.text2D(
-    1.2 if TEXT_SCALE == 1 else 1.07,  # the poster's smaller ticks sit nearer the box
+    1.2
+    if TEXT_SCALE == 1
+    else 1.010,  # poster: 0.5 cm right of the z tick labels, as Fig 1c's y label
     0.5,
     "Loss",
     transform=ax_surf.transAxes,

@@ -852,7 +852,7 @@ def slot_void_problems(img, card: Rect, inks: list, dpi: float) -> list[str]:  #
 
 
 def body_baselines(pdf: Path = PDF) -> list[tuple[float, float, int, str]]:
-    """Body lines (29.9 pt Latin Modern main span): (x0, baseline, word count, text) in cm."""
+    """Body lines (29.9 pt Latin Modern main span): (x0, baseline, word count, text, x1) in cm."""
     page = fitz.open(pdf)[0]
     words = page.get_text("words")
     out = []
@@ -869,13 +869,15 @@ def body_baselines(pdf: Path = PDF) -> list[tuple[float, float, int, str]]:
                 1 for w in words if bx.contains(fitz.Point((w[0] + w[2]) / 2, (w[1] + w[3]) / 2))
             )
             text = "".join(s["text"] for s in spans)
-            out.append((bx.x0 * CM, main["origin"][1] * CM, n, text))
+            out.append((bx.x0 * CM, main["origin"][1] * CM, n, text, bx.x1 * CM))
     return out
 
 
 def pitch_problems(cs: list[Rect], lines: list, tol: float = 0.05) -> list[str]:  # M3-4
-    """Consecutive body lines starting at one x in a card are 1.30 apart (one paragraph) or 1.55
-    apart (a paragraph or item break), +- 0.05; 2.0 or more is a display or block between them."""
+    """Consecutive body lines starting at one x in a card are 1.30 apart, +- 0.05. 1.55 is allowed
+    only at a real break: the lower line starts a list item (a bullet or a number), or the upper
+    line ends a sentence and is shorter than 95% of the text width. 2.0 or more is a display or a
+    block between them."""
     out = []
     for c in cs:
         mine = sorted(
@@ -886,7 +888,12 @@ def pitch_problems(cs: list[Rect], lines: list, tol: float = 0.05) -> list[str]:
             d = b[1] - a[1]
             if abs(a[0] - b[0]) > 0.1 or d >= 2.0:
                 continue
-            if min(abs(d - 1.30), abs(d - 1.55)) > tol:
+            text_w = c[2] - c[0] - 2 * PAD
+            item = b[3].lstrip().startswith(("\u2022", "1.", "2.", "3.", "4."))
+            ends = a[3].rstrip().endswith((".", ":", ";"))
+            sentence_end = ends and len(a) > 4 and a[4] - a[0] < 0.95 * text_w
+            allowed = [1.30] + ([1.55] if item or sentence_end else [])
+            if min(abs(d - v) for v in allowed) > tol:
                 out.append(f"pitch {d:.2f} at {b[1]:.2f}: {b[3][:25]!r}")
     return out
 
@@ -933,12 +940,11 @@ def side_rows(pdf: Path = PDF) -> list[tuple[float, float, float]]:
 
 def equal_gap_problems(cs: list[Rect], segs: list, tables: list[Rect]) -> list[str]:  # M6
     """Paragraph and block gaps inside a card (segment gaps over BLOCK_GAP_MIN, after the title,
-    outside tables) are equal within EQUAL_GAP_TOL. Declared exceptions: the hero card's two spare
-    gaps (gated equal by hero_gap_problems) and the figure card (its gaps are the figure gates')."""
+    outside tables) are equal within EQUAL_GAP_TOL; in the figure card, figure to figure equals
+    figure to caption. Declared exception: the hero card's two spare gaps (gated equal by
+    hero_gap_problems)."""
     out = []
     for c, seg in zip(cs, segs):
-        if abs(c[0] - EDGES[2]) < 0.01:
-            continue
         pairs = list(zip(seg[1:], seg[2:]))
         gaps = [
             b[0] - a[1]
@@ -994,8 +1000,16 @@ def test_planted_m6_gates() -> None:
         img, card, [(49.1, 18, 90.8, 48), (49.1, 49, 90.8, 78)], 20
     )  # the M6 void
     c1 = (3.0, 15.2, 46.33, 30.0)
-    assert pitch_problems([c1], [(3.8, 20.0, 5, "a"), (3.8, 21.83, 5, "b")])  # Theorem 1 at M2
-    assert not pitch_problems([c1], [(3.8, 20.0, 5, "a"), (3.8, 21.30, 5, "b")])
+    assert pitch_problems(
+        [c1], [(3.8, 20.0, 5, "a", 45.0), (3.8, 21.83, 5, "b", 45.0)]
+    )  # Theorem 1, M2
+    assert not pitch_problems([c1], [(3.8, 20.0, 5, "a", 45.0), (3.8, 21.30, 5, "b", 45.0)])
+    # A forced \\[0.25cm] inside a paragraph: the upper line is full and ends mid-sentence.
+    full = (3.8, 20.0, 9, "runs on to the next", 45.4)
+    assert pitch_problems([c1], [full, (3.8, 21.55, 5, "line here.", 20.0)])
+    assert not pitch_problems(
+        [c1], [(3.8, 20.0, 4, "ends here.", 20.0), (3.8, 21.55, 5, "Next", 30.0)]
+    )
     assert orphan_problems([c1], [(3.8, 20.0, 8, "full line"), (3.8, 21.30, 1, "margin.")])
     assert not orphan_problems(
         [c1], [(3.8, 20.0, 8, "full line"), (3.8, 21.30, 2, "sufficient margin.")]
@@ -1004,3 +1018,111 @@ def test_planted_m6_gates() -> None:
     assert not row_end_problems([c1], [(9.75, 39.58, 25.0)])  # centred on the card
     segs = [[(15.6, 16.8), (17.5, 18.4), (18.96, 19.9), (21.0, 22.0)]]  # gaps 0.56, then 1.10
     assert equal_gap_problems([c1], segs, [])
+
+
+# --- review M7: glyph-level overlaps -------------------------------------------------------------
+
+GLYPH_OVERLAP_CM = 0.02
+# Glyphs of different lines must also keep this much ink clearance (the M7 V_K subscript sat 0.03 cm
+# over "= 0": touching reads as overlapping at poster distance).
+GLYPH_CLEARANCE_CM = 0.10
+POSTER_FONT = ("LMRoman", "LatinModernMath")
+
+
+def _font_bounds(doc, page) -> dict:
+    """Per embedded poster font: a function glyph id -> (xmin, ymin, xmax, ymax) in em units."""
+    import io
+
+    from fontTools.cffLib import CFFFontSet
+
+    out = {}
+    for xref, ext, _t, base, _n, _e in page.get_fonts():
+        name = base.split("+", 1)[-1].replace("-Identity-H", "")
+        if not name.startswith(POSTER_FONT) or ext != "cid":
+            continue
+        cff = CFFFontSet()
+        cff.decompile(io.BytesIO(doc.extract_font(xref)[3]), None)
+        top = cff[cff.fontNames[0]]
+        cs, order = top.CharStrings, top.charset
+        scale = top.FontMatrix[0] if hasattr(top, "FontMatrix") else 0.001
+
+        def bounds(gid, cs=cs, order=order, scale=scale):
+            # Identity-H: the PDF's glyph number is the CID; the CFF names CID-keyed glyphs cidNNNNN.
+            name = f"cid{gid:05d}"
+            if name not in cs:
+                name = order[gid] if gid < len(order) else None
+            if name is None or name not in cs:
+                return None
+            b = cs[name].calcBounds(cs)
+            return None if b is None else tuple(v * scale for v in b)
+
+        out[name] = bounds
+    return out
+
+
+def glyph_boxes(pdf: Path = PDF) -> list[tuple[int, Rect, str]]:
+    """Tight ink boxes (cm) of every poster-font glyph, tagged with its PyMuPDF text line."""
+    doc = fitz.open(pdf)
+    page = doc[0]
+    bounds = _font_bounds(doc, page)
+    gid = {}
+    for span in page.get_texttrace():
+        for c in span["chars"]:
+            gid[(round(c[2][0], 2), round(c[2][1], 2))] = c[1]
+    out, line_no = [], 0
+    for b in page.get_text("rawdict")["blocks"]:
+        for ln in b.get("lines", []):
+            line_no += 1
+            for s in ln["spans"]:
+                f = bounds.get(s["font"].split("+", 1)[-1])
+                if f is None:
+                    continue
+                for ch in s["chars"]:
+                    g = gid.get((round(ch["origin"][0], 2), round(ch["origin"][1], 2)))
+                    bb = f(g) if g is not None else None
+                    if bb is None:
+                        continue
+                    ox, oy, sz = ch["origin"][0], ch["origin"][1], s["size"]
+                    box = (ox + bb[0] * sz, oy - bb[3] * sz, ox + bb[2] * sz, oy - bb[1] * sz)
+                    out.append((line_no, tuple(v * CM for v in box), ch["c"]))
+    return out
+
+
+def glyph_overlap_problems(glyphs: list) -> list[str]:  # owner rule: zero overlaps (M8)
+    """Glyphs of different text lines whose ink boxes intersect by more than GLYPH_OVERLAP_CM in both
+    axes, or that sit above one another closer than GLYPH_CLEARANCE_CM."""
+    gs = sorted(glyphs, key=lambda g: g[1][0])
+    out = []
+    for i, (la, a, ca) in enumerate(gs):
+        for lb, b, cb in gs[i + 1 :]:
+            if b[0] >= a[2] - GLYPH_OVERLAP_CM:
+                break
+            if la == lb:
+                continue
+            ix = min(a[2], b[2]) - max(a[0], b[0])
+            iy = min(a[3], b[3]) - max(a[1], b[1])
+            if ix > GLYPH_OVERLAP_CM and iy > GLYPH_OVERLAP_CM:
+                out.append(f"{ca!r} and {cb!r} overlap at {a[0]:.2f}, {a[1]:.2f}")
+            elif ix > GLYPH_OVERLAP_CM and -GLYPH_CLEARANCE_CM < iy <= GLYPH_OVERLAP_CM:
+                out.append(
+                    f"{ca!r} and {cb!r} touch ({-iy:.2f} cm apart) at {a[0]:.2f}, {a[1]:.2f}"
+                )
+    return out
+
+
+def test_no_glyph_overlaps() -> None:
+    glyphs = glyph_boxes()
+    assert len(glyphs) > 2000, len(glyphs)
+    assert glyph_overlap_problems(glyphs) == []
+
+
+def test_planted_m7_overlap() -> None:
+    """The M7 build's threshold card (commit f9d8f79; its glyph boxes frozen in fixtures/, taken
+    with glyph_boxes), whose V_K label sat on "= 0" in the next line, must fail."""
+    import json
+
+    raw = json.loads(
+        (Path(__file__).parent / "fixtures" / "m7_threshold_card_glyphs.json").read_text()
+    )
+    found = glyph_overlap_problems([(ln, tuple(box), c) for ln, box, c in raw])
+    assert any("\U0001d43e" in f for f in found), found  # the math-italic K of V_K
