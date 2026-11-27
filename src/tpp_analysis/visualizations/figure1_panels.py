@@ -592,8 +592,8 @@ for i in range(len(N_b)):
 # formatter, the same way N's "1e7" auto-offset reads.  labelpad bumped
 # from 10 → 18 so the axis names sit clear of the tick numbers.
 # Units in the labels (no "1e7" / "1e8" offset text, which collided with the ticks).
-ax_surf.set_xlabel(r"$N$ ($10^7$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=95)
-ax_surf.set_ylabel(r"$D$ ($10^8$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=95)
+ax_surf.set_xlabel(r"$N$ ($10^7$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=80)
+ax_surf.set_ylabel(r"$D$ ($10^8$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=80)
 # Smaller labelpad keeps the rotated "Loss" text inside the savefig bbox.
 # 'Loss' placed via text2D in axes-fraction coords - bypasses the 3-D
 # rotated-zlabel bbox quirk that was causing 'Loss' to get cropped by
@@ -631,9 +631,9 @@ _keep = [i for i, lab in enumerate(_l) if lab.startswith(("CO", "NC")) and "resi
 ax_surf.legend(
     [_h[i] for i in _keep],
     [_l[i] for i in _keep],
-    fontsize=LEGEND_FS * 0.85,
+    fontsize=LEGEND_FS * 0.8,
     loc="upper center",
-    bbox_to_anchor=(0.5, -0.36),
+    bbox_to_anchor=(0.5, -0.31),
     ncol=2,
     columnspacing=0.8,
     handlelength=1.4,
@@ -762,7 +762,7 @@ style_ticks_2d(ax_conv)
 _darken_errorbars(ax_conv)
 # Forces white face, black edge of width SPINE_LW, alpha=LEGEND_ALPHA on the
 # convergence legend regardless of how plot_convergence_with_errorbars built it
-# The legend below the axes, under the x label, and room between the ticks and their labels.
+# The legend in the empty lower-right corner (no data there), so (b) prints as tall as (a) and (c).
 _leg = ax_conv.get_legend()
 if _leg is not None:
     _handles, _labels = _leg.legend_handles, [t.get_text() for t in _leg.get_texts()]
@@ -771,13 +771,11 @@ if _leg is not None:
         _handles,
         _labels,
         fontsize=LEGEND_FS,
-        loc="upper center",
-        bbox_to_anchor=(0.5, -0.3),
-        ncol=len(_labels),
-        framealpha=LEGEND_ALPHA,
+        loc="lower right",
+        framealpha=1.0,
     )
-ax_conv.xaxis.labelpad = 12
-_style_all_legends(ax_conv)
+ax_conv.xaxis.labelpad = 8
+_style_all_legends(ax_conv, alpha=1.0)  # opaque: the grid stays behind the legend
 
 for ext in ["pdf", "png"]:
     out = os.path.join(FIG_DIR, f"{OUT_PREFIX}convergence_{base_tag}.{ext}")

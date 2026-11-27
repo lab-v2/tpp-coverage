@@ -43,3 +43,12 @@ def test_line_through_label_fails(tmp_path: Path) -> None:
         page.draw_line((10, 45), (90, 45))
 
     assert any("crossed" in p for p in problems(_pdf(tmp_path, "cross.pdf", crossed)))
+
+
+def test_line_hidden_under_legend_face_passes(tmp_path: Path) -> None:
+    def hidden(page):
+        page.draw_line((10, 45), (90, 45))
+        page.draw_rect(pymupdf.Rect(5, 30, 95, 60), color=None, fill=(1, 1, 1))
+        page.insert_text((20, 50), "NC", fontsize=12)
+
+    assert problems(_pdf(tmp_path, "hidden.pdf", hidden)) == []

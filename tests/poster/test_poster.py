@@ -603,8 +603,8 @@ def test_planted_high_logo(tmp_path: Path) -> None:
 # The two figures the owner chose: the paper's Figure 1 (a) and (c), as `src/updated_figures/` of the
 # paper's LaTeX source ships them (`\includegraphics` in its empirical section). Pinned by content.
 PAPER_FIGURES = {
-    "01_surface_Red_Pajama_Kaplan_First.pdf": "2217020e8cb58efb68fec860ad92edb2f8dbb5f20526dbcd0a4ccd2434789082",
-    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "b76790e3da8eedc9c54f655c687c91e44262fcc053fd2022b908090b6b810ccd",
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "ea6ee430fe4a25fa246ebce828d35d15799801fe39211e83931353815cd0eeca",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "ce974e0d2f6af0263d8e8f8308b8384613584882486ac9992a48eb15c9b4529e",
 }
 MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
 
@@ -807,3 +807,32 @@ def test_figure_text_readable() -> None:
 def test_planted_unreadable_figure_text() -> None:
     tex = TEX.read_text().replace("width=24.5cm]{01_isoflop", "width=12cm]{01_isoflop")
     assert figure_text_problems(tex, POSTER / "figures")
+
+
+# --- the build PNGs are renders of the current PDF ------------------------------------------------
+
+
+def png_staleness(pdf: Path, png: Path) -> list[str]:
+    """The PDF hash recorded when `make` rendered `png` must be the current PDF's."""
+    import hashlib
+
+    record = png.with_name(png.name + ".pdf-sha256")
+    if not png.exists():
+        return []  # nothing rendered yet (a clean checkout); `make` renders it with the PDF
+    if not record.exists():
+        return [f"{png.name}: no render-time PDF hash"]
+    if record.read_text().strip() != hashlib.sha256(pdf.read_bytes()).hexdigest():
+        return [f"{png.name}: rendered from an older PDF"]
+    return []
+
+
+def test_virtual_png_matches_pdf() -> None:
+    assert png_staleness(PDF, POSTER / "build" / "tpp_neurips2026_poster_virtual.png") == []
+
+
+def test_planted_stale_png(tmp_path: Path) -> None:
+    pdf, png = tmp_path / "p.pdf", tmp_path / "v.png"
+    pdf.write_bytes(b"new")
+    png.write_bytes(b"png")
+    (tmp_path / "v.png.pdf-sha256").write_text("0" * 64)
+    assert png_staleness(pdf, png)

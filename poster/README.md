@@ -7,9 +7,9 @@ the mathematics in Latin Modern Math, as LaTeX sets them; every font is embedded
 
 `make` converts the SVG logos in `../images/` to PDF, draws the QR code of the project page, and
 builds with `latexmk -xelatex` into `build/`; only `tpp_neurips2026_poster.pdf` is kept next to the
-source. `make png` renders the virtual poster (`build/tpp_neurips2026_poster_virtual.png`, 4073 x
+source. Every `make` (and `make png`) re-renders the virtual poster (`build/tpp_neurips2026_poster_virtual.png`, 4073 x
 2880 px) and the thumbnail (`build/tpp_neurips2026_poster_thumbnail.png`, 320 x 226 px) within the
-NeurIPS limits. Needs `latexmk`, `xelatex`, poppler's `pdftoppm` and `uv` (for `cairosvg` and `segno`).
+NeurIPS limits, and records the PDF's sha256 beside the PNG so `tests/poster/` fails on a PNG rendered from an older PDF. Needs `latexmk`, `xelatex`, poppler's `pdftoppm` and `uv` (for `cairosvg` and `segno`).
 
 The poster shows only the paper's own figures: `figures/` holds Figure 1 (a), the loss surface, and
 Figure 1 (c), the induced isoFLOP curves (Kaplan law on RedPajama, first epoch), copied byte for byte
