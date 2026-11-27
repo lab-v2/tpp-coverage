@@ -146,6 +146,51 @@ def legend_problems(fig, window_in=None, pad_cm: float = 0.2) -> list[str]:
     return out
 
 
+FRAME_GAP_CM, FRAME_TOL = 0.30, 0.05
+CBAR_GAP_CM, CBAR_TOL = 1.0, 0.2
+
+
+def frame_problems(fig, window_in=None) -> list[str]:
+    """Review M8: each poster legend's frame sits 0.30 +- 0.05 cm from the edges it is set in (the
+    two spines of its 2-D axes corner; the window edges of the 3-D panel), and a colour bar sits
+    1.0 +- 0.2 cm right of its axes."""
+    from matplotlib.transforms import Bbox
+
+    fig.canvas.draw()
+    cm = fig.dpi / 2.54
+    area = (
+        fig.bbox
+        if window_in is None
+        else Bbox.from_extents(*(v * fig.dpi for v in window_in.extents))
+    )
+    out = []
+    main = [a for a in fig.axes if a.get_legend() is not None]
+    for ax in main:
+        f = ax.get_legend().get_frame().get_window_extent()
+        box = area if ax.name == "3d" else ax.bbox
+        gaps = {
+            "left": f.x0 - box.x0,
+            "right": box.x1 - f.x1,
+            "bottom": f.y0 - box.y0,
+            "top": box.y1 - f.y1,
+        }
+        near = sorted(gaps.items(), key=lambda kv: kv[1])[:2]  # the corner it sits in
+        out += [
+            f"legend frame {side} gap {g / cm:.2f} cm, not {FRAME_GAP_CM} +- {FRAME_TOL}"
+            for side, g in near
+            if abs(g / cm - FRAME_GAP_CM) > FRAME_TOL
+        ]
+        for cb in fig.axes:
+            if cb is ax or cb.get_legend() is not None or cb.name == "3d":
+                continue
+            gap = (cb.bbox.x0 - ax.bbox.x1) / cm
+            if 0 < gap < 10 and abs(gap - CBAR_GAP_CM) > CBAR_TOL:
+                out.append(
+                    f"colour bar {gap:.2f} cm from its axes, not {CBAR_GAP_CM} +- {CBAR_TOL}"
+                )
+    return out
+
+
 def test_poster_legends_inside(data_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     from matplotlib.figure import Figure
 
@@ -164,11 +209,27 @@ def test_poster_legends_inside(data_root: Path, monkeypatch: pytest.MonkeyPatch)
         name = Path(path).name
         if name.endswith(".pdf") and ("surface" in name or "isoflop" in name):
             window = kw.get("bbox_inches")
-            found[name] = legend_problems(self, window if window not in (None, "tight") else None)
+            win = window if window not in (None, "tight") else None
+            found[name] = legend_problems(self, win) + frame_problems(self, win)
 
     monkeypatch.setattr(Figure, "savefig", check)
     runpy.run_path(str(ANALYSIS / "visualizations/figure1_panels.py"), run_name="__main__")
     assert len(found) == 2 and all(v == [] for v in found.values()), found
+
+
+def test_planted_frame_and_colour_bar() -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(16, 12))
+    sc = ax.scatter([0, 1], [0, 1], c=[0, 1], label="a")
+    ax.legend(loc="upper right", borderaxespad=0.1)  # the M8 Fig 1c corner: jammed into the spines
+    fig.colorbar(sc, ax=ax, pad=0.15)  # detached colour bar
+    found = frame_problems(fig)
+    assert any("legend frame" in f for f in found) and any("colour bar" in f for f in found), found
+    plt.close(fig)
 
 
 def test_planted_legend_outside() -> None:

@@ -151,7 +151,7 @@ POSTER_FIGSIZE = (41.733 / 2.54, POSTER_FIG_H / 2.54)
 # POSTER_SURF_LEGEND_LOC (matplotlib loc name), in POSTER_SURF_LEGEND_NCOL columns.
 POSTER_SURF_LEGEND_LOC = os.environ.get("FIG1_SURF_LEGEND_LOC", "lower right")
 POSTER_SURF_LEGEND_NCOL = int(os.environ.get("FIG1_SURF_LEGEND_NCOL", "1"))
-POSTER_SURF_LEGEND_PAD = float(os.environ.get("FIG1_SURF_LEGEND_PAD", "0.22"))
+POSTER_SURF_LEGEND_PAD = float(os.environ.get("FIG1_SURF_LEGEND_PAD", "0.19"))
 
 
 def poster_surf_legend_anchor() -> tuple[float, float]:
