@@ -106,3 +106,25 @@ def test_diagram_is_an_image_rendered_from_its_source() -> None:
     assert 'src="images/pipeline/pipeline.png"' in README
     stamp = (REPO / "images" / "pipeline" / "pipeline.png.sha256").read_text().strip()
     assert stamp == hashlib.sha256(DIAGRAM.encode()).hexdigest(), "re-run images/pipeline/render.sh"
+
+
+def badges_without_logo(readme: str) -> list[str]:
+    """Each shields.io badge's label that carries no logo (owner, 2026-11-26: every badge has one)."""
+    out = []
+    for src in re.findall(r'src="(https://img\.shields\.io/[^"]+)"', readme):
+        if "/endpoint?" in src:  # the badge's own JSON sets its logo (Ruff's does)
+            continue
+        if not re.search(r"[?&](amp;)?logo=", src):
+            out.append(src.split("/badge/")[-1].split("-")[0])
+    return out
+
+
+def test_every_badge_has_a_logo() -> None:
+    assert re.findall(r'src="https://img\.shields\.io/', README), "no badges found"
+    assert badges_without_logo(README) == []
+
+
+def test_a_badge_without_a_logo_is_caught() -> None:
+    planted = README.replace("?logo=python&amp;logoColor=white", "", 1)
+    assert planted != README, "planted change no longer applies"
+    assert badges_without_logo(planted) == ["python"]
