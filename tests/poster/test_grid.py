@@ -548,19 +548,53 @@ def footer_problems(lines: list[Line], tol: float = 0.10) -> list[str]:  # M3-8,
     return out
 
 
-def hero_problems(lines: list[Line], tol: float = 0.10) -> list[str]:  # M3-6
-    x0 = EDGES[4] + PAD
-    q = (EDGES[5] - EDGES[4] - 2 * PAD) / 4
-    big = sorted(ln[0] for ln in lines if abs(ln[4] - 109.6) < 0.5)
-    keys = sorted(
-        ln[0] for ln in lines if abs(ln[4] - 43.8) < 0.5 and ln[0] > x0 - 0.1 and 20 < ln[1] < 30
-    )
-    keys = [k for i, k in enumerate(keys) if i == 0 or k - keys[i - 1] > 2.0]  # one per sub-column
+def hero_spans(pdf: Path = PDF) -> list[tuple[float, float, float, float]]:
+    """Spans (x0, x1, baseline, size) of the hero card from its hero numbers down to the paragraph."""
     out = []
-    if len(big) != 2 or abs(big[0] - x0) > tol or abs(big[1] - x0 - 2 * q) > tol:
-        out.append(f"hero numbers at {big}")
-    if len(keys) != 4 or any(abs(k - x0 - i * q) > tol for i, k in enumerate(keys)):
-        out.append(f"key numbers at {keys}")
+    for b in fitz.open(pdf)[0].get_text("dict")["blocks"]:
+        for ln in b.get("lines", []):
+            for s in ln["spans"]:
+                if (
+                    s["text"].strip() and s["bbox"][0] * CM > EDGES[4] and s["size"] > 25
+                ):  # scripts ride their row
+                    out.append(
+                        (s["bbox"][0] * CM, s["bbox"][2] * CM, s["origin"][1] * CM, s["size"])
+                    )
+    top = min(y for _, _, y, z in out if abs(z - 109.6) < 0.5) - 0.1
+    para = min(
+        y
+        for x0, _, y, z in out
+        if abs(z - 29.9) < 0.5 and y > top + 6 and x0 < EDGES[4] + PAD + 0.2
+    )
+    return [s for s in out if top <= s[2] < para - 0.1]
+
+
+def hero_problems(spans: list[tuple[float, float, float, float]], tol: float = 0.10) -> list[str]:
+    """Symmetry: every row of the hero card (numbers, their labels, the 2 x 2 key numbers) is two
+    cells, each centred on its half of the card's text width (the halves' centres)."""
+    x0 = EDGES[4] + PAD
+    half = (EDGES[5] - EDGES[4] - 2 * PAD) / 2
+    centres = (x0 + half / 2, x0 + 1.5 * half)
+    rows: dict[float, list[tuple[float, float]]] = {}
+    for a, b, y, _ in spans:
+        key = next((k for k in rows if abs(k - y) < 0.3), y)
+        rows.setdefault(key, []).append((a, b))
+    out = []
+    if len(rows) != 4:
+        out.append(f"hero card has {len(rows)} rows, expected 4")
+    for y, cells in sorted(rows.items()):
+        for i, c in enumerate(centres):
+            mine = (
+                [ab for ab in cells if (ab[0] + ab[1]) / 2 < x0 + half]
+                if i == 0
+                else [ab for ab in cells if (ab[0] + ab[1]) / 2 >= x0 + half]
+            )
+            if not mine:
+                out.append(f"row at {y:.2f}: half {i} empty")
+                continue
+            mid = (min(a for a, _ in mine) + max(b for _, b in mine)) / 2
+            if abs(mid - c) > tol:
+                out.append(f"row at {y:.2f}: half {i} centred at {mid:.2f}, not {c:.2f}")
     return out
 
 
@@ -578,8 +612,44 @@ def test_footer_on_the_grid() -> None:
     assert footer_problems(text_lines()) == []
 
 
-def test_hero_sub_grid() -> None:
-    assert hero_problems(text_lines()) == []
+def logo_boxes(png) -> tuple[tuple[float, ...], tuple[float, ...]]:
+    """Ink boxes (x0, x1, y0, y1, cm) of the two header logo groups: left of 24 cm and right of 116."""
+    import numpy as np
+
+    px = 2.54 / 100
+    ink = png[: int(12.8 / px), :, :3].min(axis=2) < 235
+    out = []
+    for c0, c1 in ((0.0, 24.0), (116.0, 140.0)):
+        ys, xs = np.nonzero(ink[:, int(c0 / px) : int(c1 / px)])
+        out.append((c0 + xs.min() * px, c0 + xs.max() * px, ys.min() * px, ys.max() * px))
+    return out[0], out[1]
+
+
+def logo_symmetry_problems(
+    left: tuple[float, ...], right: tuple[float, ...], tol: float = 0.10
+) -> list[str]:
+    """The two logo groups mirror each other about x = 70: same outer margin, width, height, centre."""
+    pairs = {
+        "outer margin": (left[0] - 3.0, 137.0 - right[1]),
+        "width": (left[1] - left[0], right[1] - right[0]),
+        "height": (left[3] - left[2], right[3] - right[2]),
+        "vertical centre": ((left[2] + left[3]) / 2, (right[2] + right[3]) / 2),
+    }
+    return [f"logo {k}: {a:.2f} vs {b:.2f}" for k, (a, b) in pairs.items() if abs(a - b) > tol]
+
+
+def test_logo_groups_mirror() -> None:
+    assert logo_symmetry_problems(*logo_boxes(render(PDF, 100))) == []
+
+
+def test_planted_logo_asymmetry() -> None:
+    assert not logo_symmetry_problems((3.0, 20.0, 3.5, 9.5), (120.0, 137.0, 3.5, 9.5))
+    assert logo_symmetry_problems((3.0, 19.0, 3.5, 9.5), (120.0, 137.0, 3.5, 9.5))  # narrower
+    assert logo_symmetry_problems((3.0, 20.0, 4.0, 9.0), (120.0, 137.0, 3.5, 9.5))  # shorter
+
+
+def test_hero_cells_centred() -> None:
+    assert hero_problems(hero_spans()) == []
 
 
 def test_planted_m3_gates() -> None:
@@ -592,12 +662,11 @@ def test_planted_m3_gates() -> None:
     assert not footer_problems(good)
     assert footer_problems([ln(3.0, 20, 87.4, "a b")] + good[1:])  # first baselines differ
     assert footer_problems(good + [ln(44.0, 96.0, 87.9, "refs across a gutter")])
-    hero = lambda xs: [(x, 23.3, x + 5, 24.6, 43.8, "LMRoman10-Bold", "1") for x in xs]  # noqa: E731
-    big = [
-        (94.47, 18, 106, 21, 109.6, "LMRoman10-Bold", "97.3%"),
-        (116.17, 18, 127, 21, 109.6, "LMRoman10-Bold", "98.7%"),
-    ]
-    assert hero_problems(big + hero([94.47, 104.9, 115.33, 125.77]))  # 98.7% 0.84 off the half line
+    left, right = (94.47 + 10.43, 94.47 + 31.30)
+    ok = [(left - 5, left + 5, y, 30.0) for y in (20, 21, 23, 24)]
+    ok += [(right - 4, right + 4, y, 30.0) for y in (20, 21, 23, 24)]
+    assert not hero_problems(ok)
+    assert hero_problems([(94.47, 104.9, 20, 109.6)] + ok[1:])  # 97.3% flush left, not centred
 
 
 # --- review M4: vertical rhythm inside cards ------------------------------------------------------
@@ -672,7 +741,14 @@ def display_rows(card: Rect, lines: list[Line], tables: list[Rect] = ()) -> list
         y = (min(r[1] for r in row) + max(r[3] for r in row)) / 2
         if any(t[0] - 0.1 <= x0 and t[1] - 0.5 <= y <= t[3] + 0.5 for t in tables):
             continue
-        if x0 > card[0] + PAD + 1.0 and abs((x0 + x1) / 2 - centre) < 1.0 and len(row) <= 6:
+        # a two-cell grid row (the hero card) has no line across the centre: not a display
+        crosses = any(r[0] < centre < r[2] for r in row)
+        if (
+            crosses
+            and x0 > card[0] + PAD + 1.0
+            and abs((x0 + x1) / 2 - centre) < 1.0
+            and len(row) <= 6
+        ):
             if (
                 not any(r[5].startswith("Cm") for r in row)
                 and len(row) < 4

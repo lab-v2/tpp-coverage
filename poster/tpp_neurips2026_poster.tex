@@ -103,7 +103,7 @@
 \newcommand{\cardgap}{\par\vskip1cm}
 % The hero card's two internal gaps: a base gap plus C3's spare height, split equally;
 % \herodelta evens the ink gaps (the key numbers' 44 pt ascent against the body's).
-\newlength{\herogap}\newlength{\herobase}\setlength{\herobase}{0.5cm}\newlength{\herodelta}\setlength{\herodelta}{0cm}
+\newlength{\herogap}\newlength{\herobase}\setlength{\herobase}{0.5cm}\newlength{\herodelta}\setlength{\herodelta}{0.05cm}
 \newlength{\bodyheight}\setlength{\bodyheight}{68.4cm}
 % Column width (134 - 2 x 2) / 3; card text width 41.733.
 \newlength{\colw}\setlength{\colw}{43.333cm}
@@ -131,19 +131,19 @@
 \begin{frame}[t]
 
 % ==== header: QR + NeurIPS outer edge at 3.00, SU AI Institute over Leibniz Lab outer edge at 137.00,
-% each group 16.0 wide and 6.0 tall, all centred on the title block's vertical centre.
+% each group 17.0 wide and 6.0 tall (ink, gated by test_logo_groups_mirror; the NeurIPS file has 0.85 bp of white at its right), all centred on the title block's vertical centre.
 \begin{textblock*}{134cm}(3cm,1.61cm)
 \makebox[134cm][s]{%
-  \parbox[c][9.8cm][c]{16cm}{\includegraphics[height=6cm,trim=7.75 7.75 7.75 7.75,clip]{qr_project_page.pdf}\hfill
-    \raisebox{\dimexpr3cm-0.5\height\relax}{\includegraphics[width=9cm]{neurips.pdf}}}%
+  \parbox[c][9.8cm][c]{17cm}{\makebox[17cm][s]{\includegraphics[height=6cm,trim=7.75 7.75 7.75 7.75,clip]{qr_project_page.pdf}\hfill
+    \raisebox{\dimexpr3cm-0.5\height\relax}{\includegraphics[width=10cm,trim=0 0 0.85 0,clip]{neurips.pdf}}}}%
   \hfill
-  \parbox[c][9.8cm][c]{100cm}{\centering\color{darkblue}%
+  \parbox[c][9.8cm][c]{98cm}{\centering\color{darkblue}%
     {\Stwo\bfseries\inserttitle\par}\vskip0.5cm
     {\Sthree\insertauthor\par}\vskip0.3cm
     {\Sfour\insertinstitute\par}}%
   \hfill
-  \parbox[c][9.8cm][c]{16cm}{\raggedleft\makebox[16cm][r]{\includegraphics[width=15.86cm]{syracuse_ai_institute.pdf}}\\[0.3cm]
-    \makebox[16cm][c]{\includegraphics[height=2.7cm]{leibniz_lab.png}}}}
+  \parbox[c][9.8cm][c]{17cm}{\centering\includegraphics[width=17cm]{syracuse_ai_institute.pdf}\\[0.35cm]
+    \includegraphics[height=2.43cm]{leibniz_lab.png}}}
 \end{textblock*}
 \begin{textblock*}{134cm}(3cm,13.0cm)\noindent{\color{darkblue}\rule{134cm}{0.2cm}}\end{textblock*}
 
@@ -234,14 +234,15 @@
 % with no spare (\herogap = 0) to measure it, then again with the spare split between the gaps.
 \newcommand{\Cthreecards}{%
 \begin{alertcard}{\NC{} beats \CO{} on held-out runs}
-  % Hero numbers on the half-width line, key numbers on four equal quarter steps.
+  % Hero numbers centred in two equal halves.
   \vskip0.1cm
-  \noindent\makebox[0.5\linewidth][l]{\parbox[t]{0.48\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{97.3\%}}\par FP32: 1,460/1,500}}%
-  \makebox[0.5\linewidth][l]{\parbox[t]{0.5\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{98.7\%}}\par BF16, Wikipedia: 296/300}}\par\vskip\dimexpr\herobase+\herogap\relax
-  \noindent\makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries $\sim$1,900}\par\vskip\heroKeyLabel LLaMA-style models}}%
-  \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 4 $\times$ 5}\par\vskip\heroKeyLabel laws $\times$ corpora}}%
-  \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 5.04-76.5M}\par\vskip\heroKeyLabel parameters}}%
-  \makebox[0.25\linewidth][l]{\parbox[t]{0.25\linewidth}{\raggedright{\Sthree\bfseries 0.837 / 0.932}\par\vskip\heroKeyLabel holdout $R^2$, \CO{}\,/\,\NC{}}}\par\vskip\dimexpr\herobase+\herogap-\herodelta\relax
+  \noindent\makebox[0.5\linewidth][c]{\parbox[t]{0.5\linewidth}{\centering{\Sone\bfseries\textcolor{accent}{97.3\%}}\par FP32: 1,460/1,500}}%
+  \makebox[0.5\linewidth][c]{\parbox[t]{0.5\linewidth}{\centering{\Sone\bfseries\textcolor{accent}{98.7\%}}\par BF16, Wikipedia: 296/300}}\par\vskip\dimexpr\herobase+\herogap\relax
+  % Key numbers in a 2 x 2 grid whose columns share the hero numbers' centres.
+  \noindent\makebox[0.5\linewidth][c]{{\Sthree\bfseries $\sim$1,900}\ \ LLaMA-style models}%
+  \makebox[0.5\linewidth][c]{{\Sthree\bfseries 5.04-76.5M}\ \ parameters}\par\vskip0.8cm
+  \noindent\makebox[0.5\linewidth][c]{{\Sthree\bfseries 4 $\times$ 5}\ \ laws $\times$ corpora}%
+  \makebox[0.5\linewidth][c]{{\Sthree\bfseries 0.837 / 0.932}\ \ holdout $R^2$, \CO{}\,/\,\NC{}}\par\vskip\dimexpr\herobase+\herogap-\herodelta\relax
   Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
 \end{alertcard}\cardgap
 \begin{card}{Holdout prediction}
@@ -296,7 +297,8 @@
 % and the 1.0 cm trim limit (89.00).
 \begin{textblock*}{\colw}(3cm,86.0cm)\parbox[t]{\colw}{\Sfive\raggedright\color{darkblue}
   \href{https://lab-v2.github.io/tpp-coverage/}{lab-v2.github.io/tpp-coverage}\par
-  This research was funded by ARO grant W911NF-24-1-0007.\par}
+  This research was funded by\\
+  ARO grant W911NF-24-1-0007.\par}
 \end{textblock*}
 \begin{textblock*}{\colw}(48.333cm,86.0cm)\parbox[t]{\colw}{\Sfive\centering\color{darkblue}
   References: Kaplan et al.\ (2020), arXiv:2001.08361; Droppo and Elibol (2021),\\
