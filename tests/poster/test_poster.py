@@ -33,6 +33,11 @@ ALLOWED_FONT = re.compile(
     r"LatinModernMath)"
 )
 MATH_FONT = re.compile(r"LatinModernMath|LMMath|CMMI|Cmmi")
+BLOCK_TITLE_PT = 41.2  # pdftotext height of a block title word (Raleway, \large at scale 1.18)
+# Gaps run from a block's last text line to the next block title, so a tinted block's inner padding
+# (about 0.4 cm) and a figure's bottom margin are inside them; 0.55 cm around the median allows that
+# and nothing more (a 0.9 cm \vspace pad fails).
+MAX_GAP_DEVIATION_CM = 0.55
 MAX_WORDS = 750  # the reference posters carry 500-800 words; the round-1 review set 750
 
 
@@ -116,6 +121,13 @@ def math_font_problems(pdffonts: str, need_math: bool = True) -> list[str]:
     return problems
 
 
+def heading_math_problems(tex: str) -> list[str]:
+    """No $...$ inside a block title or a \\statement{} run-in head (bold math reads as a defect)."""
+    heads = re.findall(r"\\begin\{(?:alert)?block\}\{((?:[^{}]|\{[^{}]*\})*)\}", tex)
+    heads += re.findall(r"\\statement\{((?:[^{}]|\{[^{}]*\})*)\}", tex)
+    return [f"math in heading: {h}" for h in heads if "$" in h]
+
+
 def word_count_problems(text: str) -> list[str]:
     """Words as pdftotext prints them (whitespace-separated), header and footer included."""
     n = len(text.split())
@@ -141,6 +153,33 @@ def column_spread_problems(words: list, width: float, height: float) -> list[str
     spread = (max(bottoms) - min(bottoms)) / PT_PER_CM
     ok = spread < MAX_COLUMN_SPREAD_CM
     return [] if ok else [f"column bottoms {[round(b / PT_PER_CM, 1) for b in bottoms]} cm"]
+
+
+def block_gaps(words: list, width: float) -> list[list[float]]:
+    """Per column, the gaps (cm) between each block title and the text line above it."""
+    gaps = []
+    for c in range(3):
+        col = [w for w in words if c * width / 3 <= w[0] < (c + 1) * width / 3]
+        tops = sorted({round(w[1], 1) for w in col if abs((w[3] - w[1]) - BLOCK_TITLE_PT) < 0.3})
+        col_gaps = []
+        for top in tops[1:]:
+            above = [w[3] for w in col if w[3] < top - 1]
+            col_gaps.append((top - max(above)) / PT_PER_CM)
+        gaps.append(col_gaps)
+    return gaps
+
+
+def gap_problems(gaps: list[list[float]]) -> list[str]:
+    flat = sorted(g for col in gaps for g in col)
+    if len(flat) < 6:
+        return [f"only {len(flat)} block gaps found"]
+    median = flat[len(flat) // 2]
+    return [
+        f"column {c + 1}: gap {g:.2f} cm, median {median:.2f} cm"
+        for c, col in enumerate(gaps)
+        for g in col
+        if abs(g - median) > MAX_GAP_DEVIATION_CM
+    ]
 
 
 def tick_problems(words: list) -> list[str]:
@@ -224,6 +263,10 @@ def test_at_most_750_words() -> None:
 
 def test_column_bottoms_within_1_cm() -> None:
     assert column_spread_problems(bbox_words(PDF), *A0_LANDSCAPE_PT) == []
+
+
+def test_block_gaps_are_the_theme_gap() -> None:
+    assert gap_problems(block_gaps(bbox_words(PDF), A0_LANDSCAPE_PT[0])) == []
 
 
 def test_tick_labels_print_at_24_pt() -> None:
@@ -341,3 +384,21 @@ def test_planted_math_fonts() -> None:
     assert math_font_problems(
         head + "ABCDEF+DejaVuSans CID TrueType Identity-H yes yes yes 8 0\n", need_math=False
     )
+
+
+def test_planted_padded_gap() -> None:
+    gaps = block_gaps(bbox_words(PDF), A0_LANDSCAPE_PT[0])
+    padded = [list(col) for col in gaps]
+    padded[2][1] += 0.9  # a \vspace{0.9cm} "column balance" pad, as round 4 had
+    assert gap_problems(padded)
+    assert gap_problems([[1.4], [1.4], []])
+
+
+def test_no_math_in_bold_heads() -> None:
+    assert heading_math_problems(TEX.read_text()) == []
+
+
+def test_planted_heading_math() -> None:
+    tex = TEX.read_text()
+    assert heading_math_problems(tex.replace("at least 5 sizes", "$n \\geq 5$ sizes"))
+    assert heading_math_problems("\\begin{block}{Two designs in the $(N, D)$ plane}")

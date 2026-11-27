@@ -48,17 +48,17 @@
   \textsuperscript{$\|$}Equal contribution. \quad \textsuperscript{$*$}This work does not relate to the author's position at Amazon. \hfill
   NeurIPS 2026, Sydney \hfill \href{https://arxiv.org/abs/2605.08541}{arXiv:2605.08541}}
 
-% Header corners: the NeurIPS logo over the labelled QR code of the project page (left); the Syracuse AI
-% Institute over the Leibniz Lab (right). Logos 2.9 cm high (the one-line Syracuse wordmark 2.0 cm); the Leibniz PNG (1024 x 348 px)
-% at 2.9 cm is 300 ppi (no vector copy exists).
-\logoleft{\begin{tabular}{@{}c@{}}\includegraphics[height=2.9cm]{neurips.pdf}\\[1.2ex]\includegraphics[height=6.6cm]{qr_project_page.pdf}\\[-0.4ex]{\small Project page}\end{tabular}}
-\logoright{\begin{tabular}{@{}c@{}}\includegraphics[height=2.0cm]{syracuse_ai_institute.pdf}\\[2.2ex]\includegraphics[height=2.9cm]{leibniz_lab.png}\end{tabular}}
+% Header corners: the labelled QR code of the project page beside the NeurIPS logo (4.0 cm, left); the
+% Syracuse AI Institute (3.0 cm) over the Leibniz Lab (2.9 cm: its 1024 x 348 px PNG at 300 ppi; no
+% vector copy exists) on the right.
+\logoleft{\raisebox{-0.5\height}{\begin{tabular}{@{}c@{}}\includegraphics[height=6.0cm]{qr_project_page.pdf}\\[-0.4ex]{\small Project page}\end{tabular}}\hspace{1cm}\raisebox{-0.5\height}{\includegraphics[height=4.0cm]{neurips.pdf}}}
+\logoright{\raisebox{-0.5\height}{\begin{tabular}{@{}c@{}}\includegraphics[height=3.0cm]{syracuse_ai_institute.pdf}\\[1.5ex]\includegraphics[height=2.9cm]{leibniz_lab.png}\end{tabular}}}
 
 % The two designs in the (N, D) plane, from the grids of the paper's Appendix F.1 (grid:ncgrid, grid:tpp):
 % sizes N (M parameters), CO ratios k, NC token counts D (M tokens). Holdout: the N = 55.5M row, the
 % k = 6 (CO) or D = 300.4M (NC) column, and the three largest sizes at k >= 6.2 (CO) or D >= 325.4M (NC).
 \newcommand{\designplane}{%
-\begin{tikzpicture}[x=0.36cm, y=0.024cm, font=\normalsize]
+\begin{tikzpicture}[x=0.36cm, y=0.0462cm, font=\normalsize]
   \def\trainN{5.0,10.1,14.4,19.4,22.8,28.8,32.5,35.4,40.3,47.9}
   \def\allN{5.0,10.1,14.4,19.4,22.8,28.8,32.5,35.4,40.3,47.9,55.5,63.9,68.1,76.5}
   \def\bigN{63.9,68.1,76.5}
@@ -102,7 +102,7 @@
 % Values are 100 / kappa of the printed kappa (27, 18, 12, 17, 7.5, 48, 12, 29, 7.8, 59, 94 pass; 180, 170, 290,
 % 120, 200, 170, 330, 3.2e4, 210, 380 fail). Single-ratio designs (V_1 = 0) are off the scale. x = log10.
 \newcommand{\thresholdstrip}{%
-\begin{tikzpicture}[x=5.6cm, y=3.0cm, font=\normalsize]
+\begin{tikzpicture}[x=5.6cm, y=2.3cm, font=\normalsize]
   \fill[black!6] (-2.7,-0.5) rectangle (0,2.8); \fill[green!50!black!10] (0,-0.5) rectangle (1.3,2.8);
   \node[font=\small\bfseries, text=black!60] at (-1.35,2.6) {fails}; \node[font=\small\bfseries, text=green!40!black] at (0.65,2.6) {passes};
   \foreach \e/\l in {-2/{10^{-2}}, -1/{10^{-1}}, 0/{1}, 1/{10}} {
@@ -110,7 +110,7 @@
   \draw[thick] (-2.7,-0.5) rectangle (1.3,2.8);
   \draw[black, line width=2.5pt] (0,-0.5) -- (0,2.8);
   \node[anchor=east] at (-2.75,2.2) {11 pass};
-  \node[anchor=east, align=right] at (-2.75,1.4) {13 fail\\(10 shown)};
+  \node[anchor=east] at (-2.75,1.4) {13 fail (10 shown)};
   \node[anchor=east] at (-2.75,0.6) {our \CO{} fan};
   \node[anchor=east] at (-2.75,-0.15) {recipe};
   \foreach \v in {3.704,5.556,8.333,5.882,13.33,2.083,8.333,3.448,12.82,1.695,1.064} { \fill[black!75] ({log10(\v)},2.2) circle[radius=9pt]; }
@@ -133,7 +133,7 @@
 \begin{alertblock}{TL;DR}
   Fixed tokens-per-parameter (TPP) ratios $D = kN$ make scaling-law fits ill-conditioned when the $N$- and
   $D$-exponents are close. Covering the $(N, D)$ plane fixes it: \NC{} beats \CO{} on held-out
-  runs in \textcolor{accent}{\textbf{97.3\%}} .
+  runs in \textcolor{accent}{\textbf{97.3\%}}.
 \end{alertblock}
 
 \begin{block}{\CO{} (collinear) and \NC{} (non-collinear) designs}
@@ -157,14 +157,7 @@
 
 
 
-\begin{block}{Design recipe}
-  \begin{enumerate}\setlength{\itemsep}{0.3em}
-    \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
-    \item Train on its two end ratios, runs split evenly, log-uniform in $N$.
-    \item Check the exact $\kappa_{A,B}$ before training.
-  \end{enumerate}\vspace{-0.3em}
-  $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
-\end{block}
+
 
 \end{column}
 \separatorcolumn
@@ -175,7 +168,7 @@
 
 
 \begin{block}{One ray is ill-conditioned}
-  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla, i.i.d.\ Gaussian noise, $n \geq 5$ sizes)}
+  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla, i.i.d.\ Gaussian noise, at least 5 sizes)}
   On one ray, as $\varepsilon \to 0$:
   \[ \kappa_{A,B} = \Theta(\varepsilon^{-2}), \qquad
      \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}). \]
@@ -218,11 +211,14 @@
 
 
 
-\vspace{0.9cm}% column balance
-\begin{block}{Below the threshold, and the stakes}
-  Against budget-matched \CO{} below the threshold, \NC{} wins \textbf{68.5\%} (Chinchilla), \textbf{57.4\%}
-  (Droppo-Elibol), \textbf{80.6\%} (Kaplan); CIs exclude 50\%. Wikipedia Chinchilla fits: \CO{} gives
-  $N^* \propto C^{0.36}$, \NC{} $N^* \propto C^{0.68}$.
+
+
+\begin{block}{Holdout prediction}
+  \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), i.i.d.\ Gaussian residuals of
+  variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
+  (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, as $\varepsilon \to 0$:
+  \medskip
+  \[ \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr]. \]
 \end{block}
 
 \end{column}
@@ -235,12 +231,12 @@
   \begin{columns}[t]
     \begin{column}{0.48\linewidth}
       \centering
-      {\fontsize{140}{148}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
+      {\fontsize{125}{132}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
       {\large FP32: 1,460/1,500}
     \end{column}
     \begin{column}{0.48\linewidth}
       \centering
-      {\fontsize{140}{148}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
+      {\fontsize{125}{132}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
       {\large BF16, Wikipedia: 296/300}
     \end{column}
   \end{columns}
@@ -249,39 +245,46 @@
   Holdout $R^2$: \CO{} 0.837, \NC{} 0.932.
 \end{block}
 
-\vspace{1.6cm}% column balance
 \begin{block}{Largest \CO{}/\NC{} gap: Kaplan on RedPajama}
   \begin{columns}[t]
     \begin{column}{0.49\linewidth}
       \centering
-      \includegraphics[width=\linewidth]{poster_convergence_Red_Pajama_Kaplan_First.pdf}\\
-      {\small Holdout $R^2$ vs TPP coverage, 30 seeds.}
+      \includegraphics[width=\linewidth]{poster_convergence_Red_Pajama_Kaplan_First.pdf}
     \end{column}
     \begin{column}{0.49\linewidth}
       \centering
-      \includegraphics[width=\linewidth]{poster_isoflop_Red_Pajama_Kaplan_First.pdf}\\
-      {\small IsoFLOP curves, seed 0; bars: residuals.}
+      \includegraphics[width=\linewidth]{poster_isoflop_Red_Pajama_Kaplan_First.pdf}
     \end{column}
   \end{columns}
-  \medskip
-  Kaplan: bias, not conditioning. One Chinchilla ray: $A$'s interval is $\sim 10^4\times$ $\psi$'s.
-\end{block}
-
-
-
-\vspace{1.6cm}% column balance
-\begin{block}{Holdout prediction}
-  \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), i.i.d.\ Gaussian residuals of
-  variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
-  (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, as $\varepsilon \to 0$:
-  \[ \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr]. \]
+  {\small Left: holdout $R^2$ against TPP coverage, 30 seeds. Right: isoFLOP curves, seed 0, coloured by
+  $\log_{10} C$; bars: residuals.}\par\smallskip
+  For Kaplan this error is bias, not conditioning; on one Chinchilla ray, $A$'s computed interval is of order
+  $10^4$ times $\psi$'s.
 \end{block}
 
 
 
 
 
-\vspace{1.7cm}% column balance
+
+
+
+
+\begin{block}{Below the threshold, and the stakes}
+  Against budget-matched \CO{} below the threshold, \NC{} wins \textbf{68.5\%} (Chinchilla), \textbf{57.4\%}
+  (Droppo-Elibol), \textbf{80.6\%} (Kaplan); CIs exclude 50\%. On Wikipedia, the \CO{} and \NC{}
+  Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
+\end{block}
+
+\begin{block}{Design recipe}
+  \begin{enumerate}\setlength{\itemsep}{0.3em}
+    \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
+    \item Train on its two end ratios, runs split evenly, log-uniform in $N$.
+    \item Check the exact $\kappa_{A,B}$ before training.
+  \end{enumerate}\vspace{-0.3em}
+  $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
+\end{block}
+
 \begin{alertblock}{Takeaways}
   \begin{itemize}
     \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
