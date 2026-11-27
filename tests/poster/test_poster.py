@@ -1004,3 +1004,45 @@ def test_planted_bad_stamp() -> None:
 def test_planted_overfull_vbox() -> None:
     assert overfull_problems("x\nOverfull \\vbox (48.74733pt too high) detected at line 244\n")
     assert not overfull_problems("Overfull \\hbox (1.2pt too wide) in paragraph\n")
+
+
+# --- trim-safe: no ink within 1 cm of an edge, footer text at least 1 cm above the bottom ---------
+
+TRIM_CM = 1.0
+
+
+def edge_ink_problems(pdf: Path) -> list[str]:
+    """Drawn paths (other than white), images and text closer than TRIM_CM to any page edge."""
+    import pymupdf
+
+    page = pymupdf.open(pdf)[0]
+    w, h, m = page.rect.width, page.rect.height, TRIM_CM * PT_PER_CM
+    white = lambda c: c is None or all(v > 0.99 for v in c)  # noqa: E731
+    boxes = [
+        ("path", d["rect"])
+        for d in page.get_drawings()
+        if not (white(d.get("fill")) and white(d.get("color")))
+    ]
+    boxes += [("image", page.get_image_bbox(im)) for im in page.get_images(full=True)]
+    boxes += [("text " + wd[4], pymupdf.Rect(wd[:4])) for wd in page.get_text("words")]
+    return [
+        f"{kind} at {[round(v / PT_PER_CM, 2) for v in r]} cm"
+        for kind, r in boxes
+        if r.x0 < m or r.y0 < m or r.x1 > w - m or r.y1 > h - m
+    ]
+
+
+def test_no_ink_within_1_cm_of_the_edges() -> None:
+    assert edge_ink_problems(PDF) == []
+
+
+def test_planted_full_bleed_rule(tmp_path: Path) -> None:
+    import pymupdf
+
+    doc = pymupdf.open()
+    page = doc.new_page(width=PAGE_PT[0], height=PAGE_PT[1])
+    page.draw_rect(pymupdf.Rect(0, 370, PAGE_PT[0], 376), color=None, fill=(0.1, 0.2, 0.4))
+    page.insert_text((200, PAGE_PT[1] - 10), "footer", fontsize=20)
+    doc.save(tmp_path / "bleed.pdf")
+    found = edge_ink_problems(tmp_path / "bleed.pdf")
+    assert any(f.startswith("path") for f in found) and any(f.startswith("text") for f in found)
