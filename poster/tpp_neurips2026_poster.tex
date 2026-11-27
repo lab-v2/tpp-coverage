@@ -192,9 +192,9 @@
     \end{column}
   \end{columns}\par\bigskip
   \begin{columns}[t,onlytextwidth]% key numbers, one row of four
-    \begin{column}{0.22\linewidth}\raggedright{\Sthree\bfseries $\sim$1,900}\par LLaMA-style models\end{column}
-    \begin{column}{0.18\linewidth}\raggedright{\Sthree\bfseries 4 $\times$ 5}\par laws $\times$ corpora\end{column}
-    \begin{column}{0.27\linewidth}\raggedright{\Sthree\bfseries 5.04-76.5M}\par parameters\end{column}
+    \begin{column}{0.25\linewidth}\raggedright{\Sthree\bfseries $\sim$1,900}\par LLaMA-style models\end{column}
+    \begin{column}{0.17\linewidth}\raggedright{\Sthree\bfseries 4 $\times$ 5}\par laws $\times$ corpora\end{column}
+    \begin{column}{0.25\linewidth}\raggedright{\Sthree\bfseries 5.04-76.5M}\par parameters\end{column}
     \begin{column}{0.29\linewidth}\raggedright{\Sthree\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{} / \NC{}\end{column}
   \end{columns}\par\bigskip
   Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
@@ -204,7 +204,7 @@
   variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
   (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, \mbox{as $\varepsilon \to 0$:}
   {\Sthree\[ \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr]. \]}%
-  For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient margin.
+  For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient~margin.
 \end{card}\cardgap
 \begin{card}{The threshold on published designs}
   {\centering\begin{tabular}{@{}lrrr@{}}
@@ -228,7 +228,7 @@
 \end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
 \begin{alertcard}[last]{Takeaways}
   \begin{itemize}
-    \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
+    \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling~law.
     \item \textbf{On one ray}, report $\psi$, not separate model and data contributions. On Wikipedia, \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
   \end{itemize}
   \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.

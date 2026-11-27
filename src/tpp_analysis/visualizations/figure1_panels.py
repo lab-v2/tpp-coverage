@@ -615,8 +615,12 @@ for i in range(len(N_b)):
 # formatter, the same way N's "1e7" auto-offset reads.  labelpad bumped
 # from 10 → 18 so the axis names sit clear of the tick numbers.
 # Units in the labels (no "1e7" / "1e8" offset text, which collided with the ticks).
-ax_surf.set_xlabel(r"$N$ ($10^7$)", fontsize=(1 if POSTER else 0.85) * AXIS_LABEL_FS, labelpad=80 * TEXT_SCALE)
-ax_surf.set_ylabel(r"$D$ ($10^8$)", fontsize=(1 if POSTER else 0.85) * AXIS_LABEL_FS, labelpad=80 * TEXT_SCALE)
+ax_surf.set_xlabel(
+    r"$N$ ($10^7$)", fontsize=(1 if POSTER else 0.85) * AXIS_LABEL_FS, labelpad=80 * TEXT_SCALE
+)
+ax_surf.set_ylabel(
+    r"$D$ ($10^8$)", fontsize=(1 if POSTER else 0.85) * AXIS_LABEL_FS, labelpad=80 * TEXT_SCALE
+)
 # Smaller labelpad keeps the rotated "Loss" text inside the savefig bbox.
 # 'Loss' placed via text2D in axes-fraction coords - bypasses the 3-D
 # rotated-zlabel bbox quirk that was causing 'Loss' to get cropped by
@@ -822,7 +826,8 @@ plt.close(fig_conv)
 # PANEL C - IsoFLOP Curves (2-D)
 # ══════════════════════════════════════════════════════════════
 fig_iso = plt.figure(
-    figsize=POSTER_FIGSIZE if POSTER else (PANEL_W, PANEL_H), layout="constrained" if POSTER else None
+    figsize=POSTER_FIGSIZE if POSTER else (PANEL_W, PANEL_H),
+    layout="constrained" if POSTER else None,
 )
 ax_iso = fig_iso.add_subplot(111)
 

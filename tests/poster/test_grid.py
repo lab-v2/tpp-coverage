@@ -1,5 +1,5 @@
-"""Grid gates of the poster makeover (reviewer audit M0, gates G1-G4, G8, G10, G15), measured on the
-built PDF with PyMuPDF. Each gate has a planted failure that must be caught."""
+"""Layout gates of the poster makeover, measured on the built PDF with PyMuPDF: the grid (audit M0,
+gates G1-G4, G8, G10, G15) and review M1's R1-R11. Each gate has a planted failure that must be caught."""
 
 from __future__ import annotations
 
@@ -45,7 +45,7 @@ def rules(pdf: Path = PDF) -> list[Rect]:
     ]
 
 
-def edge_problems(cs: list[Rect], tol: float = 0.10) -> list[str]:  # G1
+def edge_problems(cs: list[Rect], tol: float = 0.05) -> list[str]:  # G1
     return [
         f"card {c} x edge off grid"
         for c in cs
@@ -118,7 +118,8 @@ def size_problems(
             if not spans or any(s["font"].startswith("Cm") for s in spans):
                 continue  # figure text (Computer Modern, matplotlib) has its own gate
             sizes |= {round(s["size"], 1) for s in spans}
-    # Math scripts are excluded: Latin Modern Math sets them at 0.7 and 0.5 of their base size.
+    # Math scripts are allowed: Latin Modern Math and matplotlib's mathtext set them at 0.7 and
+    # 0.5 of their base size. Figure text (Computer Modern) is checked by R4 below.
     allowed = [f * t for t in TYPE_SCALE for f in (1.0, 0.7, 0.5)]
     return [
         f"size {s} pt off the type scale"
@@ -174,3 +175,207 @@ def test_planted_off_scale_size(tmp_path: Path) -> None:
     page.insert_text((100, 100), "off scale", fontsize=34.5)
     doc.save(tmp_path / "p.pdf")
     assert size_problems(tmp_path / "p.pdf") != []
+
+
+# --- review M1: R2-R11 ------------------------------------------------------------------------------
+
+PAD, MAX_SLACK, EMPTY_CM = 0.80, 3.0, 3.0
+TEXT_W = EDGES[1] - EDGES[0] - 2 * PAD
+Line = tuple[float, float, float, float, float, str, str]  # x0, y0, x1, y1, main size, font, text
+
+
+def text_lines(pdf: Path = PDF) -> list[Line]:
+    """Text lines (PyMuPDF), their main span's size and font, and their words: xelatex sets no
+    space glyphs, so the words come from get_text("words"), keyed by block and line number."""
+    page = fitz.open(pdf)[0]
+    words: dict[tuple[int, int], list[str]] = {}
+    for w in page.get_text("words"):
+        words.setdefault((w[5], w[6]), []).append(w[4])
+    out = []
+    for bi, b in enumerate(page.get_text("dict")["blocks"]):
+        for li, ln in enumerate(b.get("lines", [])):
+            spans = [s for s in ln["spans"] if s["text"].strip()]
+            if not spans:
+                continue
+            main = max(spans, key=lambda s: len(s["text"].strip()))
+            x0, y0, x1, y1 = (v * CM for v in ln["bbox"])
+            text = " ".join(words.get((bi, li), [])) or "".join(s["text"] for s in spans).strip()
+            out.append((x0, y0, x1, y1, main["size"], main["font"], text))
+    return out
+
+
+def inside(line: Line, card: Rect) -> bool:
+    return card[0] <= line[0] < card[2] and card[1] <= line[1] < card[3]
+
+
+def slack_problems(cs: list[Rect], lines: list[Line]) -> list[str]:  # R2
+    out = []
+    for c in cs:
+        low = max((ln[3] for ln in lines if inside(ln, c)), default=c[1])
+        if c[3] - low - PAD > MAX_SLACK:
+            out.append(f"card {c}: {c[3] - low - PAD:.2f} cm empty under its content")
+    return out
+
+
+def empty_square_problems(img, cs: list[Rect], dpi: float) -> list[str]:  # R3
+    """Largest square of card-background pixels inside each card (raster, `img` an RGB array)."""
+    import numpy as np
+
+    per_cm = dpi / 2.54
+    out = []
+    for c in cs:
+        x0, y0, x1, y1 = (int(round(v * per_cm)) for v in c)
+        sub = img[y0 + 1 : y1 - 1, x0 + 1 : x1 - 1].astype(int)
+        bg = sub[2, 2]
+        empty = (np.abs(sub - bg).sum(axis=2) < 12).astype(np.int32)
+        # Largest all-empty square ending at each pixel (dynamic programme over rows).
+        best, prev = 0, np.zeros(empty.shape[1] + 1, dtype=np.int32)
+        for row in empty:
+            cur = np.zeros_like(prev)
+            for j in np.nonzero(row)[0]:
+                cur[j + 1] = 1 + min(prev[j], prev[j + 1], cur[j])
+            best = max(best, int(cur.max()))
+            prev = cur
+        if best / per_cm > EMPTY_CM:
+            out.append(f"card {c}: empty {best / per_cm:.1f} x {best / per_cm:.1f} cm area")
+    return out
+
+
+def render(pdf: Path, dpi: int) -> object:
+    import numpy as np
+
+    pix = fitz.open(pdf)[0].get_pixmap(dpi=dpi)
+    return np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)[
+        :, :, :3
+    ]
+
+
+def all_size_problems(lines_spans: list[float], tol: float = 0.5) -> list[str]:  # R4
+    allowed = [f * t for t in (109.6, 89.7, 43.8, 29.9, 23.9) for f in (1.0, 0.7, 0.5)]
+    return [
+        f"{s:.1f} pt" for s in sorted(set(lines_spans)) if min(abs(s - a) for a in allowed) > tol
+    ]
+
+
+def span_sizes(pdf: Path = PDF) -> list[float]:
+    page = fitz.open(pdf)[0]
+    return [
+        round(s["size"], 1)
+        for b in page.get_text("dict")["blocks"]
+        for ln in b.get("lines", [])
+        for s in ln["spans"]
+        if s["text"].strip()
+    ]
+
+
+def short_line_problems(cs: list[Rect], lines: list[Line]) -> list[str]:  # R8
+    """A body line starting at a card's text edge narrower than 15% of the text width must hold
+    at least 2 words (the end of a paragraph), never a lone orphan word."""
+    out = []
+    for ln in lines:
+        card = next((c for c in cs if inside(ln, c)), None)
+        if card is None or ln[5].startswith("Cm") or abs(ln[4] - 29.9) > 0.5:
+            continue
+        if ln[0] - card[0] > PAD + 1.5:  # centred tables and displays are not running text
+            continue
+        if ln[2] - ln[0] < 0.15 * TEXT_W and len(ln[6].split()) < 2:
+            out.append(f"orphan {ln[6]!r} at y {ln[1]:.2f}")
+    return out
+
+
+MARKER = ("\u2022", "1.", "2.", "3.")
+
+
+def inset_problems(cs: list[Rect], lines: list[Line], tol: float = 0.10) -> list[str]:  # R9
+    out = []
+    for c in cs:
+        mine = [ln for ln in lines if inside(ln, c) and not ln[5].startswith("Cm")]
+        lists = any(ln[6].startswith(MARKER) for ln in mine)
+        for ln in mine:
+            off = ln[0] - c[0]
+            if off > PAD + 2.0 or abs(off - PAD) <= tol:
+                continue
+            if lists and PAD < off <= PAD + 1.5:  # list markers and their hanging indent
+                continue
+            out.append(f"line {ln[6][:20]!r} starts {off:.2f} into its card")
+    return out
+
+
+def margin_problems(img, dpi: float) -> list[str]:  # R10
+    import numpy as np
+
+    per_cm = dpi / 2.54
+    dark = img.astype(int).sum(axis=2) < 600
+    out = []
+    foot = np.nonzero(dark[int(85.9 * per_cm) :].any(axis=1))[0]
+    lowest = 85.9 + foot[-1] / per_cm if len(foot) else 0.0
+    if 90.0 - lowest < 1.0 - 0.10:
+        out.append(f"footer ink {90.0 - lowest:.2f} cm from the trim")
+    head = dark[: int(12.9 * per_cm), int(25 * per_cm) : int(115 * per_cm)]
+    rows = np.nonzero(head.any(axis=1))[0]
+    top, bottom = rows[0] / per_cm, rows[-1] / per_cm
+    if abs(top - (13.0 - bottom)) > 0.30:
+        out.append(f"header ink {top:.2f} below the trim, {13.0 - bottom:.2f} above the rule")
+    return out
+
+
+def title_wrap_problems(cs: list[Rect], lines: list[Line]) -> list[str]:  # R11
+    out = []
+    for c in cs:
+        mine = sorted((ln for ln in lines if inside(ln, c)), key=lambda ln: ln[1])
+        if len(mine) >= 2 and abs(mine[0][4] - 43.8) < 0.5 and abs(mine[1][4] - 43.8) < 0.5:
+            if mine[1][1] - mine[0][1] < 2.2 and mine[1][0] > c[0] + PAD + 0.5:
+                out.append(f"title wraps: {mine[0][6]!r} / {mine[1][6]!r}")
+    return out
+
+
+def test_card_slack_under_3_cm() -> None:
+    assert slack_problems(cards(), text_lines()) == []
+
+
+def test_no_empty_3_cm_square_in_a_card() -> None:
+    assert empty_square_problems(render(PDF, 20), cards(), 20) == []
+
+
+def test_all_text_on_the_type_scale() -> None:
+    assert all_size_problems(span_sizes()) == []
+
+
+def test_no_orphan_lines() -> None:
+    assert short_line_problems(cards(), text_lines()) == []
+
+
+def test_body_text_inset() -> None:
+    assert inset_problems(cards(), text_lines()) == []
+
+
+def test_header_and_footer_margins() -> None:
+    assert margin_problems(render(PDF, 100), 100) == []
+
+
+def test_no_title_wraps() -> None:
+    assert title_wrap_problems(cards(), text_lines()) == []
+
+
+def test_planted_r_gates() -> None:
+    import numpy as np
+
+    card = (3.0, 15.2, 46.33, 40.0)
+    line = lambda x, y, w, text, size=29.9: (x, y, x + w, y + 1.0, size, "LMRoman10-Regular", text)  # noqa: E731
+    assert slack_problems([card], [line(3.8, 16.0, 30, "only one line")])  # R2
+    img = np.full((int(90 * 20 / 2.54), int(140 * 20 / 2.54), 3), 240, dtype=np.uint8)
+    assert empty_square_problems(img, [card], 20)  # R3
+    assert all_size_problems([29.9, 34.5])  # R4
+    assert not all_size_problems([29.9, 20.9, 16.7])
+    assert short_line_problems([card], [line(3.8, 20.0, 1.2, "N.")])  # R8
+    assert not short_line_problems([card], [line(3.8, 20.0, 4.0, "of pairs.")])
+    assert inset_problems([card], [line(4.15, 20.0, 20, "For K")])  # R9
+    blank = np.full((int(90 * 100 / 2.54), int(140 * 100 / 2.54), 3), 255, dtype=np.uint8)
+    blank[int(89.5 * 100 / 2.54), 500:600] = 0  # footer ink 0.5 cm from the trim
+    blank[int(2 * 100 / 2.54) : int(12.8 * 100 / 2.54), 4000:4100] = 0  # header hugging the rule
+    assert len(margin_problems(blank, 100)) == 2  # R10
+    title = [
+        line(5.0, 15.8, 30, "Kaplan law on RedPajama", 43.8),
+        line(10.0, 17.6, 10, "1a, 1c", 43.8),
+    ]
+    assert title_wrap_problems([card], title)  # R11

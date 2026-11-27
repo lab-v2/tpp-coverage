@@ -9,10 +9,14 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 import yaml
+
+sys.path.insert(0, str(Path(__file__).parent))
+import test_grid as grid  # noqa: E402  (a module import: its tests are not collected twice)
 
 REPO = Path(__file__).resolve().parents[2]
 POSTER = REPO / "poster"
@@ -121,7 +125,9 @@ def math_font_problems(pdffonts: str, need_math: bool = True) -> list[str]:
 
 def heading_math_problems(tex: str) -> list[str]:
     """No $...$ inside a block title or a \\statement{} run-in head (bold math reads as a defect)."""
-    heads = re.findall(r"\\begin\{(?:alert)?block\}\{((?:[^{}]|\{[^{}]*\})*)\}", tex)
+    heads = re.findall(
+        r"\\begin\{(?:alert)?(?:block|card)\}(?:\[[^\]]*\])?\{((?:[^{}]|\{[^{}]*\})*)\}", tex
+    )
     heads += re.findall(r"\\statement\{((?:[^{}]|\{[^{}]*\})*)\}", tex)
     return [f"math in heading: {h}" for h in heads if "$" in h]
 
@@ -139,164 +145,25 @@ def bbox_words(pdf: Path) -> list[tuple[float, float, float, float, str]]:
     return [(float(a), float(b), float(c), float(d), w) for a, b, c, d, w in re.findall(pat, html)]
 
 
-# --- layout: a top zone of three text columns, then the evidence row across the full width -------
-# Cells 0-2 are the top-zone columns (widths read off the source, as multiples of \colwidth); cell
-# 3 is the evidence row's banner and cell 4 its figure block.
-SEP_FRACTION, COL_FRACTION = (
-    0.02425,
-    0.3,
-)  # \sepwidth and \colwidth, as fractions of the paper width
-ROW_MARK = "% ==== the evidence row"
+# --- layout: textpos cards on the 3-column grid (tests/poster/test_grid.py measures the grid) ------
+
+ZONE_GAP_CM = 2.00  # header rule to the first cards, last cards to the footer rule
 
 
-def cell_edges(tex: str) -> list[tuple[float, float]]:
-    width = PAGE_PT[0]
-    sep, col = SEP_FRACTION * width, COL_FRACTION * width
-    top = tex[: tex.index(ROW_MARK)] if ROW_MARK in tex else tex
-    fractions = [float(f or 1) for f in re.findall(r"\\begin\{column\}\{([\d.]*)\\colwidth\}", top)]
-    edges, x = [], sep
-    for f in fractions:
-        edges.append((x, x + f * col))
-        x += f * col + sep
-    row = 3 * col + 2 * sep
-    banner = (
-        float(re.search(r"\\begin\{column\}\{([\d.]+)\\linewidth\}", tex[tex.index(ROW_MARK) :])[1])
-        if ROW_MARK in tex
-        else 0.27
-    )
-    edges += [(sep, sep + banner * row), (sep + banner * row, sep + row)]
-    return edges
-
-
-def row_top(words: list) -> float:
-    """yMin of the evidence row's figure-block title (its first word, "Kaplan", at title size)."""
-    tops = [w[1] for w in words if w[4] == "Kaplan" and w[3] - w[1] > 0.8 * BLOCK_TITLE_PT]
-    return min(tops) if tops else PAGE_PT[1]
-
-
-def cell_of(w, edges: list, top: float) -> int:
-    """The cell a word sits in: a top-zone column above the evidence row, a row cell below it."""
-    cells = range(3, 5) if w[1] >= top - 1 else range(3)
-    return min(
-        cells,
-        key=lambda c: 0 if edges[c][0] - 5 <= w[0] < edges[c][1] else 1 + abs(w[0] - edges[c][0]),
-    )
-
-
-def column_spread_problems(words: list, width: float, height: float) -> list[str]:
-    """The lowest word of each top-zone column, above the evidence row: within MAX_COLUMN_SPREAD_CM."""
-    edges, top = cell_edges(TEX.read_text()), row_top(words)
-    body = [w for w in words if height * 0.2 < w[3] < top - 5]
-    bottoms = []
-    for c in range(3):
-        col = [w[3] for w in body if cell_of(w, edges, top) == c]
-        if not col:
-            return [f"column {c + 1} has no text"]
-        bottoms.append(max(col))
-    spread = (max(bottoms) - min(bottoms)) / PT_PER_CM
-    ok = spread < MAX_COLUMN_SPREAD_CM
-    return [] if ok else [f"column bottoms {[round(b / PT_PER_CM, 1) for b in bottoms]} cm"]
-
-
-def block_gaps(words: list, width: float) -> list[list[float]]:
-    """Per top-zone column, the gaps (cm) between each block title and the text line above it."""
-    edges, row = cell_edges(TEX.read_text()), row_top(words)
-    gaps = []
-    for c in range(3):
-        tops = sorted({y0 for cc, y0, _ in block_title_tops(words, TEX.read_text()) if cc == c})
-        col_gaps = []
-        for top in tops[1:]:
-            above = [w[3] for w in words if cell_of(w, edges, row) == c and w[3] < top - 1]
-            col_gaps.append((top - max(above)) / PT_PER_CM)
-        gaps.append(col_gaps)
-    return gaps
-
-
-def zone_gap_cm(words: list) -> float:
-    """From the lowest top-zone text to the evidence row's titles (cm)."""
-    top = row_top(words)
-    return (top - max(w[3] for w in words if PAGE_PT[1] * 0.2 < w[3] < top - 1)) / PT_PER_CM
-
-
-def block_title_tops(words: list, tex: str) -> list[tuple[int, float, float]]:
-    """(column, yMin, yMax) of each block title: words at the title size whose text starts a title in the source."""
-    heads = re.findall(r"\\begin\{(?:alert)?block\}\{((?:[^{}]|\{[^{}]*\})*)\}", tex)
-    firsts = {}
-    for h in heads:
-        plain = re.sub(r"\\(CO|NC)\{\}", r"\1", h)
-        plain = re.sub(r"[\\{}$]", " ", plain).split()
-        # A title is a row holding exactly its words (the TL;DR repeats one title's words mid-line).
-        if plain:
-            firsts.setdefault(plain[0], []).append(plain)
-    edges, top = cell_edges(tex), row_top(words)
-    # The title size is read off the first block's title ("TL;DR"), so a body-scale change follows.
-    sizes = [w[3] - w[1] for w in words if w[4] == "TL;DR"]
-    title_pt = sizes[0] if sizes else BLOCK_TITLE_PT
-    out = set()
-    for w in words:
-        if w[4] not in firsts or abs((w[3] - w[1]) - title_pt) >= 0.3:
-            continue
-        want = firsts[w[4]]
-        # The words on this line that run on from w with normal word spacing (a title may span the
-        # band across columns 2 and 3; another column's text on the same line starts a new run).
-        line = sorted(
-            (v for v in words if abs(v[1] - w[1]) < 1 and v[0] >= w[0]), key=lambda v: v[0]
-        )
-        row = [line[0]]
-        for v in line[1:]:
-            if v[0] - row[-1][2] > title_pt:
-                break
-            row.append(v)
-        left = [v for v in words if abs(v[1] - w[1]) < 1 and 0 < w[0] - v[2] <= title_pt]
-        if not left and [v[4] for v in row] in want:
-            out.add((cell_of(w, edges, top), round(w[1], 1), round(w[3], 1)))
-    return sorted(out)
-
-
-def rule_coverage(png: Path, titles: list[tuple[int, float, float]], scale: float) -> list[float]:
-    """For each title, the largest share of its column's width covered by dark pixels on one row just below it."""
-    script = (
-        "import sys, json; from PIL import Image\n"
-        "im = Image.open(sys.argv[1]).convert('L'); px = im.load(); t = json.loads(sys.argv[2]); s = float(sys.argv[3])\n"
-        "out = []\n"
-        "for a, b, y0, y1 in t:\n"
-        "    xa, xb = int((a + 0.075 * (b - a)) * s), int((b - 0.075 * (b - a)) * s)\n"
-        "    best = max(sum(px[x, y] < 120 for x in range(xa, xb)) for y in range(int(y1 * s), int((y1 + 45) * s)))\n"
-        "    out.append(best / (xb - xa))\n"
-        "print(json.dumps(out))"
-    )
-    import json
-
-    out = _run(
-        "uv",
-        "run",
-        "--quiet",
-        "--no-project",
-        "--with",
-        "pillow",
-        "python",
-        "-I",
-        "-c",
-        script,
-        str(png),
-        json.dumps([(*cell_edges(TEX.read_text())[c], y0, y1) for c, y0, y1 in titles]),
-        str(scale),
-    )
-    return json.loads(out)
-
-
-def gap_problems(gaps: list[list[float]]) -> list[str]:
-    flat = sorted(g for col in gaps for g in col)
-    if len(flat) < 6:
-        return [f"only {len(flat)} block gaps found"]
-    # Centre of the range, not the median: a gap may end on text or on a tinted box (about 0.4 cm
-    # apart), so the honest gaps form a band; a padding \vspace sits outside it.
-    centre = (flat[0] + flat[-1]) / 2 if flat[-1] - flat[0] <= 2 * MAX_GAP_DEVIATION_CM else None
-    if centre is None:
-        return [
-            f"block gaps span {flat[0]:.2f}-{flat[-1]:.2f} cm, more than {2 * MAX_GAP_DEVIATION_CM} cm"
-        ]
-    return []
+def zone_gap_problems(cs: list, rs: list, tex: str, tol: float = 0.10) -> list[str]:
+    """No \\vspace anywhere, and the body zone sits 2.00 cm from both rules: header rule bottom to
+    every column's first card, every column's last card to the footer rule top."""
+    problems = ["a \\vspace in the source"] if "\\vspace" in tex else []
+    if len(rs) != 2:
+        return problems + [f"rules {rs}"]
+    head, foot = sorted(rs, key=lambda r: r[1])
+    for key in {(c[0], c[2]) for c in cs}:
+        col = sorted(c for c in cs if (c[0], c[2]) == key)
+        if abs(col[0][1] - head[3] - ZONE_GAP_CM) > tol:
+            problems.append(f"column {key}: {col[0][1] - head[3]:.2f} cm under the header rule")
+        if abs(foot[1] - col[-1][3] - ZONE_GAP_CM) > tol:
+            problems.append(f"column {key}: {foot[1] - col[-1][3]:.2f} cm above the footer rule")
+    return problems
 
 
 def header_fraction(png: Path) -> float:
@@ -366,17 +233,17 @@ def test_latex_fonts_only() -> None:
 
 
 def poster_words() -> list:
-    """The poster's own words: the text inside the paper's figures (embedded TrueType since the
-    figures were re-rendered) is the figures' own, so it is left out. The figure band runs from the
-    band's block title to the caption line ("Left:")."""
+    """The poster's own words: the text inside the paper's figures (embedded TrueType) is the
+    figures' own, so it is left out: the figure card from its title ("Kaplan", title size) to its
+    caption ("Paper")."""
     words = bbox_words(PDF)
-    left = cell_edges(TEX.read_text())[4][0]
     title = [w for w in words if w[4] == "Kaplan" and w[3] - w[1] > 0.8 * BLOCK_TITLE_PT]
-    caption = [w for w in words if w[4] == "Left:"]
+    caption = [w for w in words if w[4] == "Paper"]
     if not title or not caption:
         return words
+    left, right = grid.EDGES[2] * PT_PER_CM, grid.EDGES[3] * PT_PER_CM
     top, bottom = title[0][3], caption[0][1]
-    return [w for w in words if not (w[0] >= left - 5 and top < w[1] and w[3] < bottom)]
+    return [w for w in words if not (left <= w[0] < right and top < w[1] and w[3] < bottom)]
 
 
 def footer_rule_top(pdf: Path = PDF) -> float:
@@ -405,65 +272,26 @@ def test_at_most_800_words() -> None:
     assert body_word_problems(poster_words(), footer_rule_top()) == []
 
 
-def test_column_bottoms_within_1_cm() -> None:
-    # The three top-zone columns end on one line above the evidence row.
-    assert column_spread_problems(bbox_words(PDF), *PAGE_PT) == []
-
-
-MAX_ZONE_GAP_CM = (
-    3.5  # lowest top-zone text to the evidence row's titles; 3.14 cm measured at 140 x 90
-)
+def test_column_bottoms_on_one_line() -> None:
+    # The three columns end on one line (the last card of each stretches to the body bottom).
+    assert grid.bottom_problems(grid.cards()) == []
 
 
 def test_zone_gap_bounded() -> None:
-    # No \\vspace between the zones: the gap is the columns' and blocks' own skip, bounded.
-    tex = TEX.read_text()
-    between = tex[tex.rindex("\\end{columns}", 0, tex.index(ROW_MARK)) : tex.index(ROW_MARK)]
-    assert "vspace" not in between
-    gap = zone_gap_cm(bbox_words(PDF))
-    assert MAX_GAP_DEVIATION_CM < gap <= MAX_ZONE_GAP_CM, gap
+    assert zone_gap_problems(grid.cards(), grid.rules(), TEX.read_text()) == []
 
 
 def test_block_gaps_are_the_theme_gap() -> None:
-    assert gap_problems(block_gaps(bbox_words(PDF), PAGE_PT[0])) == []
+    assert grid.gap_problems(grid.cards()) == []
 
 
-def test_block_title_rules_are_unbroken(tmp_path: Path) -> None:
-    """Nothing (a figure's white margin, a legend) covers a block title's rule: >= 95% of the column."""
-    titles = block_title_tops(bbox_words(PDF), TEX.read_text())
-    assert len(titles) == len(re.findall(r"\\begin\{(?:alert)?block\}", TEX.read_text()))
-    _run("pdftoppm", "-png", "-r", "72", "-singlefile", str(PDF), str(tmp_path / "p"))
-    cover = rule_coverage(tmp_path / "p.png", titles, 1.0)
-    assert min(cover) >= 0.95, list(zip(titles, cover))
-
-
-def test_planted_broken_rule(tmp_path: Path) -> None:
-    titles = block_title_tops(bbox_words(PDF), TEX.read_text())
-    _run("pdftoppm", "-png", "-r", "72", "-singlefile", str(PDF), str(tmp_path / "p"))
-    script = (
-        "import sys, json; from PIL import Image, ImageDraw\n"
-        "im = Image.open(sys.argv[1]).convert('RGB'); c, y0, y1 = json.loads(sys.argv[2])\n"
-        "a, b = json.loads(sys.argv[3]); ImageDraw.Draw(im).rectangle([a + 0.3 * (b - a), y1, a + 0.5 * (b - a), y1 + 45], fill='white')\n"
-        "im.save(sys.argv[1])"
-    )
-    import json
-
-    _run(
-        "uv",
-        "run",
-        "--quiet",
-        "--no-project",
-        "--with",
-        "pillow",
-        "python",
-        "-I",
-        "-c",
-        script,
-        str(tmp_path / "p.png"),
-        json.dumps(titles[1]),
-        json.dumps(cell_edges(TEX.read_text())[titles[1][0]]),
-    )
-    assert rule_coverage(tmp_path / "p.png", [titles[1]], 1.0)[0] < 0.95
+def test_block_titles_one_line() -> None:
+    """Replaces the old title-rule check (the cards have no title rules): every card opens with
+    its title on one line."""
+    cs, lines = grid.cards(), grid.text_lines()
+    assert grid.title_wrap_problems(cs, lines) == []
+    firsts = [min((ln for ln in lines if grid.inside(ln, c)), key=lambda ln: ln[1]) for c in cs]
+    assert all(abs(ln[4] - 43.8) < 0.5 for ln in firsts), [ln[6] for ln in firsts]
 
 
 def test_header_under_17_percent(tmp_path: Path) -> None:
@@ -534,13 +362,19 @@ def test_planted_too_many_words() -> None:
 
 
 def test_planted_column_spread() -> None:
-    words = bbox_words(PDF)
-    w, h = PAGE_PT
-    edges, top = cell_edges(TEX.read_text()), row_top(words)
-    col1 = [x for x in words if cell_of(x, edges, top) == 0 and h * 0.2 < x[3] < top - 5]
-    cut = max(x[3] for x in col1) - 2 * PT_PER_CM  # column 1 ends 2 cm higher
-    others = [x for x in words if not (x in col1 and x[3] > cut)]
-    assert column_spread_problems(others, w, h)
+    cs = grid.cards()
+    short = [
+        (c[0], c[1], c[2], c[3] - 2.0) if c[3] == max(x[3] for x in cs) and c[0] == 3.0 else c
+        for c in cs
+    ]
+    assert grid.bottom_problems(short)
+
+
+def test_planted_zone_gaps() -> None:
+    cs, rs = grid.cards(), grid.rules()
+    assert zone_gap_problems(cs, rs, TEX.read_text() + "\\vspace{1cm}")
+    lowered = [(c[0], c[1] + 0.9, c[2], c[3]) if c[1] == min(x[1] for x in cs) else c for c in cs]
+    assert zone_gap_problems(lowered, rs, TEX.read_text())
 
 
 def test_planted_tall_header(tmp_path: Path) -> None:
@@ -583,11 +417,9 @@ def test_planted_math_fonts() -> None:
 
 
 def test_planted_padded_gap() -> None:
-    gaps = block_gaps(bbox_words(PDF), PAGE_PT[0])
-    padded = [list(col) for col in gaps]
-    padded[0][1] += 0.9  # a \vspace{0.9cm} "column balance" pad, as round 4 had
-    assert gap_problems(padded)
-    assert gap_problems([[1.4], [1.4], []])
+    cs = sorted(grid.cards())
+    padded = [cs[0], (cs[1][0], cs[1][1] + 0.9, cs[1][2], cs[1][3])] + cs[2:]
+    assert grid.gap_problems(padded)  # a 0.9 cm "column balance" pad
 
 
 def test_no_math_in_bold_heads() -> None:
@@ -655,7 +487,7 @@ def test_planted_high_logo(tmp_path: Path) -> None:
     script = (
         "import sys; from PIL import Image\n"
         "im = Image.open(sys.argv[1]).convert('RGB'); w = im.width\n"
-        "box = (0, 0, int(0.19 * w), int(0.155 * im.height)); crop = im.crop(box)\n"
+        "box = (0, 0, int(0.19 * w), int(0.13 * im.height)); crop = im.crop(box)\n"
         "im.paste((255, 255, 255), box); im.paste(crop, (0, -60)); im.save(sys.argv[1])"
     )
     _run(
@@ -680,8 +512,8 @@ def test_planted_high_logo(tmp_path: Path) -> None:
 # The two figures the owner chose: the paper's Figure 1 (a) and (c), rendered poster-sized by
 # figure1_panels.py (FIG1_STYLE=poster; owner's decision of 2026-11-27). Pinned by content.
 PAPER_FIGURES = {
-    "01_surface_Red_Pajama_Kaplan_First.pdf": "ddcfa37cf8db8eae324f3e93b2b8d76a308387833073684c35042623b2599b36",
-    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "dbbb1d983e590ef4f0c37c7e52118bb58c8a214db6c74ac3ed8a2df7f9c993e5",
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "a0a2db7c7f7e1e2bd4361f494ed682db136697e304d08b497cec148681f96865",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "9ef130d2b6448c8b2b620dcea876f01d5bde94ebf807dc1e17da7b395e446cd9",
 }
 MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
 
@@ -753,16 +585,16 @@ def test_planted_overlapping_text() -> None:
     assert overlap_problems(words + [(a[0] + 2, a[1] + 2, a[2] + 2, a[3] + 2, "planted")])
 
 
-# --- figure size and one body size (round 10) ------------------------------------------------------
+# --- figure size and one body size (round 10; rule changed in makeover M2) ------------------------
 
-# Each paper figure is set at least this many times its natural width (the figures are rendered at
-# the paper's print size, so the poster scales them up), and every word inside them prints at least
-# MIN_FIG_TEXT_PT tall (pdftotext height times the scale; the isoFLOP figure's exponent digits are
-# the smallest).
-MIN_FIG_SCALE = 0.75
-MIN_FIG_TEXT_PT = 24.0
-CAPTION_MIN_PT = 26.0  # pdftotext height of caption text
-TEXT_WORD = re.compile(r"^[A-Za-z][A-Za-z,.;:'()-]*$")
+# The figures are rendered at their printed size (41.733 x 29.80 cm, figure1_panels.py
+# FIG1_STYLE=poster) and set at scale 1.00 +- 1%, so their text prints at the size it was drawn:
+# every span on the poster's type scale (ticks 23.9 pt, labels and legends 29.9 pt), math scripts
+# at 0.7 or 0.5 of a scale size.
+FIG_SCALE_TOL = 0.01
+TYPE_SCALE_PT = (109.6, 89.7, 43.8, 29.9, 23.9)
+SCRIPT_RATIOS = (1.0, 0.7, 0.5)
+BODY_PT, CAPTION_PT = 29.9, 23.9
 
 
 def figure_scale_problems(tex: str, folder: Path) -> list[str]:
@@ -773,56 +605,20 @@ def figure_scale_problems(tex: str, folder: Path) -> list[str]:
     for width_cm, name in found:
         m = re.search(r"^Page size:\s+([\d.]+) x", _run("pdfinfo", str(folder / name)), re.M)
         natural_cm = float(m[1]) / PT_PER_CM
-        if float(width_cm) < MIN_FIG_SCALE * natural_cm:
-            problems.append(f"{name}: {width_cm} cm < {MIN_FIG_SCALE} x {natural_cm:.1f} cm")
+        if abs(float(width_cm) / natural_cm - 1) > FIG_SCALE_TOL:
+            problems.append(f"{name}: set at {width_cm} cm, rendered at {natural_cm:.3f} cm")
     return problems
 
 
-def header_rule_bottom(pdf: Path = PDF) -> float:
-    """Bottom (pt) of the header rule: the thin full-width filled bar in the theme's dark blue."""
-    import pymupdf
-
-    page = pymupdf.open(pdf)[0]
-    bars = [
-        d["rect"]
-        for d in page.get_drawings()
-        if d["rect"].width > 0.95 * page.rect.width
-        and d["rect"].height < 0.01 * page.rect.height
-        and d.get("fill") not in (None, (1.0, 1.0, 1.0))
-    ]
-    assert bars, "no header rule found"
-    return min(bars, key=lambda r: r.y0).y1
-
-
-def body_size_problems(words: list, tex: str) -> list[str]:
-    """Rows of running text (at least 4 words, half of them plain words) are body size or caption size.
-
-    Block titles, the header, the footer, the banner numbers and display math are not running text.
-    """
-    width, height = PAGE_PT
-    titles = {round(y0) for _, y0, _ in block_title_tops(words, tex)}
-    edges, top = cell_edges(tex), row_top(words)
-    header = header_rule_bottom() + 0.5 * PT_PER_CM  # running text starts below the header rule
-    rows: dict[tuple[int, int], list] = {}
-    for w in words:
-        if header < w[1] and w[3] < 0.955 * height:
-            rows.setdefault((cell_of(w, edges, top), round(w[1])), []).append(w)
-    medians = []
-    for (col, y), row in rows.items():
-        plain = [w for w in row if TEXT_WORD.match(w[4])]
-        if len(row) < 4 or 2 * len(plain) < len(row) or any(abs(y - t) <= 1 for t in titles):
-            continue
-        hs = sorted(w[3] - w[1] for w in row)
-        medians.append(((col, y), hs[len(hs) // 2], row[0][4]))
-    if not medians:
-        return ["no running text found"]
-    from collections import Counter
-
-    body = Counter(round(m, 1) for _, m, _ in medians).most_common(1)[0][0]
+def body_size_problems(lines: list) -> list[str]:
+    """Running text (lines of at least 4 words in Latin Modern) is body (29.9) or caption (23.9) size."""
     return [
-        f"row at {pos} ({first!r}...) is {m:.1f} pt; body {body:.1f}, captions {CAPTION_MIN_PT}-{body:.1f}"
-        for pos, m, first in medians
-        if abs(m - body) > 0.6 and not (CAPTION_MIN_PT <= m < body)
+        f"{ln[6][:30]!r} at {ln[4]:.1f} pt"
+        for ln in lines
+        if len(ln[6].split()) >= 4
+        and not ln[5].startswith("Cm")
+        and min(abs(ln[4] - BODY_PT), abs(ln[4] - CAPTION_PT)) > 0.5
+        and ln[4] < 40  # titles, the header and the hero numbers are not running text
     ]
 
 
@@ -831,27 +627,19 @@ def test_figures_set_large() -> None:
 
 
 def test_planted_small_figure() -> None:
-    tex = TEX.read_text().replace("width=44.0cm]{01_surface", "width=8cm]{01_surface")
+    tex = TEX.read_text().replace("width=41.733cm]{01_surface", "width=30cm]{01_surface")
     assert figure_scale_problems(tex, POSTER / "figures")
 
 
 def test_one_body_size() -> None:
-    assert body_size_problems(poster_words(), TEX.read_text()) == []
+    assert body_size_problems(grid.text_lines()) == []
 
 
 def test_planted_off_size_text() -> None:
-    words = poster_words()
-    tex = TEX.read_text()
-    y = next(round(w[1]) for w in words if w[4] == "Train")  # the recipe's step 2
-    bigger = [
-        (a, b, c, b + 1.15 * (d - b), t) if round(b) == y else (a, b, c, d, t)
-        for a, b, c, d, t in words
-    ]
-    assert body_size_problems(bigger, tex)
-    # The TL;DR's first line, just under the header rule, set at 40 pt.
-    y = next(round(w[1]) for w in words if w[4] == "Fixed")
-    tldr = [(a, b, c, b + 40.0, t) if round(b) == y else (a, b, c, d, t) for a, b, c, d, t in words]
-    assert body_size_problems(tldr, tex)
+    lines = grid.text_lines()
+    i = next(k for k, ln in enumerate(lines) if ln[6].startswith("Fixed"))
+    bigger = lines[:i] + [(*lines[i][:4], 34.5, *lines[i][5:])] + lines[i + 1 :]
+    assert body_size_problems(bigger)
 
 
 # The poster's figures are poster-sized renders of the paper's panels (figure1_panels.py,
@@ -860,27 +648,18 @@ def test_planted_off_size_text() -> None:
 # draw exactly the paper render's data.
 
 
-def small_text(lines: list, scale: float) -> list[tuple[float, str]]:
-    """Spans printing under MIN_FIG_TEXT_PT at `scale`. A super- or subscript is exempt only when
-    its line holds a base span of at least MIN_FIG_TEXT_PT within one em of it (that base's size);
-    a lone small tick label is not. `lines` holds (size, text, bbox) spans per text line."""
-    out = []
-    for spans in lines:
-        for size, text, box in spans:
-            if size * scale >= MIN_FIG_TEXT_PT:
-                continue
-            gap = lambda b: max(b[0] - box[2], box[0] - b[2], 0)  # noqa: E731
-            base = [
-                (bs, bb) for bs, _, bb in spans if bs * scale >= MIN_FIG_TEXT_PT and gap(bb) <= bs
-            ]
-            if not base:
-                out.append((size * scale, text))
-    return out
+def off_scale_text(lines: list, scale: float, tol: float = 0.5) -> list[tuple[float, str]]:
+    """Spans whose printed size (size x scale) is neither a type-scale size nor a math script of one."""
+    allowed = [f * t for t in TYPE_SCALE_PT for f in SCRIPT_RATIOS]
+    return [
+        (size * scale, text)
+        for spans in lines
+        for size, text, _ in spans
+        if min(abs(size * scale - a) for a in allowed) > tol
+    ]
 
 
 def figure_text_problems(tex: str, folder: Path) -> list[str]:
-    """Every word inside each figure, at the poster's scale, prints at least MIN_FIG_TEXT_PT (font
-    size from PyMuPDF spans), scripts beside a large enough base excepted (`small_text`)."""
     import pymupdf
 
     problems = []
@@ -899,16 +678,14 @@ def figure_text_problems(tex: str, folder: Path) -> list[str]:
         if not any(lines):
             problems.append(f"{name}: no text found")
             continue
-        problems += [f"{name}: {t!r} prints {pt:.1f} pt" for pt, t in small_text(lines, scale)]
+        problems += [f"{name}: {t!r} prints {pt:.1f} pt" for pt, t in off_scale_text(lines, scale)]
     return problems
 
 
 def test_planted_lone_small_tick_label() -> None:
-    # A lone 18 pt tick label fails; an 18 pt exponent beside its 26 pt base passes.
-    assert small_text([[(18.0, "4", (0, 0, 9, 18))]], 1.0)
-    assert not small_text([[(26.0, "10", (0, 0, 26, 26)), (18.0, "7", (27, 0, 36, 18))]], 1.0)
-    # An 18 pt script with its base more than one em away is not exempt.
-    assert small_text([[(26.0, "10", (0, 0, 26, 26)), (18.0, "7", (60, 0, 69, 18))]], 1.0)
+    # An 18 pt tick label is off the scale; 23.9 pt ticks and their 16.7 pt (0.7) exponents are on it.
+    assert off_scale_text([[(18.0, "4", (0, 0, 9, 18))]], 1.0)
+    assert not off_scale_text([[(23.9, "10", (0, 0, 26, 26)), (16.7, "7", (27, 0, 36, 18))]], 1.0)
 
 
 def test_figure_text_readable() -> None:
@@ -916,7 +693,7 @@ def test_figure_text_readable() -> None:
 
 
 def test_planted_unreadable_figure_text() -> None:
-    tex = TEX.read_text().replace("width=45.0cm]{01_isoflop", "width=12cm]{01_isoflop")
+    tex = TEX.read_text().replace("width=41.733cm]{01_isoflop", "width=33cm]{01_isoflop")
     assert figure_text_problems(tex, POSTER / "figures")
 
 

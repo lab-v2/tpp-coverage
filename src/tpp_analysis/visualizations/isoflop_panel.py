@@ -373,7 +373,9 @@ def draw_isoflop_panel(
         cbar.set_ticklabels([f"{v:.1f}" for v in even])
         beside = _panel_style.TEXT_SCALE != 1  # the poster render
         cbar.ax.tick_params(
-            labelsize=_panel_style.TICK_LABEL_FS if beside else fontsize - 4 * _panel_style.TEXT_SCALE,
+            labelsize=_panel_style.TICK_LABEL_FS
+            if beside
+            else fontsize - 4 * _panel_style.TEXT_SCALE,
             pad=12 * _panel_style.TEXT_SCALE,
         )
         cbar.set_label(r"$\log_{10} C$", fontsize=fontsize, labelpad=28 * _panel_style.TEXT_SCALE)
