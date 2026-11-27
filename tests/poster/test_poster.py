@@ -160,13 +160,61 @@ def block_gaps(words: list, width: float) -> list[list[float]]:
     gaps = []
     for c in range(3):
         col = [w for w in words if c * width / 3 <= w[0] < (c + 1) * width / 3]
-        tops = sorted({round(w[1], 1) for w in col if abs((w[3] - w[1]) - BLOCK_TITLE_PT) < 0.3})
+        tops = sorted({y0 for cc, y0, _ in block_title_tops(words, TEX.read_text()) if cc == c})
         col_gaps = []
         for top in tops[1:]:
             above = [w[3] for w in col if w[3] < top - 1]
             col_gaps.append((top - max(above)) / PT_PER_CM)
         gaps.append(col_gaps)
     return gaps
+
+
+def block_title_tops(words: list, tex: str) -> list[tuple[int, float, float]]:
+    """(column, yMin, yMax) of each block title: words at the title size whose text starts a title in the source."""
+    heads = re.findall(r"\\begin\{(?:alert)?block\}\{((?:[^{}]|\{[^{}]*\})*)\}", tex)
+    firsts = set()
+    for h in heads:
+        plain = re.sub(r"\\(CO|NC)\{\}", r"\1", h)
+        plain = [t for t in re.sub(r"[\\{}$]", " ", plain).split() if t not in ("CO", "NC")]
+        firsts.add(plain[0] if plain else "")  # CO/NC also label the R^2 panel's lines
+    width = A0_LANDSCAPE_PT[0]
+    out = set()
+    for w in words:
+        if w[4] in firsts and abs((w[3] - w[1]) - BLOCK_TITLE_PT) < 0.3:
+            out.add((int(w[0] // (width / 3)), round(w[1], 1), round(w[3], 1)))
+    return sorted(out)
+
+
+def rule_coverage(png: Path, titles: list[tuple[int, float, float]], scale: float) -> list[float]:
+    """For each title, the largest share of its column's width covered by dark pixels on one row just below it."""
+    script = (
+        "import sys, json; from PIL import Image\n"
+        "im = Image.open(sys.argv[1]).convert('L'); px = im.load(); t = json.loads(sys.argv[2]); s = float(sys.argv[3])\n"
+        "w3 = im.width / 3; out = []\n"
+        "for c, y0, y1 in t:\n"
+        "    xa, xb = int(c * w3 + 0.075 * w3), int((c + 1) * w3 - 0.075 * w3)\n"
+        "    best = max(sum(px[x, y] < 120 for x in range(xa, xb)) for y in range(int(y1 * s), int((y1 + 45) * s)))\n"
+        "    out.append(best / (xb - xa))\n"
+        "print(json.dumps(out))"
+    )
+    import json
+
+    out = _run(
+        "uv",
+        "run",
+        "--quiet",
+        "--no-project",
+        "--with",
+        "pillow",
+        "python",
+        "-I",
+        "-c",
+        script,
+        str(png),
+        json.dumps(titles),
+        str(scale),
+    )
+    return json.loads(out)
 
 
 def gap_problems(gaps: list[list[float]]) -> list[str]:
@@ -267,6 +315,43 @@ def test_column_bottoms_within_1_cm() -> None:
 
 def test_block_gaps_are_the_theme_gap() -> None:
     assert gap_problems(block_gaps(bbox_words(PDF), A0_LANDSCAPE_PT[0])) == []
+
+
+def test_block_title_rules_are_unbroken(tmp_path: Path) -> None:
+    """Nothing (a figure's white margin, a legend) covers a block title's rule: >= 95% of the column."""
+    titles = block_title_tops(bbox_words(PDF), TEX.read_text())
+    assert len(titles) >= 12
+    _run("pdftoppm", "-png", "-r", "72", "-singlefile", str(PDF), str(tmp_path / "p"))
+    cover = rule_coverage(tmp_path / "p.png", titles, 1.0)
+    assert min(cover) >= 0.95, list(zip(titles, cover))
+
+
+def test_planted_broken_rule(tmp_path: Path) -> None:
+    titles = block_title_tops(bbox_words(PDF), TEX.read_text())
+    _run("pdftoppm", "-png", "-r", "72", "-singlefile", str(PDF), str(tmp_path / "p"))
+    script = (
+        "import sys, json; from PIL import Image, ImageDraw\n"
+        "im = Image.open(sys.argv[1]).convert('RGB'); c, y0, y1 = json.loads(sys.argv[2])\n"
+        "w3 = im.width / 3; ImageDraw.Draw(im).rectangle([c * w3 + 0.3 * w3, y1, c * w3 + 0.5 * w3, y1 + 45], fill='white')\n"
+        "im.save(sys.argv[1])"
+    )
+    import json
+
+    _run(
+        "uv",
+        "run",
+        "--quiet",
+        "--no-project",
+        "--with",
+        "pillow",
+        "python",
+        "-I",
+        "-c",
+        script,
+        str(tmp_path / "p.png"),
+        json.dumps(titles[1]),
+    )
+    assert rule_coverage(tmp_path / "p.png", [titles[1]], 1.0)[0] < 0.95
 
 
 def test_tick_labels_print_at_24_pt() -> None:

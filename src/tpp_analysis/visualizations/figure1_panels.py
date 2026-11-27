@@ -333,9 +333,9 @@ if POSTER:
     )
     LINE_WIDTH, MARKER_SIZE = POSTER_LINE_WIDTH, POSTER_MARKER_SIZE
     # One fixed axes box for both 2-D panels, saved without a tight crop, so the pair matches.
-    POSTER_AXES_RECT = [0.19, 0.16, 0.62, 0.70]
-    PANEL_H = 7.5  # shorter than the paper's square panels, to fit the poster column
-    POSTER_SAVE = dict(bbox_inches=None)
+    POSTER_AXES_RECT = [0.2, 0.1, 0.56, 0.82]
+    PANEL_H = 11.4  # taller than the paper's square panels: the poster's evidence pair
+    POSTER_SAVE = dict(bbox_inches=None, transparent=True)  # no white margin over block rules
 
 HOLDOUT_COL = "r2_unified"
 HOLDOUT_KEY = "Unified"  # for surface plot
@@ -756,6 +756,26 @@ _darken_errorbars(ax_conv)
 if POSTER:
     style_ticks_poster(ax_conv)
     ax_conv.set_position(POSTER_AXES_RECT)
+    # Direct labels at the line ends instead of a legend; y ticks every 0.2.
+    from matplotlib.ticker import MultipleLocator
+
+    ax_conv.yaxis.set_major_locator(MultipleLocator(0.2))
+    if ax_conv.get_legend() is not None:
+        ax_conv.get_legend().remove()
+    for _line in ax_conv.get_lines():
+        _name = {"Colinear": "CO", "Non-Colinear": "NC"}.get(_line.get_label(), _line.get_label())
+        if _name in ("CO", "NC") and len(_line.get_xdata()):
+            _x, _y = _line.get_xdata()[-1], _line.get_ydata()[-1]
+            ax_conv.annotate(
+                _name,
+                (_x, _y),
+                xytext=(0, 18 if _name == "NC" else -75),
+                textcoords="offset points",
+                ha="right",
+                color=_line.get_color(),
+                fontsize=AXIS_LABEL_FS,
+                fontweight="bold",
+            )
     ax_conv.set_xlabel("TPP coverage", fontsize=AXIS_LABEL_FS)
     # The poster's exact CO / NC colours (matplotlib C0 and C3), as in its TikZ figures and text.
     _POSTER_DESIGN = {
@@ -837,10 +857,16 @@ if POSTER:
     ax_iso.set_xlabel(r"$N$", fontsize=AXIS_LABEL_FS * 1.15)
     # Same axes box as the R^2 panel; the colorbar a thin bar to its right.
     ax_iso.set_position(POSTER_AXES_RECT)
+    # The caption names the styles (CO dashed, NC solid, holdout dots): no legend over the title.
+    if ax_iso.get_legend() is not None:
+        ax_iso.get_legend().remove()
+    for _coll in ax_iso.collections:
+        _coll.set_sizes([220])  # holdout dots about 8 pt across in print
     _cax = [a for a in fig_iso.axes if a is not ax_iso]
     if _cax:
         _x0, _y0, _w, _h = POSTER_AXES_RECT
-        _cax[0].set_position([_x0 + _w + 0.02, _y0, 0.025, _h])
+        _cax[0].set_aspect("auto")
+        _cax[0].set_position([_x0 + _w + 0.02, _y0, 0.03, _h])
 # _draw_isoflop_generic already calls _style_all_legends; this is a belt-and-
 # suspenders second pass in case anything got reattached.
 _style_all_legends(ax_iso)

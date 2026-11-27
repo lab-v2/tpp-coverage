@@ -58,7 +58,7 @@
 % sizes N (M parameters), CO ratios k, NC token counts D (M tokens). Holdout: the N = 55.5M row, the
 % k = 6 (CO) or D = 300.4M (NC) column, and the three largest sizes at k >= 6.2 (CO) or D >= 325.4M (NC).
 \newcommand{\designplane}{%
-\begin{tikzpicture}[x=0.36cm, y=0.0462cm, font=\normalsize]
+\begin{tikzpicture}[x=0.36cm, y=0.0328cm, font=\normalsize]
   \def\trainN{5.0,10.1,14.4,19.4,22.8,28.8,32.5,35.4,40.3,47.9}
   \def\allN{5.0,10.1,14.4,19.4,22.8,28.8,32.5,35.4,40.3,47.9,55.5,63.9,68.1,76.5}
   \def\bigN{63.9,68.1,76.5}
@@ -90,10 +90,10 @@
   \node[rotate=90] at (-9,280) {Tokens $D$ (M)};
   \begin{scope}[shift={(2.5,535)}, y=1cm]
     \fill[white, opacity=0.85] (-1.5,0.7) rectangle (46,-5.0);
-    \fill[co] (0,0) circle[radius=5.5pt]; \node[right] at (1.2,0) {\CO{} training: 12 rays $D = kN$};
-    \fill[nc] (0,-1.4) \sq; \node[right] at (1.2,-1.4) {\NC{} training: $10 \times 12$ grid};
-    \draw[co, line width=1.4pt] (0,-2.8) circle[radius=7.5pt]; \node[right] at (1.2,-2.8) {\CO{} held-out runs, $H_{\mathrm{col}}$};
-    \draw[nc, line width=1.4pt] (0,-4.2) \hsq; \node[right] at (1.2,-4.2) {\NC{} held-out runs, $H_{\mathrm{nc}}$};
+    \fill[co] (0,0) circle[radius=5.5pt]; \node[right] at (1.2,0) {\CO{}: 12 rays $D = kN$};
+    \fill[nc] (0,-1.4) \sq; \node[right] at (1.2,-1.4) {\NC{}: $10 \times 12$ grid};
+    \draw[co, line width=1.4pt] (0,-2.8) circle[radius=7.5pt]; \node[right] at (1.2,-2.8) {\CO{} held out, $H_{\mathrm{col}}$};
+    \draw[nc, line width=1.4pt] (0,-4.2) \hsq; \node[right] at (1.2,-4.2) {\NC{} held out, $H_{\mathrm{nc}}$};
   \end{scope}
 \end{tikzpicture}}
 
@@ -102,24 +102,24 @@
 % Values are 100 / kappa of the printed kappa (27, 18, 12, 17, 7.5, 48, 12, 29, 7.8, 59, 94 pass; 180, 170, 290,
 % 120, 200, 170, 330, 3.2e4, 210, 380 fail). Single-ratio designs (V_1 = 0) are off the scale. x = log10.
 \newcommand{\thresholdstrip}{%
-\begin{tikzpicture}[x=5.6cm, y=2.3cm, font=\normalsize]
+\begin{tikzpicture}[x=5.6cm, y=2.6cm, font=\normalsize]
   \fill[black!6] (-2.7,-0.5) rectangle (0,2.8); \fill[green!50!black!10] (0,-0.5) rectangle (1.3,2.8);
-  \node[font=\small\bfseries, text=black!60] at (-1.35,2.6) {fails}; \node[font=\small\bfseries, text=green!40!black] at (0.65,2.6) {passes};
+  \node[font=\small\bfseries, text=black!70] at (-1.35,2.6) {fails}; \node[font=\small\bfseries, text=green!40!black] at (0.65,2.6) {passes};
   \foreach \e/\l in {-2/{10^{-2}}, -1/{10^{-1}}, 0/{1}, 1/{10}} {
     \draw[gray!40] (\e,-0.5) -- (\e,2.8); \node[below] at (\e,-0.5) {$\l$}; }
   \draw[thick] (-2.7,-0.5) rectangle (1.3,2.8);
   \draw[black, line width=2.5pt] (0,-0.5) -- (0,2.8);
   \node[anchor=east] at (-2.75,2.2) {11 pass};
   \node[anchor=east] at (-2.75,1.4) {13 fail (10 shown)};
-  \node[anchor=east] at (-2.75,0.6) {our \CO{} fan};
+  \node[anchor=east] at (-2.75,0.6) {our \CO{}};
   \node[anchor=east] at (-2.75,-0.15) {recipe};
   \foreach \v in {3.704,5.556,8.333,5.882,13.33,2.083,8.333,3.448,12.82,1.695,1.064} { \fill[black!75] ({log10(\v)},2.2) circle[radius=9pt]; }
   \foreach \v in {0.5556,0.5882,0.3448,0.8333,0.5,0.5882,0.303,0.003125,0.4762,0.2632} { \draw[black!75, line width=2pt] ({log10(\v)},1.4) circle[radius=8pt]; }
   \fill[co] ({log10(0.40)},0.6) circle[radius=9pt];
-  \fill[black] ({log10(1.22)},-0.15) +(-8pt,-8pt) rectangle +(8pt,8pt) node[right=10pt, font=\small] {$\{20, 400\}$};
+  \fill[black] ({log10(1.22)},-0.15) +(-8pt,-8pt) rectangle +(8pt,8pt) node[right=10pt, font=\small] {$k \in \{20, 400\}$};
   \fill[black] ({log10(0.48)},-0.15) +(-8pt,-8pt) rectangle +(8pt,8pt);
-  \node[anchor=east, font=\small] at ({log10(0.48)-0.06},-0.15) {$\{20, 100\}$};
-  \node[below=1.0cm] at (-0.7,-0.5) {$V_K / \tau_K$};
+  \node[anchor=east, font=\small] at ({log10(0.48)-0.06},-0.15) {$k \in \{20, 100\}$};
+  \node[below=1.4cm] at (-0.7,-0.5) {$V_K / \tau_K$};
 \end{tikzpicture}}
 
 \begin{document}
@@ -152,18 +152,29 @@
 \begin{block}{Gauss-Newton conditioning}
   \[ S(\symbf{\theta}) = \tfrac{1}{2} \lVert \symbfup{r}(\symbf{\theta}) \rVert^2, \quad
      J_{ij} = \frac{\partial r_i}{\partial \theta_j}, \quad (J^\top J)\, \Delta\symbf{\theta} = -J^\top \symbfup{r} \]
-  \[ \kappa_{A,B} := \kappa\bigl((J^\top J)_{A,B}\bigr); \quad \text{on a ray, up to sign: } j_A = N^{-\alpha},\ j_B = k^{-\beta} N^{-\beta} \]
+  $\kappa_{A,B} := \kappa\bigl((J^\top J)_{A,B}\bigr)$; on a ray, up to sign, $j_A = N^{-\alpha}$ and
+  $j_B = k^{-\beta} N^{-\beta}$.
 \end{block}
 
 
 
 
 
+
+
+\begin{block}{Below the threshold, and the stakes}
+  Against budget-matched \CO{} below the threshold, \NC{} wins \textbf{68.5\%} (Chinchilla), \textbf{57.4\%}
+  (Droppo-Elibol), \textbf{80.6\%} (Kaplan); CIs exclude 50\%. On Wikipedia, \CO{} and \NC{}
+  Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
+\end{block}
+
 \end{column}
 \separatorcolumn
 
 % ==== column 2
 \begin{column}{\colwidth}
+
+
 
 
 
@@ -182,7 +193,7 @@
     Droppo-Elibol & 0.18-0.80 & 1.3-5.6\textsuperscript{$\dagger$} & 1.6-32 \\
     \bottomrule
   \end{tabular}\par
-  {\small \textsuperscript{$\dagger$}Own interval (no reduced model), by the Schur floor.}
+  {\small \textsuperscript{$\dagger$}Schur floor, no reduced model.}
   \end{center}
 \end{block}
 
@@ -193,17 +204,19 @@
      - \Bigl( \frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-\beta_{\mathrm{eff}}} \Bigr)^{2}}_{V_K}
      \;\geq\;
      \underbrace{\frac{\bigl( K + \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} \bigr)^{2}}{K^{2}\, \kappa_{\mathrm{target}}}}_{\tau_K}. \]
-  Checkable before training. One ray never passes: $V_1 = 0 < \tau_1$.
+  Checkable before training.
 \end{alertblock}
 
 \begin{block}{The threshold on published designs}
   \centering
   \thresholdstrip\par\smallskip
   \raggedright
-  Of 24 published designs at $\kappa_{\mathrm{target}} = 100$: 11 pass, 13 fail, 3 of them at one ratio
-  ($V_1 = 0$, off the scale). All 6 collinear ones fail.\par
-  {\small Two passes need equal weight per ratio; five designs print no exponent ($\beta_{\mathrm{eff}} = 0.28$ used).}
+  Of 24 published designs at $\kappa_{\mathrm{target}} = 100$, 11 pass and 13 fail, 3 at one ratio
+  ($V_1 = 0$, off the scale); all 6 collinear ones fail.\par
+  {\small Two passes need equal per-ratio weight; five designs use $\beta_{\mathrm{eff}} = 0.28$.}
 \end{block}
+
+
 
 
 
@@ -231,12 +244,12 @@
   \begin{columns}[t]
     \begin{column}{0.48\linewidth}
       \centering
-      {\fontsize{125}{132}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
+      {\fontsize{120}{126}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
       {\large FP32: 1,460/1,500}
     \end{column}
     \begin{column}{0.48\linewidth}
       \centering
-      {\fontsize{125}{132}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
+      {\fontsize{120}{126}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
       {\large BF16, Wikipedia: 296/300}
     \end{column}
   \end{columns}
@@ -256,9 +269,9 @@
       \includegraphics[width=\linewidth]{poster_isoflop_Red_Pajama_Kaplan_First.pdf}
     \end{column}
   \end{columns}
-  {\small Left: holdout $R^2$ against TPP coverage, 30 seeds. Right: isoFLOP curves, seed 0, coloured by
-  $\log_{10} C$; bars: residuals.}\par\smallskip
-  For Kaplan this error is bias, not conditioning; on one Chinchilla ray, $A$'s computed interval is of order
+  {\small Left: holdout $R^2$, mean over 30 seeds with 5th-95th percentile bars.
+  Right: induced isoFLOP curves at seed 0, \CO{} dashed, \NC{} solid, with residual bars.}\par\smallskip
+  For Kaplan this error is bias, not conditioning; on one Chinchilla ray, $A$'s interval is of order
   $10^4$ times $\psi$'s.
 \end{block}
 
@@ -270,11 +283,7 @@
 
 
 
-\begin{block}{Below the threshold, and the stakes}
-  Against budget-matched \CO{} below the threshold, \NC{} wins \textbf{68.5\%} (Chinchilla), \textbf{57.4\%}
-  (Droppo-Elibol), \textbf{80.6\%} (Kaplan); CIs exclude 50\%. On Wikipedia, the \CO{} and \NC{}
-  Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
-\end{block}
+
 
 \begin{block}{Design recipe}
   \begin{enumerate}\setlength{\itemsep}{0.3em}
