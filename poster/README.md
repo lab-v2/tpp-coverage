@@ -11,7 +11,8 @@ source. `make png` renders the virtual poster (`build/tpp_neurips2026_poster_vir
 2880 px) and the thumbnail (`build/tpp_neurips2026_poster_thumbnail.png`, 320 x 226 px) within the
 NeurIPS limits. Needs `latexmk`, `xelatex`, poppler's `pdftoppm` and `uv` (for `cairosvg` and `segno`).
 
-`figures/` holds the two paper figures the poster shows, panels (b) and (c) of the paper's Figure 1
+The hero figure, the two designs in the $(N, D)$ plane with their held-out runs, is drawn in TikZ in the
+source from the grids of the paper's Appendix F.1. `figures/` holds the two paper figures the poster shows, panels (b) and (c) of the paper's Figure 1
 (Kaplan law on RedPajama, first epoch), with their text drawn as outlines. `tests/poster/` checks the
 page size, the fonts, the three logos, the QR code, the title and authors against `CITATION.cff`,
-and the absence of em dashes.
+the absence of em dashes, and at most 750 words.
