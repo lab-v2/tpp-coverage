@@ -14,6 +14,8 @@ from collections.abc import Callable
 
 import numpy as np
 import panel_style as _panel_style
+
+POSTER_LEGEND_X = 1.42  # axes fraction: right of the colorbar and its label (poster render only)
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy.optimize import minimize_scalar
@@ -378,12 +380,14 @@ def draw_isoflop_panel(
             handles = main_leg.legend_handles
             labels = [t.get_text() for t in main_leg.get_texts()]
             main_leg.remove()
+            # The poster render (TEXT_SCALE below 1) puts the legend beside the colorbar, one column.
+            beside = _panel_style.TEXT_SCALE != 1
             ax.legend(
                 handles,
                 labels,
-                loc="upper center",
-                bbox_to_anchor=(0.5, -0.25),
-                ncol=2,
+                loc="center left" if beside else "upper center",
+                bbox_to_anchor=(POSTER_LEGEND_X, 0.5) if beside else (0.5, -0.25),
+                ncol=1 if beside else 2,
                 fontsize=0.8 * legend_fontsize,
                 framealpha=LEGEND_ALPHA,
                 columnspacing=0.8,

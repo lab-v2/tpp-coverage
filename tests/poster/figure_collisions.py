@@ -130,6 +130,8 @@ def floating_labels(page) -> list[str]:
                     gaps.append(max(tb.y0 - b.y1, b.y0 - tb.y1))
                 elif min(b.y1, tb.y1) > max(b.y0, tb.y0):  # side by side
                     gaps.append(max(tb.x0 - b.x1, b.x0 - tb.x1))
+            if not gaps:  # nothing in line (a 3-D label off a slanted row): the nearest tick
+                gaps = [max(t.x0 - b.x1, b.x0 - t.x1, t.y0 - b.y1, b.y0 - t.y1, 0) for t in boxes]
             if gaps and min(gaps) > MAX_LABEL_GAP * h:
                 out.append(f"label {text!r} floats {min(gaps) / h:.1f} tick heights from its ticks")
     return out

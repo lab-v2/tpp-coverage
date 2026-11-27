@@ -652,8 +652,8 @@ def test_planted_high_logo(tmp_path: Path) -> None:
 # The two figures the owner chose: the paper's Figure 1 (a) and (c), rendered poster-sized by
 # figure1_panels.py (FIG1_STYLE=poster; owner's decision of 2026-11-27). Pinned by content.
 PAPER_FIGURES = {
-    "01_surface_Red_Pajama_Kaplan_First.pdf": "06103b7d6583fd419b63dc763def66d89b2e333902c496fc716efb2bf6d9dcc4",
-    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "4de2d5f4d257c41e889bd3717f0883b741b23fb4bd3b27632ad23b5e1a7b4ca2",
+    "01_surface_Red_Pajama_Kaplan_First.pdf": "ddcfa37cf8db8eae324f3e93b2b8d76a308387833073684c35042623b2599b36",
+    "01_isoflop_Red_Pajama_Kaplan_First.pdf": "dbbb1d983e590ef4f0c37c7e52118bb58c8a214db6c74ac3ed8a2df7f9c993e5",
 }
 MIN_OVERLAP = 0.15  # share of the smaller word box that another box may not cover
 
@@ -803,7 +803,7 @@ def test_figures_set_large() -> None:
 
 
 def test_planted_small_figure() -> None:
-    tex = TEX.read_text().replace("width=26.5cm]{01_surface", "width=8cm]{01_surface")
+    tex = TEX.read_text().replace("width=44.0cm]{01_surface", "width=8cm]{01_surface")
     assert figure_scale_problems(tex, POSTER / "figures")
 
 
@@ -832,34 +832,55 @@ def test_planted_off_size_text() -> None:
 # draw exactly the paper render's data.
 
 
+def small_text(lines: list, scale: float) -> list[tuple[float, str]]:
+    """Spans printing under MIN_FIG_TEXT_PT at `scale`. A super- or subscript is exempt only when
+    its line holds a base span of at least MIN_FIG_TEXT_PT within one em of it (that base's size);
+    a lone small tick label is not. `lines` holds (size, text, bbox) spans per text line."""
+    out = []
+    for spans in lines:
+        for size, text, box in spans:
+            if size * scale >= MIN_FIG_TEXT_PT:
+                continue
+            gap = lambda b: max(b[0] - box[2], box[0] - b[2], 0)  # noqa: E731
+            base = [
+                (bs, bb) for bs, _, bb in spans if bs * scale >= MIN_FIG_TEXT_PT and gap(bb) <= bs
+            ]
+            if not base:
+                out.append((size * scale, text))
+    return out
+
+
 def figure_text_problems(tex: str, folder: Path) -> list[str]:
     """Every word inside each figure, at the poster's scale, prints at least MIN_FIG_TEXT_PT (font
-    size from PyMuPDF spans); a super- or subscript (a span under 0.8 of its line's largest) is
-    exempt, as in running text."""
+    size from PyMuPDF spans), scripts beside a large enough base excepted (`small_text`)."""
     import pymupdf
 
     problems = []
     for width_cm, name in re.findall(r"\\includegraphics\[width=([\d.]+)cm\]\{(01_[^}]+)\}", tex):
         page = pymupdf.open(folder / name)[0]
         scale = float(width_cm) * PT_PER_CM / page.rect.width
-        main = []
-        for block in page.get_text("dict")["blocks"]:
-            for line in block.get("lines", []):
-                spans = [sp for sp in line["spans"] if sp["text"].strip()]
-                if spans:
-                    top = max(sp["size"] for sp in spans)
-                    main += [
-                        (sp["size"] * scale, sp["text"].strip())
-                        for sp in spans
-                        if sp["size"] >= 0.8 * top
-                    ]
-        if not main:
+        lines = [
+            [
+                (sp["size"], sp["text"].strip(), sp["bbox"])
+                for sp in line["spans"]
+                if sp["text"].strip()
+            ]
+            for block in page.get_text("dict")["blocks"]
+            for line in block.get("lines", [])
+        ]
+        if not any(lines):
             problems.append(f"{name}: no text found")
             continue
-        pt, word = min(main)
-        if pt < MIN_FIG_TEXT_PT:
-            problems.append(f"{name}: {word!r} prints {pt:.1f} pt")
+        problems += [f"{name}: {t!r} prints {pt:.1f} pt" for pt, t in small_text(lines, scale)]
     return problems
+
+
+def test_planted_lone_small_tick_label() -> None:
+    # A lone 18 pt tick label fails; an 18 pt exponent beside its 26 pt base passes.
+    assert small_text([[(18.0, "4", (0, 0, 9, 18))]], 1.0)
+    assert not small_text([[(26.0, "10", (0, 0, 26, 26)), (18.0, "7", (27, 0, 36, 18))]], 1.0)
+    # An 18 pt script with its base more than one em away is not exempt.
+    assert small_text([[(26.0, "10", (0, 0, 26, 26)), (18.0, "7", (60, 0, 69, 18))]], 1.0)
 
 
 def test_figure_text_readable() -> None:
@@ -867,7 +888,7 @@ def test_figure_text_readable() -> None:
 
 
 def test_planted_unreadable_figure_text() -> None:
-    tex = TEX.read_text().replace("width=27.0cm]{01_isoflop", "width=12cm]{01_isoflop")
+    tex = TEX.read_text().replace("width=45.0cm]{01_isoflop", "width=12cm]{01_isoflop")
     assert figure_text_problems(tex, POSTER / "figures")
 
 
