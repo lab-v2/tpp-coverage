@@ -30,6 +30,13 @@
 \newcommand{\tuneGaussNewtonBelow}{-0.16cm} % Gauss-Newton: the display's second line is on the grid
 % Column balance: both tables' row spacing; C1's and C3's spare height shrinks as it grows.
 \newcommand{\tableStretch}{1.25}
+\newcommand{\kappaStretch}{1.13} % the kappa table (C1): sized so C1 fills its height (C1 spare under 0.1)
+% Glyph clearance (gate: 0.10 cm between glyphs of different lines): the hero key numbers' "/" against
+% the superscript of the label under it.
+\newcommand{\heroKeyLabel}{0.15cm}
+% The threshold display (44 pt, underbrace labels): its below skip, positive, so its ink is 0.5 above
+% the next line.
+\newcommand{\tuneThresholdBelow}{-0.26cm}
 % Kappa row (gate: box and table share top and bottom within 0.15).
 \newcommand{\tuneKappaNote}{0.42cm}       % the strut under the table's Schur-floor note
 
@@ -177,7 +184,7 @@
   \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, \mbox{as $\varepsilon \to 0$} (Corollary 2: Gaussian noise, at least 5 sizes):\par\smallskip
   % The kappa result (44 pt) in its box and the table as one centred unit of one height, so their
   % tops and bottoms align; one aligned pair of "=".
-  \sbox{\kappatab}{\renewcommand{\arraystretch}{\tableStretch}\begin{tabular}{@{}l@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{}}
+  \sbox{\kappatab}{\renewcommand{\arraystretch}{\kappaStretch}\begin{tabular}{@{}l@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{\hspace{1.0em}}r@{}}
     \toprule
     Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
     \midrule
@@ -195,6 +202,7 @@
   \parbox[c][\kappah][s]{\wd\kappatab}{\vfill\usebox{\kappatab}\par\vskip-\kappanote}\par}
 \end{card}}\measurestack{\colstack}\usebox{\colstack}\cardgap
 \begin{alertcard}[last]{TPP-diversity threshold}
+  \belowdisplayskip=\dimexpr\dispskip+\tuneThresholdBelow\relax \belowdisplayshortskip=\belowdisplayskip
   \statement{Proposition 1} Chinchilla and unsaturated repeated-data (Kaplan, Droppo-Elibol: a heuristic).
   To leading order, $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever
   % The threshold, the poster's central formula, at the display size (44 pt).
@@ -202,12 +210,12 @@
      - \Bigl( \frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-\beta_{\mathrm{eff}}} \Bigr)^{2}}_{V_K}
      \;\geq\;
      \underbrace{\frac{\bigl( K + \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} \bigr)^{2}}{K^{2}\, \kappa_{\mathrm{target}}}}_{\tau_K}.$} \]
-  \tcblower One ray never passes: $V_1 = 0 < \tau_1$.
+  One ray never passes: $V_1 = 0 < \tau_1$.
 \end{alertcard}
 \end{minipage}
 \end{textblock*}
 
-% ==== C2 (48.333-91.667): the evidence, Figure 1 (a) over Figure 1 (c), each rendered at 41.733 x 30.18 cm
+% ==== C2 (48.333-91.667): the evidence, Figure 1 (a) over Figure 1 (c), each rendered at 41.733 x 30.41 cm
 % and set at scale 1 (its text is the poster's 23.9 and 29.9 pt).
 \begin{textblock*}{\colw}(48.333cm,15.2cm)
 \begin{minipage}[t][\bodyheight][t]{\colw}
@@ -230,10 +238,10 @@
   \vskip0.1cm
   \noindent\makebox[0.5\linewidth][l]{\parbox[t]{0.48\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{97.3\%}}\par FP32: 1,460/1,500}}%
   \makebox[0.5\linewidth][l]{\parbox[t]{0.5\linewidth}{\raggedright{\Sone\bfseries\textcolor{accent}{98.7\%}}\par BF16, Wikipedia: 296/300}}\par\vskip\dimexpr\herobase+\herogap\relax
-  \noindent\makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries $\sim$1,900}\par LLaMA-style models}}%
-  \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 4 $\times$ 5}\par laws $\times$ corpora}}%
-  \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 5.04-76.5M}\par parameters}}%
-  \makebox[0.25\linewidth][l]{\parbox[t]{0.25\linewidth}{\raggedright{\Sthree\bfseries 0.837 / 0.932}\par holdout $R^2$, \CO{}\,/\,\NC{}}}\par\vskip\dimexpr\herobase+\herogap-\herodelta\relax
+  \noindent\makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries $\sim$1,900}\par\vskip\heroKeyLabel LLaMA-style models}}%
+  \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 4 $\times$ 5}\par\vskip\heroKeyLabel laws $\times$ corpora}}%
+  \makebox[0.25\linewidth][l]{\parbox[t]{0.245\linewidth}{\raggedright{\Sthree\bfseries 5.04-76.5M}\par\vskip\heroKeyLabel parameters}}%
+  \makebox[0.25\linewidth][l]{\parbox[t]{0.25\linewidth}{\raggedright{\Sthree\bfseries 0.837 / 0.932}\par\vskip\heroKeyLabel holdout $R^2$, \CO{}\,/\,\NC{}}}\par\vskip\dimexpr\herobase+\herogap-\herodelta\relax
   Below the threshold, \NC{} beats budget-matched \CO{} subsets in 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol) and 80.6\% (Kaplan) of pairs.
 \end{alertcard}\cardgap
 \begin{card}{Holdout prediction}

@@ -14,7 +14,7 @@ NeurIPS limits, and records the PDF's sha256 beside the PNG so `tests/poster/` f
 The poster shows only the paper's own figures, Figure 1 (a), the loss surface, and Figure 1 (c), the
 induced isoFLOP curves (Kaplan law on RedPajama, first epoch), as poster renders from the paper's own
 code and the same released data. `src/tpp_analysis/visualizations/figure1_panels.py` with
-`FIG1_STYLE=poster` draws each panel at its printed size, 41.733 x 30.18 cm (one column's text
+`FIG1_STYLE=poster` draws each panel at its printed size, 41.733 x 30.41 cm (one column's text
 width; the 3-D panel is drawn on a canvas 1.33 times that and saved as the printed-size window
 around its ink, with the paper's 3-D view), with a transparent canvas, ticks at 23.9 pt, axis labels and legends at 29.9 pt, and the
 legends inside the axes and at least 0.2 cm inside the saved figure (Fig. 1a in one column in the empty bottom-right corner, right of the D label, clear of the 3-D box
@@ -59,4 +59,7 @@ legends sit inside their axes. The figure slots hold no empty 3 x 3 cm rectangle
 paragraph or item break); no paragraph ends on a one-word line; tables and the kappa row end at both text
 edges or are centred; block gaps inside a card are equal within 0.15 cm (except the hero card's two
 spare gaps). The hand-tuned offsets these gates guard are collected at the top of the `.tex`.
+No two glyphs of different lines overlap or come within 0.10 cm (tight glyph boxes from the
+embedded fonts; the M7 threshold card, frozen in `tests/poster/fixtures/`, is the planted case),
+and the two figures' "Loss" labels sit 0.5 +- 0.2 cm from their ticks.
 Every gate has a planted failure.
