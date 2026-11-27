@@ -74,21 +74,16 @@
 
 \begin{alertblock}{TL;DR}
   \RaggedRight
-  {\large Fixed tokens-per-parameter (TPP) ratios $D = kN$ make scaling-law fits ill-conditioned when the
+  Fixed tokens-per-parameter (TPP) ratios $D = kN$ make scaling-law fits ill-conditioned when the
   $N$- and $D$-exponents are close. Covering the $(N, D)$ plane fixes it: \NC{} beats \CO{} on held-out
-  runs in \textcolor{accent}{\textbf{97.3\%}} of comparisons.\par}
+  runs in \textcolor{accent}{\textbf{97.3\%}}.
 \end{alertblock}
-
-
-
-
 
 \begin{block}{\CO{} (collinear) and \NC{} (non-collinear) designs}
   \RaggedRight
   \begin{itemize}
     \item \textbf{\CO{}:} every run at $D = kN$, 12 ratios from $k = 1$ to $5$: a fan of rays.
-    \item \textbf{\NC{}:} 10 model sizes $\times$ 12 dataset sizes: a grid where $k = D/N$ varies freely.
-    \item \textbf{Same} models and recipe, scored on the same held-out runs.
+    \item \textbf{\NC{}:} 10 sizes $\times$ 12 dataset sizes, $k = D/N$ free; same held-out runs.
   \end{itemize}
 \end{block}
 
@@ -97,8 +92,7 @@
   \[ L(N, D) = A N^{-\alpha} + B D^{-\beta} + E \]
   On a ray $D = kN$ with $\beta = \alpha$, the reduced model is
   \[ L(N; \psi, \alpha, E) = \psi N^{-\alpha} + E, \qquad \psi := A + B k^{-\alpha}. \]
-  One ray pins down $\psi$, not $A$ and $B$: a ``sloppy'' model. Gap:
-  $\varepsilon := |\alpha - \beta|$ (Chinchilla: $\alpha \approx 0.34$, $\beta \approx 0.28$).
+  One ray pins down $\psi$, not $A$ and $B$: a ``sloppy'' model. Gap $\varepsilon := |\alpha - \beta|$.
 \end{block}
 
 \begin{block}{Gauss-Newton conditioning}
@@ -109,68 +103,88 @@
   $j_B = k^{-\beta} N^{-\beta}$: nearly parallel for small $\varepsilon$.
 \end{block}
 
-
-
 \begin{block}{One ray is ill-conditioned}
   \RaggedRight
-  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla, Gaussian noise, at least 5 sizes)}
-  On one ray, as $\varepsilon \to 0$:\par\smallskip
+  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla)} On one ray, as $\varepsilon \to 0$ (Corollary 2: Gaussian noise, at least 5 sizes):\par\smallskip
   \centering
-  \colorbox{lightblue}{\begin{minipage}{0.8\linewidth}\centering\Large
+  \colorbox{lightblue}{\begin{minipage}{0.8\linewidth}\centering\large
     \[ \kappa_{A,B} = \Theta(\varepsilon^{-2}), \qquad
        \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}) \]
   \end{minipage}}\par\medskip
-  \begin{tabular}{@{}lrrr@{}}
+  \begin{tabular}{@{}l@{\hspace{1.2em}}r@{\hspace{1.2em}}r@{\hspace{1.2em}}r@{}}
     \toprule
     Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
     \midrule
     Chinchilla & 0.06 & 17 & 278 \\
     Kaplan & 0.20 & 5\textsuperscript{$\dagger$} & 25 \\
-    Droppo-Elibol & 0.18-0.80 & 1.3-5.6\textsuperscript{$\dagger$} & 1.6-32 \\
     \bottomrule
-  \end{tabular}\quad
-  \begin{minipage}[b]{0.22\linewidth}\small\RaggedRight \textsuperscript{$\dagger$}Schur floor, no reduced model.\end{minipage}
+  \end{tabular}\quad {\small \textsuperscript{$\dagger$}Schur floor.}
 \end{block}
 
-
+\begin{alertblock}{Takeaways}
+  \RaggedRight
+  \begin{itemize}
+    \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
+    \item \textbf{Before training}, check Proposition 1, then the exact $\kappa_{A,B}$.
+  \end{itemize}
+\end{alertblock}
 
 \end{column}
 \separatorcolumn
 
-% ==== column 2
+% ==== columns 2 and 3: text above, the paper's figures in a band below
+\begin{column}{\dimexpr2\colwidth+\sepwidth\relax}
+\begin{columns}[t,onlytextwidth]
 \begin{column}{\colwidth}
-
-
 
 \begin{alertblock}{TPP-diversity threshold}
   \RaggedRight
   \statement{Proposition 1} Chinchilla and unsaturated repeated-data (Kaplan, Droppo-Elibol: a heuristic).
   To leading order, $\kappa_{A,B} \leq \kappa_{\mathrm{target}}$ whenever
-  \[ \scalebox{1.3}{$\displaystyle \underbrace{\frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
+  \[ \scalebox{1.0}{$\displaystyle \underbrace{\frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}}
      - \Bigl( \frac{1}{K} \sum_{\ell=1}^{K} k_\ell^{-\beta_{\mathrm{eff}}} \Bigr)^{2}}_{V_K}
      \;\geq\;
      \underbrace{\frac{\bigl( K + \sum_{\ell=1}^{K} k_\ell^{-2\beta_{\mathrm{eff}}} \bigr)^{2}}{K^{2}\, \kappa_{\mathrm{target}}}}_{\tau_K}.$} \]
-  Checkable before training. One ray never passes: $V_1 = 0 < \tau_1$.\par\smallskip
+  One ray never passes: $V_1 = 0 < \tau_1$.\par\smallskip
 \end{alertblock}
 
 \begin{block}{The threshold on published designs}
   \RaggedRight
   \centering
-  {\Large\begin{tabular}{@{}lrrr@{}}
+  \begin{tabular}{@{}lrrr@{}}
     \toprule
     Design & $K$ & $R = k_K / k_1$ & $V_K / \tau_K$ \\
     \midrule
     Hoffmann et al.\ (2022) & 151 & $9.5 \times 10^3$ & \textbf{5.55} \\
-    Muennighoff et al.\ (2025) & 95 & $4.7 \times 10^5$ & \textbf{5.76} \\
-    Choshen et al.\ (2025) & 243 & $4.9 \times 10^3$ & \textbf{3.74} \\
-    Hu et al.\ (2024) & 6 & 6 & 0.30 \\
-    Bhagia et al.\ (2025) & 4 & 10 & 0.47 \\
     Magnusson et al.\ (2025) & 1 & 1 & 0.00 \\
     \bottomrule
-  \end{tabular}}\par\medskip
+  \end{tabular}\par\smallskip
   \raggedright
-  At $\kappa_{\mathrm{target}} = 100$ ($V_K / \tau_K \geq 1$ passes), of 24 published designs 11 pass and 13 fail,
-  3 at one ratio; all 6 collinear ones fail. Our \CO{} fan gives 0.40 at $\beta_{\mathrm{eff}} = 0.28$.
+  At $\kappa_{\mathrm{target}} = 100$, 11 of 24 published designs pass ($\geq 1$) and 13 fail, all 6 collinear ones
+  included. Our \CO{} fan: 0.40.
+\end{block}
+
+\end{column}
+\begin{column}{\sepwidth}\end{column}
+\begin{column}{\colwidth}
+
+\begin{block}{\NC{} beats \CO{} on held-out runs}
+  \RaggedRight
+  \vspace*{1.15cm}% at least 1 cm between the title rule and the numbers
+  \begin{columns}[t]
+    \begin{column}{0.46\linewidth}
+      \centering
+      {\fontsize{100}{104}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
+      FP32: 1,460/1,500
+    \end{column}
+    \begin{column}{0.46\linewidth}
+      \centering
+      {\fontsize{100}{104}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
+      BF16, Wikipedia: 296/300
+    \end{column}
+  \end{columns}
+  \medskip
+  Budget-matched, below the threshold: 68.5\% (Chinchilla), 57.4\% (Droppo-Elibol), 80.6\% (Kaplan).
 \end{block}
 
 \begin{block}{Holdout prediction}
@@ -179,95 +193,26 @@
   variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
   (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, as $\varepsilon \to 0$:
   \[ \scalebox{1.7}{$\mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr].$} \]
-  For $K \geq 2$ it is shown empirically (paper, Lemma 7).
+  For $K \geq 2$ the ordering is shown empirically; the paper's Lemma 7 gives a sufficient margin.
 \end{block}
-
-
-
-\begin{block}{Design recipe}
-  \RaggedRight
-  \begin{enumerate}\setlength{\itemsep}{0.6em}
-    \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
-    \item Train on its two end ratios, runs split evenly, log-uniform in $N$.
-    \item Check the exact $\kappa_{A,B}$ of the planned $(N, D)$ before training.
-  \end{enumerate}
-  $k \in \{20, 400\}$ passes at $\beta_{\mathrm{eff}} = 0.28$ ($V_2 / \tau_2 = 1.22$); $\{20, 100\}$ fails (0.48).
-\end{block}
-
-
 
 \end{column}
-\separatorcolumn
+\end{columns}
 
-% ==== column 3
-\begin{column}{\colwidth}
-
-\begin{block}{\NC{} beats \CO{} on held-out runs}
-  \RaggedRight
-  \begin{columns}[t]
-    \begin{column}{0.48\linewidth}
-      \centering
-      {\fontsize{160}{168}\selectfont\bfseries\textcolor{accent}{97.3\%}}\par\smallskip
-      {\large FP32: 1,460/1,500}
-    \end{column}
-    \begin{column}{0.48\linewidth}
-      \centering
-      {\fontsize{160}{168}\selectfont\bfseries\textcolor{accent}{98.7\%}}\par\smallskip
-      {\large BF16, Wikipedia: 296/300}
-    \end{column}
-  \end{columns}
-  \medskip
-  4 laws $\times$ 5 corpora, $\sim$1,900 models.
-  Holdout $R^2$: \CO{} 0.837, \NC{} 0.932.
-\end{block}
-
-
-
-
-
-\begin{block}{Kaplan law on RedPajama, first epoch}
+\begin{block}{Kaplan law on RedPajama, first epoch (paper Fig. 1a, 1c)}
   \RaggedRight
   \begin{columns}[T,onlytextwidth]
-    \begin{column}{0.53\linewidth}
+    \begin{column}{0.48\linewidth}
       \centering
-      \includegraphics[width=\linewidth]{01_surface_Red_Pajama_Kaplan_First.pdf}\\
-      (a) Loss surface.
+      \includegraphics[width=35.2cm]{01_surface_Red_Pajama_Kaplan_First.pdf}
     \end{column}
-    \begin{column}{0.47\linewidth}
+    \begin{column}{0.48\linewidth}
       \centering
-      \includegraphics[width=\linewidth]{01_isoflop_Red_Pajama_Kaplan_First.pdf}\\
-      (c) Induced isoFLOP curves.
+      \includegraphics[width=33.0cm]{01_isoflop_Red_Pajama_Kaplan_First.pdf}
     \end{column}
   \end{columns}
-  \smallskip
-  {\small Seed-0 \CO{} holdout $R^2 = 0.51$, \NC{} $R^2 = 0.91$. (a) Fitted surface $\hat{L}(N, D; \symbf{\theta})$ with holdout points and residual bars.
-  (c) Induced isoFLOP curves, one per kept holdout point, with residual bars at each $N_i$.}\par\smallskip
-  \CO{}'s dashed isoFLOP curves splay apart at high $N$ while \NC{}'s stay tight. For Kaplan this error is
-  bias, not conditioning.
+  {\fontsize{27}{32}\selectfont Left: fitted surface $\hat{L}(N, D; \symbf{\theta})$, holdout points. Right: induced isoFLOP curves. Seed 0: \CO{} $R^2 = 0.51$, \NC{} $R^2 = 0.91$; for Kaplan this error is bias, not conditioning.}
 \end{block}
-
-
-
-
-
-
-
-\begin{block}{Below the threshold, and the stakes}
-  \RaggedRight
-  Against budget-matched \CO{} subsets below the threshold, \NC{} wins \textbf{68.5\%} (Chinchilla),
-  \textbf{57.4\%} (Droppo-Elibol) and \textbf{80.6\%} (Kaplan); all CIs exclude 50\%. On Wikipedia, the
-  \CO{} and \NC{} Chinchilla fits imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
-\end{block}
-
-\begin{alertblock}{Takeaways}
-  \RaggedRight
-  \large
-  \begin{itemize}\setlength{\itemsep}{0.4em}
-    \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
-    \item \textbf{On one ray}, report $\psi$, not separate model and data contributions.
-  \end{itemize}
-  \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text, pre-training loss.
-\end{alertblock}
 
 \end{column}
 \separatorcolumn
