@@ -21,9 +21,9 @@
 \setbeamercolor{headline title}{fg=darkblue}
 \setbeamercolor{headline rule}{bg=darkblue}
 \setbeamercolor{block title alerted}{fg=darkblue,bg=lightblue}
-\setbeamerfont{headline title}{size=\fontsize{100}{116}\selectfont,series=\bfseries}
-\setbeamerfont{headline author}{size=\fontsize{44}{54}\selectfont}
-\setbeamerfont{headline institute}{size=\fontsize{40}{48}\selectfont}
+\setbeamerfont{headline title}{size=\fontsize{91}{96}\selectfont,series=\bfseries}
+\setbeamerfont{headline author}{size=\fontsize{40}{46}\selectfont}
+\setbeamerfont{headline institute}{size=\fontsize{34}{40}\selectfont}
 \setbeamertemplate{itemize items}[circle]
 \setlength{\leftmargini}{1.2em}
 
@@ -37,23 +37,24 @@
 
 \title{Tokens-per-Parameter Coverage Is Critical for\\Robust LLM Scaling Law Extrapolation}
 \author{Joshua Shay Kricheli\textsuperscript{1,$\|$} \quad Alexander Lawrence Reid\textsuperscript{1,$\|$} \quad
-  Soumajyoti Sarkar\textsuperscript{2,$*$} \\ Venkata Gandikota\textsuperscript{1} \quad Paulo Shakarian\textsuperscript{1}}
+  Soumajyoti Sarkar\textsuperscript{2,$*$} \quad Venkata Gandikota\textsuperscript{1} \quad Paulo Shakarian\textsuperscript{1}}
 \institute{\textsuperscript{1}Syracuse University \qquad \textsuperscript{2}Amazon AGI Foundations}
 
 \footercontent{\href{https://lab-v2.github.io/tpp-coverage/}{lab-v2.github.io/tpp-coverage} \hfill
   \textsuperscript{$\|$}Equal contribution. \quad \textsuperscript{$*$}This work does not relate to the author's position at Amazon. \hfill
-  NeurIPS 2026, Sydney, Australia \hfill \href{https://arxiv.org/abs/2605.08541}{arXiv:2605.08541}}
+  NeurIPS 2026, Sydney \hfill \href{https://arxiv.org/abs/2605.08541}{arXiv:2605.08541}}
 
-% Header corners: the labelled QR code of the project page and the NeurIPS logo (left); the Syracuse AI
-% Institute and the Leibniz Lab (right). The Leibniz PNG (1024 x 348 px) is set 2.9 cm high, so 305 ppi.
-\logoleft{\begin{tabular}{@{}c@{}}\includegraphics[height=6.5cm]{qr_project_page.pdf}\\[-0.2ex]{\normalsize Project page}\end{tabular}\hspace{2cm}\raisebox{2.4cm}{\includegraphics[height=3.6cm]{neurips.pdf}}}
-\logoright{\begin{tabular}{@{}c@{}}\includegraphics[height=2.9cm]{syracuse_ai_institute.pdf}\\[2ex]\includegraphics[height=2.9cm]{leibniz_lab.png}\end{tabular}}
+% Header corners: the NeurIPS logo (left) and the Syracuse AI Institute and Leibniz Lab logos (right, stacked),
+% 4.5 cm high but the one-line Syracuse wordmark (2.3 cm, about as wide as the Leibniz block). The Leibniz
+% PNG (1024 x 348 px) at 4.5 cm is 197 ppi; no vector copy exists. The QR code sits in column 3.
+\logoleft{\includegraphics[height=4.5cm]{neurips.pdf}}
+\logoright{\begin{tabular}{@{}c@{}}\includegraphics[height=2.3cm]{syracuse_ai_institute.pdf}\\[1.2ex]\includegraphics[height=4.5cm]{leibniz_lab.png}\end{tabular}}
 
 % The two designs in the (N, D) plane, from the grids of the paper's Appendix F.1 (grid:ncgrid, grid:tpp):
 % sizes N (M parameters), CO ratios k, NC token counts D (M tokens). Holdout: the N = 55.5M row, the
 % k = 6 (CO) or D = 300.4M (NC) column, and the three largest sizes at k >= 6.2 (CO) or D >= 325.4M (NC).
 \newcommand{\designplane}{%
-\begin{tikzpicture}[x=0.36cm, y=0.036cm, font=\normalsize]
+\begin{tikzpicture}[x=0.36cm, y=0.030cm, font=\normalsize]
   \def\trainN{5.0,10.1,14.4,19.4,22.8,28.8,32.5,35.4,40.3,47.9}
   \def\allN{5.0,10.1,14.4,19.4,22.8,28.8,32.5,35.4,40.3,47.9,55.5,63.9,68.1,76.5}
   \def\bigN{63.9,68.1,76.5}
@@ -68,7 +69,7 @@
   \begin{scope}
     \clip (0,0) rectangle (80,560);
     \draw[gray!25] (0,0) grid[xstep=20, ystep=100] (80,560);
-    \foreach \k in \trainK { \draw[co!40, line width=1.2pt] (0,0) -- (80,{80*\k}); }
+    \foreach \k in \trainK { \draw[co!70, line width=1.4pt] (0,0) -- (80,{80*\k}); }
   \end{scope}
   \foreach \n in \trainN { \foreach \d in \trainD { \fill[nc] (\n,\d) \sq; } }
   \foreach \n in \trainN { \foreach \k in \trainK { \fill[co] (\n,{\k*\n}) circle[radius=5.5pt]; } }
@@ -84,11 +85,36 @@
   \node[below=1.3cm] at (40,0) {Parameters $N$ (M)};
   \node[rotate=90] at (-9,280) {Tokens $D$ (M)};
   \begin{scope}[shift={(2.5,525)}]
-    \fill[white, opacity=0.85] (-1.5,22) rectangle (44,-112);
+    \fill[white, opacity=0.85] (-1.5,22) rectangle (46,-150);
     \fill[co] (0,0) circle[radius=5.5pt]; \node[right] at (1.2,0) {\CO{} training: 12 rays $D = kN$, $k = 1$ to $5$};
     \fill[nc] (0,-42) \sq; \node[right] at (1.2,-42) {\NC{} training: $10 \times 12$ grid};
-    \draw[black, line width=1.4pt] (0,-84) circle[radius=7.5pt]; \node[right] at (1.2,-84) {held-out runs};
+    \draw[co, line width=1.4pt] (0,-84) circle[radius=7.5pt]; \node[right] at (1.2,-84) {\CO{} held-out runs, $H_{\mathrm{col}}$};
+    \draw[nc, line width=1.4pt] (0,-126) \hsq; \node[right] at (1.2,-126) {\NC{} held-out runs, $H_{\mathrm{nc}}$};
   \end{scope}
+\end{tikzpicture}}
+
+% V_K / tau_K = 100 / kappa of the 24 published designs (paper Table 11, kappa column) on a log axis, with
+% the pass line at 1; our CO fan (kappa ~ 250, so 0.40) and the recipe's two-ratio examples (1.22, 0.48).
+% Values are 100 / kappa of the printed kappa (27, 18, 12, 17, 7.5, 48, 12, 29, 7.8, 59, 94 pass; 180, 170, 290,
+% 120, 200, 170, 330, 3.2e4, 210, 380 fail). Single-ratio designs (V_1 = 0) are off the scale. x = log10.
+\newcommand{\thresholdstrip}{%
+\begin{tikzpicture}[x=5.6cm, y=4.0cm, font=\normalsize]
+  \fill[nc!8] (-2.7,-0.5) rectangle (0,2.8); \fill[co!8] (0,-0.5) rectangle (1.3,2.8);
+  \foreach \e/\l in {-2/{10^{-2}}, -1/{10^{-1}}, 0/{1}, 1/{10}} {
+    \draw[gray!40] (\e,-0.5) -- (\e,2.8); \node[below] at (\e,-0.5) {$\l$}; }
+  \draw[thick] (-2.7,-0.5) rectangle (1.3,2.8);
+  \draw[black, line width=2.5pt] (0,-0.5) -- (0,2.8);
+  \node[anchor=east] at (-2.75,2.2) {11 pass};
+  \node[anchor=east] at (-2.75,1.4) {10 fail};
+  \node[anchor=east] at (-2.75,0.6) {our \CO{} fan};
+  \node[anchor=east] at (-2.75,-0.15) {recipe};
+  \foreach \v in {3.704,5.556,8.333,5.882,13.33,2.083,8.333,3.448,12.82,1.695,1.064} { \fill[co] ({log10(\v)},2.2) circle[radius=9pt]; }
+  \foreach \v in {0.5556,0.5882,0.3448,0.8333,0.5,0.5882,0.303,0.003125,0.4762,0.2632} { \fill[nc] ({log10(\v)},1.4) circle[radius=9pt]; }
+  \fill[co] ({log10(0.40)},0.6) circle[radius=9pt];
+  \fill[black] ({log10(1.22)},-0.15) +(-8pt,-8pt) rectangle +(8pt,8pt) node[right=10pt, font=\small] {$\{20, 400\}$};
+  \fill[black] ({log10(0.48)},-0.15) +(-8pt,-8pt) rectangle +(8pt,8pt);
+  \node[anchor=east, font=\small] at ({log10(0.48)-0.06},-0.15) {$\{20, 100\}$};
+  \node[below=1.0cm] at (-0.7,-0.5) {$V_K / \tau_K$};
 \end{tikzpicture}}
 
 \begin{document}
@@ -100,31 +126,35 @@
 \begin{column}{\colwidth}
 
 \begin{alertblock}{TL;DR}
-  Scaling laws fit at fixed tokens-per-parameter (TPP) ratios $D = kN$ are ill-conditioned when the $N$- and
+  Fixed tokens-per-parameter (TPP) ratios $D = kN$ make scaling-law fits ill-conditioned when the $N$- and
   $D$-exponents are close. Spreading runs over the $(N, D)$ plane fixes it: \NC{} beats \CO{} on held-out
-  runs in \textcolor{accent}{\textbf{97.3\%}} of comparisons, \textcolor{accent}{\textbf{98.7\%}} in BF16.
+  runs in \textcolor{accent}{\textbf{97.3\%}} of comparisons.
 \end{alertblock}
 
-\begin{block}{Two designs in the $(N, D)$ plane}
+\begin{block}{\CO{} (collinear) and \NC{} (non-collinear) designs}
   \centering
   \designplane\par\medskip
-  \raggedright
-  \CO{} (collinear): a fan of rays. \NC{} (non-collinear): a grid, its ratio $k = D/N$ free.
 \end{block}
 
 \begin{block}{The law and one ray}
   \[ L(N, D) = A N^{-\alpha} + B D^{-\beta} + E \]
-  With $D = kN$ and $\beta = \alpha$ the terms merge into the reduced model
+  On a ray $D = kN$ with $\beta = \alpha$:
   \[ L(N; \psi, \alpha, E) = \psi N^{-\alpha} + E, \qquad \psi := A + B k^{-\alpha}. \]
   One ray pins down $\psi$, not $A$ and $B$: a ``sloppy'' model; $\varepsilon := |\alpha - \beta|$
   (Chinchilla: $\alpha \approx 0.34$, $\beta \approx 0.28$).
 \end{block}
 
 \begin{block}{Gauss-Newton conditioning}
-  Minimize $S(\boldsymbol{\theta}) := \tfrac{1}{2} \lVert \mathbf{r}(\boldsymbol{\theta}) \rVert^2$ with Jacobian
-  $J_{ij} = \partial r_i / \partial \theta_j$ and steps $(J^\top J)\, \Delta\boldsymbol{\theta} = -J^\top \mathbf{r}$;
-  $\kappa_{A,B} := \kappa\bigl((J^\top J)_{A,B}\bigr)$. On a ray the $A$, $B$ columns are, up to sign,
-  $N^{-\alpha}$ and $k^{-\beta} N^{-\beta}$. Each law has such a near-parallel pair.
+  \[ S(\boldsymbol{\theta}) = \tfrac{1}{2} \lVert \mathbf{r}(\boldsymbol{\theta}) \rVert^2, \quad
+     J_{ij} = \frac{\partial r_i}{\partial \theta_j}, \quad (J^\top J)\, \Delta\boldsymbol{\theta} = -J^\top \mathbf{r} \]
+  \[ \kappa_{A,B} := \kappa\bigl((J^\top J)_{A,B}\bigr); \quad \text{on a ray, up to sign: } j_A = N^{-\alpha},\ j_B = k^{-\beta} N^{-\beta} \]
+  Each law has such a pair.
+\end{block}
+
+\begin{block}{Below the threshold, and the stakes}
+  Below the threshold, \NC{} beats budget-matched \CO{} in \textbf{68.5\%} (Chinchilla), \textbf{57.4\%}
+  (Droppo-Elibol), \textbf{80.6\%} (Kaplan); CIs exclude 50\%. On Wikipedia, \CO{} and \NC{} Chinchilla fits
+  imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
 \end{block}
 
 \end{column}
@@ -136,8 +166,8 @@
 
 
 \begin{block}{One ray is ill-conditioned}
-  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla, Gaussian noise)} On one ray,
-  as $\varepsilon \to 0$:
+  \statement{Proposition 2 (four laws), Corollary 2 (Chinchilla, i.i.d.\ Gaussian noise, $n \geq 5$ sizes)}
+  On one ray, as $\varepsilon \to 0$:
   \[ \kappa_{A,B} = \Theta(\varepsilon^{-2}), \qquad
      \frac{\mathrm{CI}_{0.95}(A)}{\mathrm{CI}_{0.95}(\psi)} = \Omega(\varepsilon^{-1}). \]
   \begin{center}
@@ -146,10 +176,11 @@
     Law & $\varepsilon$ & $\varepsilon^{-1}$ & $\varepsilon^{-2}$ \\
     \midrule
     Chinchilla & 0.06 & 17 & 278 \\
-    Kaplan & 0.20 & 5 & 25 \\
-    Droppo-Elibol & 0.18-0.80 & 1.3-5.6 & 1.6-32 \\
+    Kaplan & 0.20 & 5\textsuperscript{$\dagger$} & 25 \\
+    Droppo-Elibol & 0.18-0.80 & 1.3-5.6\textsuperscript{$\dagger$} & 1.6-32 \\
     \bottomrule
-  \end{tabular}
+  \end{tabular}\par
+  {\small \textsuperscript{$\dagger$}Own interval (no reduced model), by the Schur floor.}
   \end{center}
 \end{block}
 
@@ -164,32 +195,21 @@
 \end{alertblock}
 
 \begin{block}{The threshold on published designs}
-  \begin{center}
-  \begin{tabular}{@{}lccc@{}}
-    \toprule
-    Design & $K$ & $R = k_K / k_1$ & $V_K / \tau_K$ \\
-    \midrule
-    Hoffmann et al.\ (2022) & 151 & $9.5 \times 10^3$ & \textbf{5.55} \\
-    Hu et al.\ (2024) & 6 & 6 & 0.30 \\
-    Bhagia et al.\ (2025) & 4 & 10 & 0.47 \\
-    \bottomrule
-  \end{tabular}
-  \end{center}
-  At $\kappa_{\mathrm{target}} = 100$ ($\geq 1$ passes), 11 of 24 published designs pass and 13 fail; all 6
-  collinear ones fail. Our \CO{} fan: 0.40 at $\beta_{\mathrm{eff}} = 0.28$.
+  \centering
+  \thresholdstrip\par\smallskip
+  \raggedright
+  24 published designs at $\kappa_{\mathrm{target}} = 100$; 3 more fail at one ratio ($V_1 = 0$, off the
+  scale). All 6 collinear ones fail.
 \end{block}
 
 \begin{block}{Holdout prediction}
-  \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), Gaussian residuals, \CO{} on one
-  ray, holdout $H$ with off-ratio points; at leading order in $\sigma$, as $\varepsilon \to 0$:
+  \statement{Theorem 1} Any law of Table 2 (repeated-data unsaturated), i.i.d.\ Gaussian residuals of
+  variance $\sigma^2$; \CO{} on one ray, \NC{} with dense $(N, D)$ coverage, both with full-rank Jacobians
+  (\NC{}'s also at $\varepsilon = 0$); $H$ with off-ratio points. At leading order in $\sigma$, as $\varepsilon \to 0$:
   \[ \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{NC}}_{H}\bigr] < \mathbb{E}\bigl[\mathrm{RMSE}^{\mathrm{CO}}_{H}\bigr]. \]
 \end{block}
 
-\begin{block}{Below the threshold, and the stakes}
-  Below the threshold, \NC{} beats budget-matched \CO{} in \textbf{68.5\%} (Chinchilla), \textbf{57.4\%}
-  (Droppo-Elibol), \textbf{80.6\%} (Kaplan); CIs exclude 50\%. On Wikipedia, \CO{} and \NC{} Chinchilla fits
-  imply $N^* \propto C^{0.36}$ and $N^* \propto C^{0.68}$.
-\end{block}
+
 
 \end{column}
 \separatorcolumn
@@ -211,26 +231,25 @@
     \end{column}
   \end{columns}
   \medskip
-  Seed-paired; 4 laws $\times$ 5 corpora, $\sim$1,900 LLaMA-style models of 5.04-76.5M parameters.
-  Holdout $R^2$: \CO{} 0.837, \NC{} 0.932; \NC{} wins 98.7\% off the fan ($H_{\mathrm{nc}}$) and 72.1\% along
-  it ($H_{\mathrm{col}}$).
+  Seed-paired; 4 laws $\times$ 5 corpora; $\sim$1,900 models.
+  Holdout $R^2$: \CO{} 0.837, \NC{} 0.932.
 \end{block}
 
-\begin{block}{Kaplan law on RedPajama, first epoch}
+\begin{block}{Largest \CO{}/\NC{} gap: Kaplan on RedPajama}
   \begin{columns}[t]
     \begin{column}{0.49\linewidth}
       \centering
-      \includegraphics[width=\linewidth]{01_convergence_Red_Pajama_Kaplan_First.pdf}\\
-      {\small Holdout $R^2$ against TPP coverage, 30 seeds: \CO{} blue, \NC{} red.}
+      \includegraphics[width=\linewidth]{poster_convergence_Red_Pajama_Kaplan_First.pdf}\\
+      {\small Holdout $R^2$ vs TPP coverage, 30 seeds.}
     \end{column}
     \begin{column}{0.49\linewidth}
       \centering
-      \includegraphics[width=\linewidth]{01_isoflop_Red_Pajama_Kaplan_First.pdf}\\
-      {\small Induced isoFLOP curves, seed 0: \CO{} dashed, \NC{} solid, coloured by $C = 6ND$.}
+      \includegraphics[width=\linewidth]{poster_isoflop_Red_Pajama_Kaplan_First.pdf}\\
+      {\small IsoFLOP curves, seed 0: \CO{} dashed, \NC{} solid.}
     \end{column}
   \end{columns}
   \medskip
-  For Kaplan this error is bias, not conditioning.
+  Kaplan's error here is bias, not conditioning; on one Chinchilla ray, $A$'s interval is $\sim 10^4$ times $\psi$'s.
 \end{block}
 
 
@@ -238,17 +257,26 @@
 \begin{block}{Design recipe}
   \begin{enumerate}
     \item Pick $k_1$ and the minimum spread $R$ at $\kappa_{\mathrm{target}} = 100$.
-    \item Train on $K = 2$ ratios at its two ends, runs split evenly, log-uniform in $N$.
+    \item Train on its two end ratios, runs split evenly, log-uniform in $N$.
     \item Check the exact $\kappa_{A,B}$ before training.
   \end{enumerate}
-  20 runs at $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
+  $k \in \{20, 400\}$: $V_2 / \tau_2 = 1.22$, passes; $\{20, 100\}$: 0.48, fails.
 \end{block}
 
 \begin{alertblock}{Takeaways}
-  \begin{itemize}
-    \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
-    \item \textbf{On one ray}, report $\psi$, not separate model and data contributions.
-  \end{itemize}
+  \begin{columns}[c]
+    \begin{column}{0.66\linewidth}
+      \begin{itemize}
+        \item \textbf{A fixed TPP ratio} prescribes how to train one model, not how to estimate a scaling law.
+        \item \textbf{On one ray}, report $\psi$, not separate model and data contributions.
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.31\linewidth}
+      \centering
+      \includegraphics[width=\linewidth]{qr_project_page.pdf}\\
+      {\small Project page}
+    \end{column}
+  \end{columns}
   {\small \textbf{Limitations:} 5.04-76.5M parameters, one LLaMA-style architecture, English text,
   pre-training loss; Theorem 1 is proved for one ray, $K \geq 2$ is shown empirically.}
 \end{alertblock}
