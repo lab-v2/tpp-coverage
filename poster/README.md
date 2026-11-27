@@ -19,5 +19,5 @@ Modern or Computer Modern only), the three logos, the QR code, the title and aut
 `CITATION.cff`, the absence of em dashes, at most 800 words, a header under 17% of the height, column
 bottoms within 1 cm, block gaps within a 0.8 cm band, no math in bold heads, block title rules
 unbroken, logo groups centred on the title block within 0.5 cm, the figures being the paper's files (by
-SHA-256), set at least 1.13 times their natural width, and no TikZ figure, one body text size (captions at
+SHA-256), set at least 0.98 times their natural width (rendered at paper print size), every figure word printing at least 21 pt, and no TikZ figure, one body text size (captions at
 least 26 pt), no overlapping text, and (with `TPP_PAPER_FIGURES=<paper src/updated_figures>`) the copies equal the paper's.
