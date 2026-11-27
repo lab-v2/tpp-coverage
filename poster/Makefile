@@ -29,11 +29,14 @@ build/assets/qr_project_page.pdf:
 # height (4480 px wide) and the thumbnail by its 320 px width (206 px high).
 png: build/$(NAME)_virtual.png build/$(NAME)_thumbnail.png
 # The PDF's sha256 at render time sits beside the PNG; tests/poster checks it against the current PDF.
+# Each PNG's bytes and pixel size go into the committed build_stamp.txt for the NeurIPS limits gate.
 build/$(NAME)_virtual.png: $(NAME).pdf
 	pdftoppm -png -singlefile -scale-to-x -1 -scale-to-y 2880 $< build/$(NAME)_virtual
 	sha256sum $< | cut -d' ' -f1 > build/$(NAME)_virtual.png.pdf-sha256
+	printf '%s %s %s\n' virtual_png "$$(stat -c %s $@)" "$$(file -b $@ | grep -o '[0-9]* x [0-9]*' | tr -d ' ')" >> build_stamp.txt
 build/$(NAME)_thumbnail.png: $(NAME).pdf
 	pdftoppm -png -singlefile -scale-to-x 320 -scale-to-y -1 $< build/$(NAME)_thumbnail
+	printf '%s %s %s\n' thumbnail_png "$$(stat -c %s $@)" "$$(file -b $@ | grep -o '[0-9]* x [0-9]*' | tr -d ' ')" >> build_stamp.txt
 .PHONY: png
 
 clean:

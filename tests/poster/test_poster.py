@@ -950,6 +950,51 @@ def test_no_overfull_vbox() -> None:
         assert overfull_problems(log.read_text(errors="replace")) == []
 
 
+# NeurIPS limits: virtual poster at most 5120 x 2880 px and 10 MB; thumbnail at most 320 x 256 px
+# and 5 MB. Read from the committed stamp (CI has no build), and from build/ when it exists.
+PNG_LIMITS = {"virtual_png": (5120, 2880, 10_000_000), "thumbnail_png": (320, 256, 5_000_000)}
+
+
+def png_limit_problems(stamp: str) -> list[str]:
+    fields = {line.split()[0]: line.split()[1:] for line in stamp.splitlines() if line.split()}
+    problems = []
+    for key, (max_w, max_h, max_bytes) in PNG_LIMITS.items():
+        if len(fields.get(key, [])) != 2:
+            problems.append(f"{key}: not in build_stamp.txt (run make)")
+            continue
+        size, dims = fields[key]
+        w, h = (int(v) for v in dims.split("x"))
+        if int(size) > max_bytes or w > max_w or h > max_h:
+            problems.append(
+                f"{key}: {w} x {h} px, {int(size)} bytes over {max_w} x {max_h}, {max_bytes}"
+            )
+    return problems
+
+
+def test_pngs_within_neurips_limits() -> None:
+    assert png_limit_problems(STAMP.read_text()) == []
+    for key, name in (("virtual_png", "virtual"), ("thumbnail_png", "thumbnail")):
+        png = POSTER / "build" / f"tpp_neurips2026_poster_{name}.png"
+        if png.exists():  # a local build: the files themselves
+            max_w, max_h, max_bytes = PNG_LIMITS[key]
+            w, h = _png_size(png)
+            assert png.stat().st_size <= max_bytes and w <= max_w and h <= max_h, (key, w, h)
+
+
+def _png_size(png: Path) -> tuple[int, int]:
+    import struct
+
+    head = png.read_bytes()[16:24]  # the IHDR width and height
+    return struct.unpack(">II", head)
+
+
+def test_planted_png_over_limits() -> None:
+    assert png_limit_problems("virtual_png 12000000 4480x2880\nthumbnail_png 1000 320x206\n")
+    assert png_limit_problems("virtual_png 1000 4480x2880\nthumbnail_png 1000 400x258\n")
+    assert png_limit_problems("virtual_png 1000 4480x2880\n")
+    assert not png_limit_problems("virtual_png 1000 4480x2880\nthumbnail_png 1000 320x206\n")
+
+
 def test_planted_bad_stamp() -> None:
     assert stamp_problems("pdf_sha256 abc\noverfull_vbox 0\n", "def")
     assert stamp_problems("pdf_sha256 abc\noverfull_vbox 2\n", "abc")
