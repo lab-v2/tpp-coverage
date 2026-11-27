@@ -803,7 +803,7 @@ def test_figures_set_large() -> None:
 
 
 def test_planted_small_figure() -> None:
-    tex = TEX.read_text().replace("width=42.0cm]{01_surface", "width=15cm]{01_surface")
+    tex = TEX.read_text().replace("width=41.2cm]{01_surface", "width=15cm]{01_surface")
     assert figure_scale_problems(tex, POSTER / "figures")
 
 
@@ -871,12 +871,68 @@ def figure_text_problems(tex: str, folder: Path) -> list[str]:
     return problems
 
 
+def figure_text_sizes(tex: str, folder: Path) -> dict[str, tuple[float, str]]:
+    """Per figure, its largest font size (pt) at the poster's scale and that text (PyMuPDF spans,
+    so a rotated label counts by its font size, not its bounding box)."""
+    import pymupdf
+
+    out = {}
+    for width_cm, name in re.findall(r"\\includegraphics\[width=([\d.]+)cm\]\{(01_[^}]+)\}", tex):
+        page = pymupdf.open(folder / name)[0]
+        scale = float(width_cm) * PT_PER_CM / page.rect.width
+        spans = [
+            (span["size"] * scale, span["text"].strip())
+            for block in page.get_text("dict")["blocks"]
+            for line in block.get("lines", [])
+            for span in line["spans"]
+            if span["text"].strip()
+        ]
+        out[name] = max(spans)
+    return out
+
+
+def block_title_pt(pdf: Path = PDF) -> float:
+    """Font size of the block titles (the TL;DR title's span)."""
+    import pymupdf
+
+    page = pymupdf.open(pdf)[0]
+    return next(
+        span["size"]
+        for block in page.get_text("dict")["blocks"]
+        for line in block.get("lines", [])
+        for span in line["spans"]
+        if span["text"].strip() == "TL;DR"
+    )
+
+
+def oversized_figure_text(sizes: dict, title_pt: float) -> list[str]:
+    return [
+        f"{n}: {t!r} at {pt:.1f} pt > titles {title_pt:.1f} pt"
+        for n, (pt, t) in sizes.items()
+        if pt > title_pt
+    ]
+
+
+# Measured 2026-11-27 at 41.2 / 33 cm: Fig. 1a "Loss" 82.9 pt and Fig. 1c 66.4 pt against 34.5 pt
+# block titles. The fix is in the paper figures (kept unchanged while they await the owner's
+# merge), so this stays a strict xfail: it turns red the moment the figures pass.
+@pytest.mark.xfail(strict=True, reason="paper figures' text prints larger than the block titles")
+def test_figure_text_not_larger_than_titles() -> None:
+    sizes = figure_text_sizes(TEX.read_text(), POSTER / "figures")
+    assert oversized_figure_text(sizes, block_title_pt()) == []
+
+
+def test_planted_oversized_figure_text() -> None:
+    assert oversized_figure_text({"f.pdf": (40.0, "Loss")}, 34.5)
+    assert not oversized_figure_text({"f.pdf": (30.0, "Loss")}, 34.5)
+
+
 def test_figure_text_readable() -> None:
     assert figure_text_problems(TEX.read_text(), POSTER / "figures") == []
 
 
 def test_planted_unreadable_figure_text() -> None:
-    tex = TEX.read_text().replace("width=32.5cm]{01_isoflop", "width=12cm]{01_isoflop")
+    tex = TEX.read_text().replace("width=33.0cm]{01_isoflop", "width=12cm]{01_isoflop")
     assert figure_text_problems(tex, POSTER / "figures")
 
 

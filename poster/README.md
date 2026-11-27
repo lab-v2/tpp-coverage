@@ -13,7 +13,7 @@ NeurIPS limits, and records the PDF's sha256 beside the PNG so `tests/poster/` f
 
 The poster shows only the paper's own figures: `figures/` holds Figure 1 (a), the loss surface, and
 Figure 1 (c), the induced isoFLOP curves (Kaplan law on RedPajama, first epoch), copied byte for byte
-from the paper's `src/updated_figures/` (rendered by `src/tpp_analysis/visualizations/figure1_panels.py` in Computer Modern, legends outside the axes); their captions are the paper's. The page has two zones: a top zone of three text columns (column 1 the TL;DR, the designs and the law; column 2 Gauss-Newton conditioning, Proposition 2 with its formulas beside the epsilon table, and Proposition 1; column 3 Theorem 1, the Design recipe and the published designs), whose widths (0.67 / 1.36 / 0.98 of `\colwidth`, separators 0.02425 of the paper width) make them end on one line, and an evidence row across the full width: the headline numbers with the Takeaways and Limitations under them, then the two figures (42 and 32.5 cm wide). The QR code of the project page
+from the paper's `src/updated_figures/` (rendered by `src/tpp_analysis/visualizations/figure1_panels.py` in Computer Modern, legends outside the axes); their captions are the paper's. The page has two zones: a top zone of three text columns (column 1 the TL;DR, the designs and the law; column 2 Gauss-Newton conditioning, Proposition 2 with its formulas beside the epsilon table, and Proposition 1; column 3 Theorem 1, the Design recipe and the published designs), whose widths (0.67 / 1.36 / 0.98 of `\colwidth`, separators 0.02425 of the paper width) make them end on one line, and an evidence row across the full width: the headline numbers with the Takeaways and Limitations under them, then the two figures (41.2 and 33 cm wide, equal plot-box heights). The QR code of the project page
 sits in the header, beside the NeurIPS logo. `tests/poster/` checks the page size, the fonts (Latin
 Modern or Computer Modern only), the three logos, the QR code, the title and authors against
 `CITATION.cff`, the absence of em dashes, at most 800 words, a header under 17% of the height, the
@@ -23,6 +23,22 @@ SHA-256), set at least 0.75 times their natural width (rendered at paper print s
 least 26 pt), no overlapping text, and (with `TPP_PAPER_FIGURES=<paper src/updated_figures>`) the copies equal the paper's; the virtual PNG must be a render of the current PDF.
 
 ## Page size: A0 against 140 x 90 cm
+
+The owner chose 140 x 90 cm, the NeurIPS maximum, on 2026-11-27, because the page height is the
+binding constraint. The vertical budget of the current build (measured with `pdftotext -bbox`):
+
+| Band | From (cm) | To (cm) |
+|---|---|---|
+| Header, to the bottom of its rule | 0 | 13.4 |
+| Top zone: first block title to the lowest column text (46.2 / 46.3 / 46.7) | 15.4 | 46.7 |
+| Gap between the zones | 46.7 | 49.4 |
+| Evidence row: its titles to the caption | 49.4 | 85.8 |
+| Footer | 88.3 | 90.0 |
+
+The figures are set by equal plot-box height: 41.2 cm (surface) and 33 cm (isoFLOP) give 3-D box and
+isoFLOP axes both about 18.8 cm tall (399 / 873 and 499 / 874 of their canvases). Their text prints
+up to 82.9 pt (Fig. 1a, "Loss") and 66.4 pt (Fig. 1c) against 34.5 pt block titles; the gate for that
+is a strict xfail until the paper figures change.
 
 The binding constraint is the page height: all the text sits in the top zone, and the evidence row
 takes what is left. Measured with xelatex (body 28.8 pt, scale 1.16):
@@ -40,5 +56,5 @@ takes what is left. Measured with xelatex (body 28.8 pt, scale 1.16):
 | 140 x 90 cm | Takeaways in the banner cell, columns 0.67 / 1.36 / 0.98 (round 18) | **42 / 32.5 cm** | **fits; columns end at 46.2 / 46.3 / 46.7 cm** (used) |
 | 140 x 90 cm | the same, body 30 pt (scale 1.21) | 42 / 32.5 cm | overfull by 85.9 pt (not used) |
 
-At 42 / 32.5 cm the surface's 3-D box prints about 19.2 cm wide and the isoFLOP axes about 16.4 cm
+At 41.2 / 33 cm the surface's 3-D box prints about 18.8 cm wide and the isoFLOP axes about 16.7 cm
 (axes share of the natural canvas width: 399 / 873 and 442 / 874 pt).
