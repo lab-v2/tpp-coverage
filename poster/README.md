@@ -91,7 +91,7 @@ Trim-safe without bleed: the header and footer rules stop 1.5 cm inside each edg
 the vendored `theme/beamerthemegemini.sty`, marked in it), and `tests/poster/` fails on any ink, image or
 text within 1.0 cm of an edge (measured text margins: left 2.44, right 1.36, top 1.36, bottom 1.10 cm).
 
-Final PDF (round 24): `tpp_neurips2026_poster.pdf`, sha256
-`74dee81eb6002fb03c03507650900eb2e1a14b0b251bf8433808e3c123000317`, 749 words above the footer rule (the
+Final PDF (round 25): `tpp_neurips2026_poster.pdf`, sha256
+`b6ab42ff1652d4cbaeaaffd4b7afda7da5a6d053db460ba26118cd220581a5f6`, 749 words above the footer rule (the
 word gate's count; the footer band, links, footnotes, funding and references, adds 59); virtual PNG 4480 x 2880 px,
-1,518,967 bytes; thumbnail 320 x 206 px, 38,201 bytes (`build_stamp.txt`, gated in `tests/poster/`).
+1,518,081 bytes; thumbnail 320 x 206 px, 38,211 bytes (`build_stamp.txt`, gated in `tests/poster/`).
