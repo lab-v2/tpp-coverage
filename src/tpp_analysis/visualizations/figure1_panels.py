@@ -592,8 +592,8 @@ for i in range(len(N_b)):
 # formatter, the same way N's "1e7" auto-offset reads.  labelpad bumped
 # from 10 → 18 so the axis names sit clear of the tick numbers.
 # Units in the labels (no "1e7" / "1e8" offset text, which collided with the ticks).
-ax_surf.set_xlabel(r"$N$ ($10^7$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=64)
-ax_surf.set_ylabel(r"$D$ ($10^8$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=64)
+ax_surf.set_xlabel(r"$N$ ($10^7$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=95)
+ax_surf.set_ylabel(r"$D$ ($10^8$)", fontsize=0.85 * AXIS_LABEL_FS, labelpad=95)
 # Smaller labelpad keeps the rotated "Loss" text inside the savefig bbox.
 # 'Loss' placed via text2D in axes-fraction coords - bypasses the 3-D
 # rotated-zlabel bbox quirk that was causing 'Loss' to get cropped by
@@ -616,18 +616,24 @@ ax_surf.xaxis.set_major_formatter(FuncFormatter(lambda v, _pos: f"{v / 1e7:g}"))
 
 # D axis: tick spacing fixed at 2e8 with integer labels (0, 2, ..., 14)
 # and offset locked at 1e8, so it visually matches N's '1e7' offset.
-ax_surf.yaxis.set_major_locator(MultipleLocator(6e8))
+ax_surf.yaxis.set_major_locator(FixedLocator([6e8, 12e8]))
 ax_surf.yaxis.set_major_formatter(FuncFormatter(lambda v, _pos: f"{v / 1e8:g}"))
 
 ax_surf.zaxis.set_major_locator(MultipleLocator(3))
+ax_surf.tick_params(axis="both", pad=14)
 ax_surf.invert_yaxis()
 ax_surf.set_zlim(z_lo, z_hi)
 ax_surf.view_init(elev=SIDE_ELEV, azim=SIDE_AZIM)
-# Legend below the axes, outside the data, no wider than the axes.
+# Legend below the axes, outside the data: only the two fitted surfaces (the caption names the
+# holdout points and residual bars), one row, so the surface keeps most of the panel.
+_h, _l = ax_surf.get_legend_handles_labels()
+_keep = [i for i, lab in enumerate(_l) if lab.startswith(("CO", "NC")) and "residual" not in lab]
 ax_surf.legend(
+    [_h[i] for i in _keep],
+    [_l[i] for i in _keep],
     fontsize=LEGEND_FS * 0.85,
     loc="upper center",
-    bbox_to_anchor=(0.5, -0.2),
+    bbox_to_anchor=(0.5, -0.36),
     ncol=2,
     columnspacing=0.8,
     handlelength=1.4,
@@ -756,6 +762,21 @@ style_ticks_2d(ax_conv)
 _darken_errorbars(ax_conv)
 # Forces white face, black edge of width SPINE_LW, alpha=LEGEND_ALPHA on the
 # convergence legend regardless of how plot_convergence_with_errorbars built it
+# The legend below the axes, under the x label, and room between the ticks and their labels.
+_leg = ax_conv.get_legend()
+if _leg is not None:
+    _handles, _labels = _leg.legend_handles, [t.get_text() for t in _leg.get_texts()]
+    _leg.remove()
+    ax_conv.legend(
+        _handles,
+        _labels,
+        fontsize=LEGEND_FS,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.3),
+        ncol=len(_labels),
+        framealpha=LEGEND_ALPHA,
+    )
+ax_conv.xaxis.labelpad = 12
 _style_all_legends(ax_conv)
 
 for ext in ["pdf", "png"]:
@@ -765,7 +786,7 @@ for ext in ["pdf", "png"]:
         dpi=DPI,
         bbox_inches="tight",
         pad_inches=SAVE_PAD_2D,
-        bbox_extra_artists=[ax_conv.xaxis.label, ax_conv.yaxis.label],
+        bbox_extra_artists=[ax_conv.xaxis.label, ax_conv.yaxis.label, ax_conv.get_legend()],
     )
     print(f"Saved: {out}")
 plt.show()
@@ -811,6 +832,7 @@ _draw_isoflop_generic(
     legends_outside=True,
 )
 style_ticks_2d(ax_iso)
+ax_iso.tick_params(axis="both", which="major", pad=12)
 # _draw_isoflop_generic already calls _style_all_legends; this is a belt-and-
 # suspenders second pass in case anything got reattached.
 _style_all_legends(ax_iso)
