@@ -364,12 +364,30 @@ def draw_isoflop_panel(
 
         log_c = np.log10(np.asarray(flop_budgets, dtype=float))
         mappable = ScalarMappable(norm=Normalize(0, n_budgets), cmap=ListedColormap(list(colors)))
-        cbar = ax.figure.colorbar(mappable, ax=ax, pad=0.02, fraction=0.05)
-        cbar.set_label(r"$\log_{10} C$, with $C = 6ND$", fontsize=fontsize)
+        cbar = ax.figure.colorbar(
+            mappable, ax=ax, orientation="horizontal", location="top", pad=0.03, fraction=0.06
+        )
+        cbar.set_label(r"$\log_{10} C$, with $C = 6ND$", fontsize=fontsize, labelpad=14)
         idx = sorted({0, n_budgets // 3, (2 * n_budgets) // 3, n_budgets - 1})
         cbar.set_ticks([i + 0.5 for i in idx])
         cbar.set_ticklabels([f"{log_c[i]:.1f}" for i in idx])
         cbar.ax.tick_params(labelsize=fontsize - 4)
+        # Only the design styles and the holdout points, outside the axes; the caption explains the
+        # residual bars.
+        if main_leg is not None:
+            main_leg.remove()
+        keep = {"CO", "NC", "Holdout"}
+        handles, labels = ax.get_legend_handles_labels()
+        pairs = [(h, lab) for h, lab in zip(handles, labels) if lab in keep]
+        ax.legend(
+            [h for h, _ in pairs],
+            [lab for _, lab in pairs],
+            loc="upper center",
+            bbox_to_anchor=(0.5, -0.2),
+            ncol=len(pairs),
+            fontsize=legend_fontsize,
+            frameon=False,
+        )
         if style_legends_fn is not None:
             style_legends_fn(ax)
         return
